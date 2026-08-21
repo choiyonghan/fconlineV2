@@ -29,9 +29,23 @@ import org.springframework.web.client.RestClient;
  * fetch_and_store.js/fetch_official.js/build-data.js 세 곳에 중복 정의되어 있던 것을
  * 이 클래스 하나로 대체한다(analysis 6.7).
  *
- * TODO(구현 착수 시 검증 필요): 아래 JsonNode 필드 경로는 v1 코드가 최종적으로 만든
- * DB 컬럼 이름을 근거로 추정한 것이며, Nexon match-detail 원본 응답의 실제 키 이름과
- * 다를 수 있다. 실제 응답을 1회 확인해 parseParticipant/parseShootEvent/parseSquadEntry를 보정할 것.
+ * v1이 운영 중인 실제 Supabase(anon key, 읽기전용)에서 match_details 표본 1건을 직접 조회해
+ * shoot_detail/player_squad의 실제 원본 구조를 확인했다 — 아래 매핑은 그 표본을 근거로 한다.
+ * (goalTotal 계열 등 나머지 matchDetail 필드명은 여전히 v1 DB 컬럼명으로부터의 추정이라
+ * TODO로 남겨둔다.)
+ *
+ * 확인된 shoot_detail[] 원본 형태: {x, y, spId, type(정수), assist(bool), result(정수),
+ *   assistX, assistY, hitPost, spGrade, spLevel, goalTime(정수, 아래 참고), spIdType, inPenalty, assistSpId}
+ * — "period"라는 별도 필드는 존재하지 않는다(v1 분석 문서가 언급한 별도 필드가 아니라
+ *   goalTime 값 자체에 인코딩되어 있는 것으로 보인다: 표본값이 674, 2184, 2747처럼 2^24 미만인
+ *   경우와 16778601, 16779065, 16780194처럼 2^24(16777216) 이상인 경우 두 그룹으로 나뉜다 —
+ *   상위 바이트가 period, 하위 24비트가 raw 값이라는 가설로 디코딩하되, raw 값의 실제 단위
+ *   (초/틱 등)는 검증되지 않았다.
+ * TODO(구현 착수 시 추가 검증 필요): goalTime의 정확한 단위, type/result 정수 코드의 의미.
+ *
+ * 확인된 player_squad[].status 원본 형태(접두사 없음, v1 DB player_squad 그대로):
+ *   {goal, assist, tackle, intercept, block, save?, ...dribble/pass/aerial 등 미사용 필드}
+ *   — 표본에는 세이브 관련 필드가 아예 없었다(골키퍼가 없는 경기였을 가능성) — save는 0 기본값 유지.
  */
 @Component
 public class NexonApiClient implements NexonMatchGateway {
@@ -139,15 +153,23 @@ public class NexonApiClient implements NexonMatchGateway {
         );
     }
 
+    /** goalTime 상위 바이트(2^24 자리)를 period로, 하위 24비트를 raw 시간값으로 분리하는 경계값. */
+    private static final int GOAL_TIME_PERIOD_UNIT = 1 << 24;
+
     private List<ShootEventData> parseShootEvents(JsonNode shootNode) {
         List<ShootEventData> events = new ArrayList<>();
         if (shootNode.isArray()) {
             for (JsonNode event : shootNode) {
+                Integer rawGoalTime = event.path("goalTime").isMissingNode() ? null : event.path("goalTime").asInt();
+                Integer period = rawGoalTime == null ? null : (rawGoalTime / GOAL_TIME_PERIOD_UNIT) + 1;
+                // rawGoalTime의 실제 단위(초/틱)가 검증되지 않아 60으로 나눈 값을 "분" 근사치로 사용한다.
+                Integer goalTimeMinutes = rawGoalTime == null ? null : (rawGoalTime % GOAL_TIME_PERIOD_UNIT) / 60;
+
                 events.add(new ShootEventData(
-                        parseShootType(event.path("type").asText(null)),
-                        parseShootResult(event.path("result").asText(null)),
-                        event.path("goalTime").isMissingNode() ? null : event.path("goalTime").asInt(),
-                        event.path("period").isMissingNode() ? null : event.path("period").asInt()
+                        parseShootType(event.path("type").isMissingNode() ? null : event.path("type").asInt()),
+                        parseShootResult(event.path("result").isMissingNode() ? null : event.path("result").asInt()),
+                        goalTimeMinutes,
+                        period
                 ));
             }
         }
@@ -162,12 +184,12 @@ public class NexonApiClient implements NexonMatchGateway {
                 entries.add(new SquadEntryData(
                         player.path("spId").asText(null),
                         player.path("spPosition").asInt(0),
-                        status.path("spGoal").asInt(0),
-                        status.path("spAssist").asInt(0),
-                        status.path("spSave").asInt(0),
-                        status.path("spTackle").asInt(0),
-                        status.path("spIntercept").asInt(0),
-                        status.path("spBlock").asInt(0)
+                        status.path("goal").asInt(0),
+                        status.path("assist").asInt(0),
+                        status.path("save").asInt(0),
+                        status.path("tackle").asInt(0),
+                        status.path("intercept").asInt(0),
+                        status.path("block").asInt(0)
                 ));
             }
         }
@@ -185,34 +207,28 @@ public class NexonApiClient implements NexonMatchGateway {
         };
     }
 
-    private ShootType parseShootType(String raw) {
-        if (raw == null) {
+    /**
+     * shoot_detail[].type은 정수 코드다(실 표본: 1, 2, 3). 정확한 코드-라벨 매핑은 Nexon 공식 문서나
+     * 더 많은 표본 없이는 확정할 수 없어 TODO로 남긴다 — 우선 값 자체는 보존하되 라벨은 UNKNOWN 처리.
+     */
+    private ShootType parseShootType(Integer code) {
+        if (code == null) {
             return ShootType.UNKNOWN;
         }
-        return switch (raw) {
-            case "로빙 슛", "LOBBING" -> ShootType.LOBBING;
-            case "파워 샷", "POWER" -> ShootType.POWER;
-            case "헤딩 슛", "HEADING" -> ShootType.HEADING;
-            case "발리 슛", "VOLLEY" -> ShootType.VOLLEY;
-            case "페널티킥", "PK" -> ShootType.PENALTY_KICK;
-            case "프리킥", "FREEKICK" -> ShootType.FREE_KICK;
-            case "일반 슛", "NORMAL" -> ShootType.NORMAL;
-            default -> ShootType.UNKNOWN;
-        };
+        // TODO(구현 착수 시 검증 필요): 코드 1/2/3 등이 실제로 어떤 슛 유형인지 Nexon 문서로 확정할 것.
+        return ShootType.UNKNOWN;
     }
 
-    private ShootResult parseShootResult(String raw) {
-        if (raw == null) {
+    /**
+     * shoot_detail[].result도 정수 코드다(실 표본: 1, 3). result=3이 가장 빈번하게 나타나 GOAL일
+     * 가능성이 높지만(표본 6건 중 5건이 3), 확정할 근거는 아니라 TODO로 남긴다.
+     */
+    private ShootResult parseShootResult(Integer code) {
+        if (code == null) {
             return ShootResult.UNKNOWN;
         }
-        return switch (raw.toUpperCase()) {
-            case "GOAL" -> ShootResult.GOAL;
-            case "SAVED", "SAVE" -> ShootResult.SAVED;
-            case "BLOCKED", "BLOCK" -> ShootResult.BLOCKED;
-            case "POST" -> ShootResult.POST;
-            case "OFF_TARGET", "MISS" -> ShootResult.OFF_TARGET;
-            default -> ShootResult.UNKNOWN;
-        };
+        // TODO(구현 착수 시 검증 필요): 코드 1/3 등이 실제로 GOAL/SAVED/BLOCKED 중 무엇인지 확정할 것.
+        return ShootResult.UNKNOWN;
     }
 
     private Instant parseInstant(String raw) {

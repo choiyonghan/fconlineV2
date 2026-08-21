@@ -1,16 +1,16 @@
 package com.fconline.infrastructure.persistence.match;
 
-import com.fconline.domain.match.GoalTypeCount;
+import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.MatchDetail;
-import com.fconline.domain.match.MatchDetailRepositoryCustom;
-import com.fconline.domain.match.MatchStatsSummary;
-import com.fconline.domain.match.MatchTally;
-import com.fconline.domain.match.OpponentTally;
+import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
+import com.fconline.domain.match.vo.MatchStatsSummary;
+import com.fconline.domain.match.vo.MatchTally;
+import com.fconline.domain.match.vo.OpponentTally;
 import com.fconline.domain.match.QMatch;
 import com.fconline.domain.match.QMatchDetail;
 import com.fconline.domain.match.QShootEvent;
 import com.fconline.domain.match.QSquadEntry;
-import com.fconline.domain.match.TopPlayerStat;
+import com.fconline.domain.match.vo.TopPlayerStat;
 import com.fconline.domain.match.vo.MatchResult;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.ShootResult;

@@ -2,7 +2,7 @@ package com.fconline.infrastructure.meta;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fconline.domain.meta.PlayerMeta;
-import com.fconline.domain.meta.PlayerMetaRepository;
+import com.fconline.domain.meta.repository.PlayerMetaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

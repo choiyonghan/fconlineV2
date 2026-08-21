@@ -3,9 +3,15 @@ spring:
     name: fconline-backend
 
   datasource:
-    url: ${SUPABASE_JDBC_URL:jdbc:postgresql://localhost:5432/fconline}
+    # v1(choiyonghan/fconline) 프로젝트의 Supabase 프로젝트 ref(jwqhpdtizrpyohlrqfgu)로
+    # 만든 기본 직접연결 호스트. v1 저장소(app.js/official.js)에는 SUPABASE_URL과 anon key만
+    # 공개되어 있고(브라우저용, 정상), 실제 DB 접속 비밀번호는 어디에도 커밋되어 있지 않다
+    # (GitHub Actions Secrets로만 주입됨 — 정상적인 설계). 아래 SUPABASE_JDBC_URL 기본값은
+    # 호스트만 맞춰둔 것이고, SUPABASE_DB_PASSWORD는 반드시 직접 넣어야 한다
+    # (Supabase 대시보드 → Project Settings → Database → Connection string에서 확인/재발급).
+    url: ${SUPABASE_JDBC_URL:jdbc:postgresql://db.jwqhpdtizrpyohlrqfgu.supabase.co:5432/postgres}
     username: ${SUPABASE_DB_USER:postgres}
-    password: ${SUPABASE_DB_PASSWORD:postgres}
+    password: ${SUPABASE_DB_PASSWORD:}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
 
