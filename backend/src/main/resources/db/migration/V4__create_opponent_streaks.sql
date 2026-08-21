@@ -6,7 +6,7 @@ CREATE TABLE opponent_streaks (
     id            BIGSERIAL   PRIMARY KEY,
     ouid          VARCHAR(64) NOT NULL,
     opponent_ouid VARCHAR(64) NOT NULL,
-    match_type    SMALLINT    NOT NULL,
+    match_type    INTEGER     NOT NULL,
     season_id     BIGINT      NOT NULL REFERENCES seasons (id),
     cur_win       INTEGER     NOT NULL DEFAULT 0,
     cur_lose      INTEGER     NOT NULL DEFAULT 0,

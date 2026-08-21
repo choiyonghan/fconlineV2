@@ -5,7 +5,7 @@
 CREATE TABLE matches (
     match_id   VARCHAR(64) PRIMARY KEY,
     match_date TIMESTAMPTZ NOT NULL,
-    match_type SMALLINT    NOT NULL,
+    match_type INTEGER     NOT NULL,
     CONSTRAINT ck_matches_match_type CHECK (match_type IN (40, 50))
 );
 
