@@ -1,0 +1,9 @@
+# GitHub Actions cron 배치 실행 전용 프로파일.
+# 사용: java -jar app.jar --spring.profiles.active=sync --sync.match-type=CUSTOM
+spring:
+  main:
+    web-application-type: none
+    banner-mode: off
+  datasource:
+    hikari:
+      maximum-pool-size: 3

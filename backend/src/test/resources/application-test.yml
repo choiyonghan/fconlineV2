@@ -1,0 +1,18 @@
+# Docker 없이 빠르게 도는 컨텍스트 로드 스모크 테스트 전용 프로파일.
+# H2로 JPA 엔티티 매핑 자체의 구조적 유효성(애노테이션 오류, 연관관계 오류 등)만 검증한다.
+# Flyway 마이그레이션(Postgres 전용 문법 포함)의 실제 검증은 Testcontainers-Postgres로 별도 수행할 것.
+spring:
+  datasource:
+    url: jdbc:h2:mem:fconline_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+nexon:
+  api:
+    base-url: http://localhost:0
+    keys: dummy-test-key

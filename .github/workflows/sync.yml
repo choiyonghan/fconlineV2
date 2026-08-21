@@ -1,0 +1,61 @@
+name: Sync Match Data
+
+# v1은 update.yml/official_pipeline.yml 두 워크플로우가 같은 시각에 동시 시작해
+# 같은 Nexon 키와 같은 테이블에 경합했다(analysis 5절). matrix + 5분 시차로 회피한다.
+on:
+  schedule:
+    - cron: '15 0,6,12,18 * * *' # KST 03:15 / 09:15 / 15:15 / 21:15
+  workflow_dispatch:
+    inputs:
+      matchType:
+        description: '동기화할 매치 타입 (비우면 CUSTOM+OFFICIAL 둘 다)'
+        required: false
+        type: choice
+        options: ['', CUSTOM, OFFICIAL]
+
+concurrency:
+  group: sync-${{ github.event.inputs.matchType || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - matchType: CUSTOM
+            delaySeconds: 0
+          - matchType: OFFICIAL
+            delaySeconds: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build backend jar
+        run: ./gradlew :backend:bootJar --console=plain
+
+      - name: Wait to avoid API key contention
+        if: matrix.delaySeconds > 0
+        run: sleep ${{ matrix.delaySeconds }}
+
+      - name: Run sync (${{ matrix.matchType }})
+        if: github.event.inputs.matchType == '' || github.event.inputs.matchType == matrix.matchType
+        env:
+          SPRING_PROFILES_ACTIVE: sync
+          SYNC_MATCH_TYPE: ${{ matrix.matchType }}
+          SUPABASE_JDBC_URL: ${{ secrets.SUPABASE_JDBC_URL }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          NEXON_API_KEY: ${{ secrets.NEXON_API_KEY }}
+          NEXON_API_KEY_2: ${{ secrets.NEXON_API_KEY_2 }}
+          NEXON_API_KEY_3: ${{ secrets.NEXON_API_KEY_3 }}
+        run: |
+          java -jar backend/build/libs/*.jar \
+            --spring.profiles.active=sync \
+            --sync.match-type=${{ matrix.matchType }}

@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+out/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+*.local.yml
+
+# Logs
+*.log
+
+# Node / SvelteKit (apps/web)
+apps/web/node_modules/
+apps/web/.svelte-kit/
+apps/web/build/
+apps/web/dist/
+apps/web/.env
+apps/web/.env.*
