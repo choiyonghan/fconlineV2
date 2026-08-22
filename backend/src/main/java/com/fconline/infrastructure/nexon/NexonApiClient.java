@@ -124,6 +124,7 @@ public class NexonApiClient implements NexonMatchGateway {
         // goalTotal/passTry/tackleTry 등이 항상 0으로 저장되고 있었다).
         JsonNode matchDetail = self.path("matchDetail");
         JsonNode shoot = self.path("shoot");
+        JsonNode opponentShoot = opponent.path("shoot");
         JsonNode pass = self.path("pass");
         JsonNode defence = self.path("defence");
 
@@ -135,8 +136,11 @@ public class NexonApiClient implements NexonMatchGateway {
                 matchDetail.path("controller").asText(null),
                 matchDetail.path("averageRating").isMissingNode() ? null : matchDetail.path("averageRating").asDouble(),
                 shoot.path("goalTotal").asInt(0),
-                shoot.path("goalTotalDisplay").isMissingNode() ? shoot.path("goalTotal").asInt(0)
-                        : shoot.path("goalTotalDisplay").asInt(0),
+                // goalsAgainst = 상대방이 넣은 골 수다. self의 shoot(자기 자신 스탯)에서 읽으면
+                // 항상 goalsFor와 거의 같은 값이 나와 실제 결과(승/무/패)와 모순되는 스코어가
+                // 저장된다 — 반드시 opponent의 shoot 객체에서 읽어야 한다.
+                opponentShoot.path("goalTotalDisplay").isMissingNode() ? opponentShoot.path("goalTotal").asInt(0)
+                        : opponentShoot.path("goalTotalDisplay").asInt(0),
                 shoot.path("shootTotal").asInt(0),
                 shoot.path("effectiveShootTotal").asInt(0),
                 shoot.path("goalInPenalty").asInt(0),
