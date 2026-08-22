@@ -1,6 +1,7 @@
 package com.fconline.app.common.exception;
 
 import com.fconline.domain.shared.exception.DomainException;
+import com.fconline.domain.shared.exception.GeminiApiException;
 import com.fconline.domain.shared.exception.NexonApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,13 @@ public class GlobalExceptionHandler {
         log.error("Nexon API 연동 오류", e);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(ApiErrorResponse.of("NEXON_API_ERROR", e.getMessage()));
+    }
+
+    @ExceptionHandler(GeminiApiException.class)
+    public ResponseEntity<ApiErrorResponse> handleGeminiApiException(GeminiApiException e) {
+        log.error("Gemini API 연동 오류", e);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(ApiErrorResponse.of("GEMINI_API_ERROR", e.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -74,6 +74,7 @@ export NEXON_API_KEY_3=...   # 선택
 export NEXON_API_KEY_4=...   # 선택
 export NEXON_API_KEY_5=...   # 선택
 export NEXON_API_KEY_6=...   # 선택
+export GEMINI_API_KEY=...    # 선택 — /api/v1/insights/ask(자연어 질문 분석)용, Google AI Studio 무료 티어 키
 export APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
 # SUPABASE_JDBC_URL / SUPABASE_DB_USER은 기본값(위 참고)을 쓰지 않을 때만 재정의
 

@@ -57,6 +57,13 @@ nexon:
     keys: ${NEXON_API_KEY:},${NEXON_API_KEY_2:},${NEXON_API_KEY_3:},${NEXON_API_KEY_4:},${NEXON_API_KEY_5:},${NEXON_API_KEY_6:}
     request-delay-ms: ${NEXON_API_REQUEST_DELAY_MS:300}
 
+gemini:
+  api:
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    key: ${GEMINI_API_KEY:}
+    # 무료 티어로 쓰기 좋은 가성비 모델. 필요하면 GEMINI_MODEL로 다른 모델 지정 가능.
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+
 sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}
   match-fetch-limit: ${SYNC_MATCH_FETCH_LIMIT:100}

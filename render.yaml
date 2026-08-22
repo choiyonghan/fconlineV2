@@ -27,6 +27,9 @@ services:
         sync: false
       - key: NEXON_API_KEY_6
         sync: false
+      # 자연어 질문 분석(/api/v1/insights/ask)용 — Google AI Studio 무료 티어 키.
+      - key: GEMINI_API_KEY
+        sync: false
       # GitHub Pages 프론트(apps/web)만 브라우저에서 이 백엔드를 호출할 수 있게 허용한다.
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://choiyonghan.github.io

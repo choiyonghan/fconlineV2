@@ -1,8 +1,10 @@
 package com.fconline.infrastructure.config;
 
+import com.fconline.infrastructure.gemini.GeminiApiProperties;
 import com.fconline.infrastructure.nexon.NexonApiProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 @Configuration
@@ -24,6 +26,14 @@ public class RestClientConfig {
         String root = properties.baseUrl().replaceFirst("/fconline/v1/?$", "");
         return RestClient.builder()
                 .baseUrl(root)
+                .build();
+    }
+
+    @Bean
+    public RestClient geminiRestClient(GeminiApiProperties properties) {
+        return RestClient.builder()
+                .baseUrl(properties.baseUrl())
+                .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
 }
