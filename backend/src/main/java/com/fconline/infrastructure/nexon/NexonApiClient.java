@@ -162,7 +162,8 @@ public class NexonApiClient implements NexonMatchGateway {
                 parseShootEvents(self.path("shootDetail")),
                 parseSquadEntries(self.path("player")),
                 rawJsonOrNull(self.path("shootDetail")),
-                rawJsonOrNull(self.path("player"))
+                rawJsonOrNull(self.path("player")),
+                self.toString()
         );
     }
 

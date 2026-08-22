@@ -42,7 +42,9 @@ public record NexonParticipantData(
         List<SquadEntryData> squadEntries,
         /** shootDetail[]/player[] 원본 그대로 (jsonb 백업 컬럼용). 없으면 null. */
         String shootDetailRaw,
-        String playerSquadRaw
+        String playerSquadRaw,
+        /** 참가자 원소(self) 전체 원본 — matchDetail/shoot/pass/defence 등 미매핑 필드까지 포함. */
+        String rawParticipant
 ) {
     public record ShootEventData(ShootType shootType, ShootResult result, Integer goalTimeMinutes, Integer period,
                                   String spId, Integer spGrade, Integer spLevel, Boolean loaned,

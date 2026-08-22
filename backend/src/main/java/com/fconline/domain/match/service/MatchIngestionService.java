@@ -71,7 +71,7 @@ public class MatchIngestionService {
 
         MatchDetail detail = MatchDetail.of(match, participant.ouid(), participant.opponentOuid(),
                 participant.opponentNickname(), participant.result(), stats,
-                participant.shootDetailRaw(), participant.playerSquadRaw());
+                participant.shootDetailRaw(), participant.playerSquadRaw(), participant.rawParticipant());
 
         participant.shootEvents().forEach(event -> detail.addShootEvent(
                 ShootEvent.of(detail, event.shootType(), event.result(), event.goalTimeMinutes(), event.period(),

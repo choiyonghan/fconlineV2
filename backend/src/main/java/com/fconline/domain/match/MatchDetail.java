@@ -77,6 +77,15 @@ public class MatchDetail {
     @Column(name = "player_squad")
     private String playerSquadRaw;
 
+    /**
+     * 참가자 원소(self) 전체 원본 — matchDetail/shoot/shootDetail/pass/defence/player 전부 포함.
+     * shoot_detail/player_squad와 내용이 겹치지만, division/matchEndType/cornerKick/pass 세부
+     * 성공률처럼 어느 컬럼으로도 매핑 안 된 필드까지 이 컬럼 하나로 완전히 복구 가능하다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "raw_participant")
+    private String rawParticipant;
+
     @OneToMany(mappedBy = "matchDetail", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ShootEvent> shootEvents = new ArrayList<>();
 
@@ -84,7 +93,8 @@ public class MatchDetail {
     private List<SquadEntry> squadEntries = new ArrayList<>();
 
     public static MatchDetail of(Match match, String ouid, String opponentOuid, String opponentNickname,
-                                  MatchResult result, MatchStats stats, String shootDetailRaw, String playerSquadRaw) {
+                                  MatchResult result, MatchStats stats, String shootDetailRaw, String playerSquadRaw,
+                                  String rawParticipant) {
         MatchDetail detail = new MatchDetail();
         detail.match = match;
         detail.ouid = ouid;
@@ -94,6 +104,7 @@ public class MatchDetail {
         detail.stats = stats;
         detail.shootDetailRaw = shootDetailRaw;
         detail.playerSquadRaw = playerSquadRaw;
+        detail.rawParticipant = rawParticipant;
         return detail;
     }
 
