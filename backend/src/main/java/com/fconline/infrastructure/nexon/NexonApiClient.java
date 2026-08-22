@@ -160,8 +160,15 @@ public class NexonApiClient implements NexonMatchGateway {
                 matchDetail.path("redCards").asInt(0),
                 matchDetail.path("offsideCount").isMissingNode() ? null : matchDetail.path("offsideCount").asInt(),
                 parseShootEvents(self.path("shootDetail")),
-                parseSquadEntries(self.path("player"))
+                parseSquadEntries(self.path("player")),
+                rawJsonOrNull(self.path("shootDetail")),
+                rawJsonOrNull(self.path("player"))
         );
+    }
+
+    /** jsonb 백업 컬럼용 — 필드가 없으면 null(빈 배열 "[]"로 채우지 않는다), 있으면 원본 텍스트 그대로. */
+    private String rawJsonOrNull(JsonNode node) {
+        return node.isMissingNode() ? null : node.toString();
     }
 
     /** goalTime 상위 바이트(2^24 자리)를 period로, 하위 24비트를 raw 시간값으로 분리하는 경계값. */

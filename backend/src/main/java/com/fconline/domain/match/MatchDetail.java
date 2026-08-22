@@ -20,6 +20,8 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * 참가자 1명 관점의 경기 상세 — 실제로 무거운(rich) 애그리게잇 루트.
@@ -61,14 +63,28 @@ public class MatchDetail {
     @Embedded
     private MatchStats stats;
 
+    /**
+     * Nexon 응답의 shootDetail[]/player[] 원본을 그대로 보존한다 (v1의 shoot_detail/player_squad
+     * jsonb 컬럼과 같은 역할). shoot_events/squad_entries(정규화 테이블)는 집계 쿼리 성능을 위해
+     * 그대로 유지하고, 이 두 컬럼은 아직 매핑 안 한 필드·향후 응답에 추가되는 필드를 재동기화
+     * 없이 나중에 꺼내 쓰기 위한 원본 백업이다.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "shoot_detail")
+    private String shootDetailRaw;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "player_squad")
+    private String playerSquadRaw;
+
     @OneToMany(mappedBy = "matchDetail", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ShootEvent> shootEvents = new ArrayList<>();
 
     @OneToMany(mappedBy = "matchDetail", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SquadEntry> squadEntries = new ArrayList<>();
 
-    public static MatchDetail of(Match match, String ouid, String opponentOuid,
-                                  String opponentNickname, MatchResult result, MatchStats stats) {
+    public static MatchDetail of(Match match, String ouid, String opponentOuid, String opponentNickname,
+                                  MatchResult result, MatchStats stats, String shootDetailRaw, String playerSquadRaw) {
         MatchDetail detail = new MatchDetail();
         detail.match = match;
         detail.ouid = ouid;
@@ -76,6 +92,8 @@ public class MatchDetail {
         detail.opponentNickname = opponentNickname;
         detail.result = result;
         detail.stats = stats;
+        detail.shootDetailRaw = shootDetailRaw;
+        detail.playerSquadRaw = playerSquadRaw;
         return detail;
     }
 
