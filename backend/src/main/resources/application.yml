@@ -46,7 +46,7 @@ app:
 nexon:
   api:
     base-url: https://open.api.nexon.com/fconline/v1
-    keys: ${NEXON_API_KEY:},${NEXON_API_KEY_2:},${NEXON_API_KEY_3:}
+    keys: ${NEXON_API_KEY:},${NEXON_API_KEY_2:},${NEXON_API_KEY_3:},${NEXON_API_KEY_4:},${NEXON_API_KEY_5:},${NEXON_API_KEY_6:}
     request-delay-ms: ${NEXON_API_REQUEST_DELAY_MS:300}
 
 sync:

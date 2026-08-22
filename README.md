@@ -38,7 +38,7 @@ com.fconline
 - JDK 21
 - Node.js 20+ (`apps/web`)
 - PostgreSQL (기존 Supabase 프로젝트 그대로 사용 가능)
-- Nexon Open API 키 (최대 3개, https://openapi.nexon.com 에서 발급)
+- Nexon Open API 키 (최대 6개, https://openapi.nexon.com 에서 발급)
 
 ### DB 접속정보 — v1 저장소에서 확인한 것 / 확인 못한 것
 
@@ -69,8 +69,11 @@ v1(choiyonghan/fconline) 클론에서 `app.js`/`official.js`를 확인해 아래
 # 필수 환경변수
 export SUPABASE_DB_PASSWORD=...             # 위 "DB 접속정보" 참고 — 직접 채워야 함
 export NEXON_API_KEY=...
-export NEXON_API_KEY_2=...   # 선택 (있으면 429 내성 3배)
+export NEXON_API_KEY_2=...   # 선택 (있으면 429 내성 상승)
 export NEXON_API_KEY_3=...   # 선택
+export NEXON_API_KEY_4=...   # 선택
+export NEXON_API_KEY_5=...   # 선택
+export NEXON_API_KEY_6=...   # 선택
 export APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
 # SUPABASE_JDBC_URL / SUPABASE_DB_USER은 기본값(위 참고)을 쓰지 않을 때만 재정의
 
@@ -116,32 +119,26 @@ npm run dev
 
 `npm run build`는 `adapter-static`으로 완전 정적 SPA(`build/`)를 만든다 — GitHub Pages 등 어디에나 그대로 올릴 수 있다.
 
-## 구현 시 반드시 확인해야 하는 것 (TODO)
+## Nexon match-detail 매핑 (해결됨)
 
-v1 Supabase(anon key, 읽기전용)에서 `match_details` 표본을 직접 조회해 `shoot_detail`/`player_squad`의
-실제 원본 구조를 이미 확인했고(`NexonApiClient` 클래스 주석 참고), 그 결과로 아래 항목은 이미 고쳤다:
+v1 Supabase(anon key, 읽기전용) 표본 조회로 1차 구조를 확인한 뒤, Nexon 공식 match-detail API 문서로
+아래 항목을 전부 확정했다(`NexonApiClient` 클래스 주석 참고). 이전에 이 문서가 TODO로 남겨뒀던 4가지는
+전부 해결됐고, 그 과정에서 실제로는 코드가 잘못된 노드에서 값을 읽어 **매치당 골/슛/패스/태클 수가
+항상 0으로, 개별 슛 이벤트(`shoot_events`)는 아예 저장되지 않고 있던 버그**를 같이 발견해 고쳤다:
 
-- `player_squad[].status`의 필드는 `spGoal`/`spAssist`가 아니라 접두사 없는 `goal`/`assist`/`tackle`/
-  `intercept`/`block`이었다 — `parseSquadEntries` 수정 완료.
-- `shoot_detail[].type`/`result`는 문자열이 아니라 **정수 코드**였다 — `parseShootType`/`parseShootResult`가
-  `Integer`를 받도록 수정했지만, 코드가 실제로 어떤 슛 유형/결과를 의미하는지는 여전히 모른다(아래 참고).
-- `shoot_detail[]`에 별도 `period` 필드는 없다 — `goalTime` 값 자체가 period를 인코딩하고 있는 것으로
-  보여(표본값이 2^24 미만/이상 두 그룹으로 나뉨) 비트 분리 로직을 넣었다.
-
-**여전히 남은 것** (코드에 `TODO(구현 착수 시 검증 필요)`로 표시):
-
-1. **`shoot_detail[].type`/`result` 정수 코드의 실제 의미** — 표본 6건만으로는 코드 1/2/3(type), 1/3(result)이
-   각각 무엇을 뜻하는지 확정할 수 없다. 지금은 항상 `ShootType.UNKNOWN`/`ShootResult.UNKNOWN`을 반환하므로,
-   득점 유형별/시간대별 분포 API가 실제로는 빈 값을 낼 것이다. 더 많은 표본을 모으거나 Nexon 공식 문서를
-   확인해 `NexonApiClient.parseShootType/parseShootResult`의 매핑을 채울 것.
-2. **`goalTime`의 실제 단위** — `period = rawValue / 2^24 + 1`, `분 = (rawValue % 2^24) / 60`으로 근사
-   디코딩해뒀지만 이 나눗셈(60)의 근거가 없다 — 실제 단위(초/게임틱 등) 확인 필요.
-3. **`match_details.offside`** — v1 DB에는 이 컬럼이 없다(v1 프론트가 항상 0을 표시하던 버그, analysis 6.3).
-   v2는 컬럼을 만들어뒀지만, 실제 Nexon match-detail 응답에 필드가 있는지 확인 후 없다면 컬럼/응답 필드를
-   제거할 것.
-4. **`matchDetail.goalTotal` 등 나머지 스탯 필드명** — `parseParticipant`의 `shootTotal`/`passTry`/`foul`
-   등은 여전히 v1 DB 컬럼명을 근거로 한 추정이다(실제 조회한 표본은 스탯이 이미 DB에 저장된 형태였고,
-   Nexon 원본 응답의 필드명과 100% 같다는 보장은 없다).
+- **응답 구조**: `matchInfo[]` 원소당 통계가 `matchDetail`/`shoot`/`pass`/`defence`/`shootDetail`/`player`
+  6개 형제 객체로 나뉜다. 골/슛 집계는 `shoot`, 패스는 `pass`, 태클/블락은 `defence`에 있다 — 전부
+  `matchDetail`에서 읽던 예전 코드는 항상 0을 저장하고 있었다.
+- **개별 슛 리스트**: 실제 배열은 `shootDetail`이다(`shoot`은 집계 객체라 배열이 아님) — 예전 코드가
+  `shoot`을 가리켜 매 경기 슛 이벤트가 0건으로 저장되던 것을 고쳤다.
+- **`shootDetail[].type`/`result` 코드**: 공식 문서로 전체 표를 확정 (`ShootType`에 `FINESSE`/`FLARE`/`LOW`/
+  `KNUCKLE`/`BICYCLE_KICK` 추가, `ShootResult`는 온타겟/오프타겟/골 3종뿐이라 존재하지 않던 `SAVED`/
+  `BLOCKED`/`POST`는 제거).
+- **`goalTime` 인코딩**: `period = floor(raw / 2^24) + 1`, `기간 내 경과분 = (raw % 2^24) / 60` — 기존
+  비트 분리 로직이 공식 문서와 일치함을 확인, 그대로 유지.
+- **`offside`**: `matchDetail.offsideCount`가 실제 필드명이었다(`offside` 단독 필드는 없음) — 컬럼 제거
+  대신 필드명만 정정.
+- **`player_squad[].status`**: 접두사 없는 `goal`/`assist`/`tackle`/`intercept`/`block` — 기존에 이미 정정됨.
 
 ## 참고
 

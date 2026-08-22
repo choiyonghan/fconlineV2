@@ -8,17 +8,23 @@ package com.fconline.domain.match.vo;
  * v2는 이 enum이 유일한 라벨 출처이며, Nexon 응답의 원본 type 코드 → 이 enum 매핑은
  * NexonMatchGateway 구현체(infrastructure)에서 1회만 수행한다.
  *
- * TODO(구현 착수 시 검증 필요): Nexon match-detail shootDetail[].type의 실제 값 전체 목록을
- * 확인해 아래 매핑을 보정할 것 (v1 코드에 등장한 값만으로 우선 채워둠).
+ * Nexon 공식 문서(shootDetail[].type)로 코드 1~12 전체 매핑을 확정했다:
+ * 1 normal, 2 finesse, 3 header, 4 lob, 5 flare, 6 low, 7 volley,
+ * 8 free-kick, 9 penalty, 10 knuckle, 11 bicycle, 12 super.
  */
 public enum ShootType {
     NORMAL("일반 슛"),
-    LOBBING("로빙 슛"),
-    POWER("파워 샷"),
+    FINESSE("피네스 슛"),
     HEADING("헤딩 슛"),
+    LOBBING("로빙 슛"),
+    FLARE("플레어 슛"),
+    LOW("낮은 슛"),
     VOLLEY("발리 슛"),
-    PENALTY_KICK("페널티킥"),
     FREE_KICK("프리킥"),
+    PENALTY_KICK("페널티킥"),
+    KNUCKLE("무회전 슛"),
+    BICYCLE_KICK("바이시클킥"),
+    POWER("파워 샷"),
     UNKNOWN("기타");
 
     private final String label;

@@ -2,13 +2,12 @@ package com.fconline.domain.match.vo;
 
 /**
  * 슛 시도의 결과. GOAL만 득점 유형/시간대 분포 집계에 실제로 쓰인다.
- * TODO(구현 착수 시 검증 필요): Nexon shootDetail[].result 실제 값 목록으로 보정할 것.
+ * Nexon 공식 문서로 shootDetail[].result 코드가 3종(1 ontarget, 2 offtarget, 3 goal)뿐임을
+ * 확정했다 — 코드가 주지 않는 SAVED/BLOCKED/POST는 제거했다(어디에서도 참조되지 않았음).
  */
 public enum ShootResult {
-    GOAL,
-    SAVED,
-    BLOCKED,
+    ON_TARGET,
     OFF_TARGET,
-    POST,
+    GOAL,
     UNKNOWN
 }

@@ -9,8 +9,7 @@ import java.util.List;
  * Nexon match-detail 응답 중 참가자 1명 시점으로 이미 가공된 데이터.
  * 원본 JSON → 이 레코드로의 매핑(필드명, ShootType/ShootResult 분류)은
  * infrastructure.nexon의 게이트웨이 구현체 책임이다 — v1의 detailPayload 매핑이 여기 해당한다.
- *
- * TODO(구현 착수 시 검증 필요): 실제 Nexon 응답 필드명/シ 유형 코드 확인 후 매핑 보정.
+ * 필드명/코드 매핑은 Nexon 공식 match-detail API 문서로 확정했다(NexonApiClient 클래스 주석 참고).
  */
 public record NexonParticipantData(
         String ouid,
@@ -42,7 +41,10 @@ public record NexonParticipantData(
         List<ShootEventData> shootEvents,
         List<SquadEntryData> squadEntries
 ) {
-    public record ShootEventData(ShootType shootType, ShootResult result, Integer goalTimeMinutes, Integer period) {
+    public record ShootEventData(ShootType shootType, ShootResult result, Integer goalTimeMinutes, Integer period,
+                                  String spId, Integer spGrade, Integer spLevel, Boolean loaned,
+                                  Double x, Double y, Boolean assist, String assistSpId,
+                                  Double assistX, Double assistY, Boolean hitPost, Boolean inPenalty) {
     }
 
     public record SquadEntryData(String spId, int spPosition, int goal, int assist,

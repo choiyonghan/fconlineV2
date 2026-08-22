@@ -55,6 +55,9 @@ jobs:
           NEXON_API_KEY: ${{ secrets.NEXON_API_KEY }}
           NEXON_API_KEY_2: ${{ secrets.NEXON_API_KEY_2 }}
           NEXON_API_KEY_3: ${{ secrets.NEXON_API_KEY_3 }}
+          NEXON_API_KEY_4: ${{ secrets.NEXON_API_KEY_4 }}
+          NEXON_API_KEY_5: ${{ secrets.NEXON_API_KEY_5 }}
+          NEXON_API_KEY_6: ${{ secrets.NEXON_API_KEY_6 }}
         run: |
           java -jar backend/build/libs/*.jar \
             --spring.profiles.active=sync \

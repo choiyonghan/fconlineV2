@@ -54,14 +54,69 @@ public class ShootEvent {
     @Column(name = "period")
     private Integer period;
 
+    /** 슈팅 선수 고유 식별자 (/metadata/spid API 참고). */
+    @Column(name = "sp_id", length = 32)
+    private String spId;
+
+    @Column(name = "sp_grade")
+    private Integer spGrade;
+
+    @Column(name = "sp_level")
+    private Integer spLevel;
+
+    /** 슈팅 선수 임대 여부 (Nexon 응답 필드명: spIdType). */
+    @Column(name = "loaned")
+    private Boolean loaned;
+
+    @Column(name = "x")
+    private Double x;
+
+    @Column(name = "y")
+    private Double y;
+
+    /** 어시스트 받은 골 여부. */
+    @Column(name = "assist")
+    private Boolean assist;
+
+    /** 어시스트 선수 고유 식별자. 어시스트 없으면 null(원본은 -1 센티널). */
+    @Column(name = "assist_sp_id", length = 32)
+    private String assistSpId;
+
+    @Column(name = "assist_x")
+    private Double assistX;
+
+    @Column(name = "assist_y")
+    private Double assistY;
+
+    @Column(name = "hit_post")
+    private Boolean hitPost;
+
+    @Column(name = "in_penalty")
+    private Boolean inPenalty;
+
     public static ShootEvent of(MatchDetail matchDetail, ShootType shootType, ShootResult result,
-                                 Integer goalTimeMinutes, Integer period) {
+                                 Integer goalTimeMinutes, Integer period, String spId, Integer spGrade,
+                                 Integer spLevel, Boolean loaned, Double x, Double y, Boolean assist,
+                                 String assistSpId, Double assistX, Double assistY, Boolean hitPost,
+                                 Boolean inPenalty) {
         ShootEvent event = new ShootEvent();
         event.matchDetail = matchDetail;
         event.shootType = shootType;
         event.result = result;
         event.goalTimeMinutes = goalTimeMinutes;
         event.period = period;
+        event.spId = spId;
+        event.spGrade = spGrade;
+        event.spLevel = spLevel;
+        event.loaned = loaned;
+        event.x = x;
+        event.y = y;
+        event.assist = assist;
+        event.assistSpId = assistSpId;
+        event.assistX = assistX;
+        event.assistY = assistY;
+        event.hitPost = hitPost;
+        event.inPenalty = inPenalty;
         return event;
     }
 }

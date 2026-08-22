@@ -30,20 +30,17 @@ import org.springframework.web.client.RestClient;
  * 이 클래스 하나로 대체한다(analysis 6.7).
  *
  * v1이 운영 중인 실제 Supabase(anon key, 읽기전용)에서 match_details 표본 1건을 직접 조회해
- * shoot_detail/player_squad의 실제 원본 구조를 확인했다 — 아래 매핑은 그 표본을 근거로 한다.
- * (goalTotal 계열 등 나머지 matchDetail 필드명은 여전히 v1 DB 컬럼명으로부터의 추정이라
- * TODO로 남겨둔다.)
+ * shoot_detail/player_squad의 실제 원본 구조를 1차로 확인했고, 이후 Nexon 공식 match-detail
+ * API 문서로 필드명/코드표를 전부 확정했다 (matchInfo[].{matchDetail,shoot,pass,defence,shootDetail,player}
+ * 5개 형제 객체로 통계가 나뉘어 있다는 것과 shootDetail[].type/result 코드 전체 목록 포함).
  *
- * 확인된 shoot_detail[] 원본 형태: {x, y, spId, type(정수), assist(bool), result(정수),
- *   assistX, assistY, hitPost, spGrade, spLevel, goalTime(정수, 아래 참고), spIdType, inPenalty, assistSpId}
- * — "period"라는 별도 필드는 존재하지 않는다(v1 분석 문서가 언급한 별도 필드가 아니라
- *   goalTime 값 자체에 인코딩되어 있는 것으로 보인다: 표본값이 674, 2184, 2747처럼 2^24 미만인
- *   경우와 16778601, 16779065, 16780194처럼 2^24(16777216) 이상인 경우 두 그룹으로 나뉜다 —
- *   상위 바이트가 period, 하위 24비트가 raw 값이라는 가설로 디코딩하되, raw 값의 실제 단위
- *   (초/틱 등)는 검증되지 않았다.
- * TODO(구현 착수 시 추가 검증 필요): goalTime의 정확한 단위, type/result 정수 코드의 의미.
+ * goalTime 인코딩: 상위 비트가 period(2^24 단위, floor(raw/2^24)+1 = 1~5), 하위 24비트가
+ * 해당 period 시작 시점부터의 경과 초(raw % 2^24)다 — 이 클래스는 이를 그대로
+ * (period, 경과분) 두 컬럼으로 나눠 저장한다(공식 문서는 여기에 45/90/105/120분을 더해
+ * "매치 전체 기준 경과초"로 합치는 방식을 안내하지만, period 컬럼이 이미 별도로 있어
+ * 정규화 관점에서 더하지 않는 쪽을 택했다).
  *
- * 확인된 player_squad[].status 원본 형태(접두사 없음, v1 DB player_squad 그대로):
+ * player_squad[].status 원본 형태(접두사 없음, v1 DB player_squad 그대로):
  *   {goal, assist, tackle, intercept, block, save?, ...dribble/pass/aerial 등 미사용 필드}
  *   — 표본에는 세이브 관련 필드가 아예 없었다(골키퍼가 없는 경기였을 가능성) — save는 0 기본값 유지.
  */
@@ -118,37 +115,44 @@ public class NexonApiClient implements NexonMatchGateway {
     }
 
     private NexonParticipantData parseParticipant(JsonNode self, JsonNode opponent) {
-        JsonNode detail = self.path("matchDetail");
+        // Nexon match-detail 응답은 참가자당 matchDetail/shoot/pass/defence 4개의 형제 객체로
+        // 통계를 나눠 담는다 — 하나의 "detail" 객체에 다 들어있는 게 아니다. 각 필드가 실제로
+        // 어느 객체에 속하는지는 공식 API 문서로 확정했다(예전엔 전부 matchDetail에서 읽어
+        // goalTotal/passTry/tackleTry 등이 항상 0으로 저장되고 있었다).
+        JsonNode matchDetail = self.path("matchDetail");
+        JsonNode shoot = self.path("shoot");
+        JsonNode pass = self.path("pass");
+        JsonNode defence = self.path("defence");
 
         return new NexonParticipantData(
                 self.path("ouid").asText(null),
                 opponent.path("ouid").asText(null),
                 opponent.path("nickname").asText(null),
-                parseResult(detail.path("matchResult").asText(null)),
-                detail.path("controller").asText(null),
-                detail.path("averageRating").isMissingNode() ? null : detail.path("averageRating").asDouble(),
-                detail.path("goalTotal").asInt(0),
-                detail.path("goalTotalDisplay").isMissingNode() ? opponent.path("matchDetail").path("goalTotal").asInt(0)
-                        : detail.path("goalTotalDisplay").asInt(0),
-                detail.path("shootTotal").asInt(0),
-                detail.path("shootEffective").asInt(0),
-                detail.path("goalInPenalty").asInt(0),
-                detail.path("goalOutPenalty").asInt(0),
-                detail.path("shootHeading").asInt(0),
-                detail.path("ownGoal").asInt(0),
-                detail.path("possession").asInt(0),
-                detail.path("passTry").asInt(0),
-                detail.path("passSuccess").asInt(0),
-                detail.path("shortPassTry").asInt(0),
-                detail.path("throughPassTry").asInt(0),
-                detail.path("throughPassSuccess").asInt(0),
-                detail.path("tackleTry").asInt(0),
-                detail.path("tackleSuccess").asInt(0),
-                detail.path("foul").asInt(0),
-                detail.path("yellowCards").asInt(0),
-                detail.path("redCards").asInt(0),
-                detail.path("offside").isMissingNode() ? null : detail.path("offside").asInt(),
-                parseShootEvents(self.path("shoot")),
+                parseResult(matchDetail.path("matchResult").asText(null)),
+                matchDetail.path("controller").asText(null),
+                matchDetail.path("averageRating").isMissingNode() ? null : matchDetail.path("averageRating").asDouble(),
+                shoot.path("goalTotal").asInt(0),
+                shoot.path("goalTotalDisplay").isMissingNode() ? shoot.path("goalTotal").asInt(0)
+                        : shoot.path("goalTotalDisplay").asInt(0),
+                shoot.path("shootTotal").asInt(0),
+                shoot.path("effectiveShootTotal").asInt(0),
+                shoot.path("goalInPenalty").asInt(0),
+                shoot.path("goalOutPenalty").asInt(0),
+                shoot.path("shootHeading").asInt(0),
+                shoot.path("ownGoal").asInt(0),
+                matchDetail.path("possession").asInt(0),
+                pass.path("passTry").asInt(0),
+                pass.path("passSuccess").asInt(0),
+                pass.path("shortPassTry").asInt(0),
+                pass.path("throughPassTry").asInt(0),
+                pass.path("throughPassSuccess").asInt(0),
+                defence.path("tackleTry").asInt(0),
+                defence.path("tackleSuccess").asInt(0),
+                matchDetail.path("foul").asInt(0),
+                matchDetail.path("yellowCards").asInt(0),
+                matchDetail.path("redCards").asInt(0),
+                matchDetail.path("offsideCount").isMissingNode() ? null : matchDetail.path("offsideCount").asInt(),
+                parseShootEvents(self.path("shootDetail")),
                 parseSquadEntries(self.path("player"))
         );
     }
@@ -162,14 +166,31 @@ public class NexonApiClient implements NexonMatchGateway {
             for (JsonNode event : shootNode) {
                 Integer rawGoalTime = event.path("goalTime").isMissingNode() ? null : event.path("goalTime").asInt();
                 Integer period = rawGoalTime == null ? null : (rawGoalTime / GOAL_TIME_PERIOD_UNIT) + 1;
-                // rawGoalTime의 실제 단위(초/틱)가 검증되지 않아 60으로 나눈 값을 "분" 근사치로 사용한다.
                 Integer goalTimeMinutes = rawGoalTime == null ? null : (rawGoalTime % GOAL_TIME_PERIOD_UNIT) / 60;
+
+                // assistSpId는 어시스트가 없으면 -1 센티널이 온다 — null로 정규화한다.
+                String assistSpId = event.path("assistSpId").isMissingNode() ? null : event.path("assistSpId").asText(null);
+                if ("-1".equals(assistSpId)) {
+                    assistSpId = null;
+                }
 
                 events.add(new ShootEventData(
                         parseShootType(event.path("type").isMissingNode() ? null : event.path("type").asInt()),
                         parseShootResult(event.path("result").isMissingNode() ? null : event.path("result").asInt()),
                         goalTimeMinutes,
-                        period
+                        period,
+                        event.path("spId").isMissingNode() ? null : event.path("spId").asText(null),
+                        event.path("spGrade").isMissingNode() ? null : event.path("spGrade").asInt(),
+                        event.path("spLevel").isMissingNode() ? null : event.path("spLevel").asInt(),
+                        event.path("spIdType").isMissingNode() ? null : event.path("spIdType").asBoolean(),
+                        event.path("x").isMissingNode() ? null : event.path("x").asDouble(),
+                        event.path("y").isMissingNode() ? null : event.path("y").asDouble(),
+                        event.path("assist").isMissingNode() ? null : event.path("assist").asBoolean(),
+                        assistSpId,
+                        event.path("assistX").isMissingNode() ? null : event.path("assistX").asDouble(),
+                        event.path("assistY").isMissingNode() ? null : event.path("assistY").asDouble(),
+                        event.path("hitPost").isMissingNode() ? null : event.path("hitPost").asBoolean(),
+                        event.path("inPenalty").isMissingNode() ? null : event.path("inPenalty").asBoolean()
                 ));
             }
         }
@@ -207,28 +228,39 @@ public class NexonApiClient implements NexonMatchGateway {
         };
     }
 
-    /**
-     * shoot_detail[].type은 정수 코드다(실 표본: 1, 2, 3). 정확한 코드-라벨 매핑은 Nexon 공식 문서나
-     * 더 많은 표본 없이는 확정할 수 없어 TODO로 남긴다 — 우선 값 자체는 보존하되 라벨은 UNKNOWN 처리.
-     */
+    /** shootDetail[].type 코드 → ShootType. Nexon 공식 문서로 확정된 매핑(1~12). */
     private ShootType parseShootType(Integer code) {
         if (code == null) {
             return ShootType.UNKNOWN;
         }
-        // TODO(구현 착수 시 검증 필요): 코드 1/2/3 등이 실제로 어떤 슛 유형인지 Nexon 문서로 확정할 것.
-        return ShootType.UNKNOWN;
+        return switch (code) {
+            case 1 -> ShootType.NORMAL;
+            case 2 -> ShootType.FINESSE;
+            case 3 -> ShootType.HEADING;
+            case 4 -> ShootType.LOBBING;
+            case 5 -> ShootType.FLARE;
+            case 6 -> ShootType.LOW;
+            case 7 -> ShootType.VOLLEY;
+            case 8 -> ShootType.FREE_KICK;
+            case 9 -> ShootType.PENALTY_KICK;
+            case 10 -> ShootType.KNUCKLE;
+            case 11 -> ShootType.BICYCLE_KICK;
+            case 12 -> ShootType.POWER;
+            default -> ShootType.UNKNOWN;
+        };
     }
 
-    /**
-     * shoot_detail[].result도 정수 코드다(실 표본: 1, 3). result=3이 가장 빈번하게 나타나 GOAL일
-     * 가능성이 높지만(표본 6건 중 5건이 3), 확정할 근거는 아니라 TODO로 남긴다.
-     */
+    /** shootDetail[].result 코드 → ShootResult. Nexon 공식 문서로 확정된 매핑(1 ontarget, 2 offtarget, 3 goal). */
     private ShootResult parseShootResult(Integer code) {
         if (code == null) {
             return ShootResult.UNKNOWN;
         }
-        // TODO(구현 착수 시 검증 필요): 코드 1/3 등이 실제로 GOAL/SAVED/BLOCKED 중 무엇인지 확정할 것.
-        return ShootResult.UNKNOWN;
+        return switch (code) {
+            case 1 -> ShootResult.ON_TARGET;
+            case 2 -> ShootResult.OFF_TARGET;
+            case 3 -> ShootResult.GOAL;
+            default -> ShootResult.UNKNOWN;
+        };
     }
 
     private Instant parseInstant(String raw) {

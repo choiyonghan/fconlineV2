@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
  * v1의 detailPayload 매핑(fetch_and_store.js:353-387)에 대응.
  *
  * offside: v1 프론트가 읽지만 v1 DB에는 컬럼이 없어 항상 0으로 표시되던 필드(analysis 6.3).
- * 여기서는 컬럼을 두되, 실제 Nexon match-detail 응답에 해당 필드가 존재하는지
- * 구현 착수 시점에 반드시 검증한다 — 없으면 이 필드와 컬럼을 제거할 것 (계획서 참고).
+ * Nexon 공식 문서로 확인한 실제 응답 필드명은 matchDetail.offsideCount다
+ * (게이트웨이 구현체에서 이 이름으로 읽는다 — "offside" 단독 필드는 존재하지 않는다).
  */
 @Getter
 @Builder
@@ -86,7 +86,7 @@ public class MatchStats {
     @Column(name = "red_cards")
     private Integer redCards;
 
-    /** 검증 대기 중 (클래스 주석 참고). Nexon 응답에 없으면 컬럼 자체를 제거할 것. */
+    /** Nexon 응답의 matchDetail.offsideCount에서 옮겨온다 (클래스 주석 참고). */
     @Column(name = "offside")
     private Integer offside;
 }

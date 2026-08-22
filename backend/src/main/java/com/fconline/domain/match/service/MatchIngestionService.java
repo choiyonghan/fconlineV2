@@ -73,7 +73,10 @@ public class MatchIngestionService {
                 participant.opponentNickname(), participant.result(), stats);
 
         participant.shootEvents().forEach(event -> detail.addShootEvent(
-                ShootEvent.of(detail, event.shootType(), event.result(), event.goalTimeMinutes(), event.period())));
+                ShootEvent.of(detail, event.shootType(), event.result(), event.goalTimeMinutes(), event.period(),
+                        event.spId(), event.spGrade(), event.spLevel(), event.loaned(), event.x(), event.y(),
+                        event.assist(), event.assistSpId(), event.assistX(), event.assistY(), event.hitPost(),
+                        event.inPenalty())));
 
         participant.squadEntries().forEach(entry -> detail.addSquadEntry(
                 SquadEntry.of(detail, entry.spId(), entry.spPosition(), entry.goal(), entry.assist(),

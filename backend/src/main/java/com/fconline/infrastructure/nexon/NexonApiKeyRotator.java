@@ -6,9 +6,11 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * 최대 3개까지의 Nexon API 키를 라운드로빈으로 순환한다.
+ * 설정된 개수(현재 최대 6개)만큼의 Nexon API 키를 라운드로빈으로 순환한다.
  * v1은 update.yml에 키를 1개만 주입해 3키 로테이션 로직이 사실상 무력화되어 있었다
- * (analysis 5절) — v2는 배치 워크플로우에 세 키 모두 주입하는 것을 전제로 한다.
+ * (analysis 5절) — v2는 배치 워크플로우에 키를 모두 주입하는 것을 전제로 한다.
+ * 키 개수는 nexon.api.keys(application.yml)에 나열된 만큼 그대로 반영되므로,
+ * 발급받은 키를 늘리면 application.yml/sync.yml에 플레이스홀더만 추가하면 된다.
  *
  * 스레드 세이프하지 않다 — 동기화 배치는 단일 스레드로 순차 실행되므로 문제되지 않는다.
  */
