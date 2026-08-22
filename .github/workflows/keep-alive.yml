@@ -1,0 +1,21 @@
+name: Keep Backend Alive
+
+# Render 무료 티어는 15분간 요청이 없으면 잠들고, 다음 요청에서 콜드스타트(수십 초)가 난다.
+# 10분마다 헬스체크를 찔러서 절대 안 잠들게 한다 — 무료 티어 월 750시간 한도 안에 들어온다
+# (24시간 x 31일 = 744시간). GitHub Actions는 public 저장소라 무제한 무료.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          if [ -z "${{ vars.VITE_API_BASE_URL }}" ]; then
+            echo "VITE_API_BASE_URL 변수가 아직 설정 안 됨 — 스킵"
+            exit 0
+          fi
+          curl -sf --max-time 90 "${{ vars.VITE_API_BASE_URL }}/actuator/health"
