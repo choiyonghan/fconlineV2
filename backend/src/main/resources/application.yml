@@ -42,7 +42,9 @@ spring:
     locations: classpath:db/migration
 
 server:
-  port: ${SERVER_PORT:8080}
+  # Render 등 컨테이너 호스팅은 PORT 환경변수로 리스닝 포트를 지정한다 —
+  # 없으면(로컬/기존 SERVER_PORT 관례) 그대로 폴백한다.
+  port: ${PORT:${SERVER_PORT:8080}}
 
 app:
   cors:

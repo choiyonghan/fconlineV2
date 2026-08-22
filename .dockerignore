@@ -1,0 +1,10 @@
+apps/web
+.git
+.github
+.idea
+.claude
+.gradle
+build
+backend/build
+**/node_modules
+**/.svelte-kit

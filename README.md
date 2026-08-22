@@ -119,6 +119,21 @@ npm run dev
 
 `npm run build`는 `adapter-static`으로 완전 정적 SPA(`build/`)를 만든다 — GitHub Pages 등 어디에나 그대로 올릴 수 있다.
 
+## 배포
+
+- **프론트엔드**: `.github/workflows/deploy-web.yml`이 `apps/web/**` 변경을 `main`에 push하면
+  자동으로 GitHub Pages(`https://<owner>.github.io/<repo>/`)에 배포한다. 저장소 Settings →
+  Pages → Source가 **"GitHub Actions"**로 설정돼 있어야 한다("Deploy from a branch"면 GitHub이
+  README.md를 대신 렌더링해 보여준다). 빌드 시 `BASE_PATH`(프로젝트 페이지 서브패스)와
+  `vars.VITE_API_BASE_URL`(아래 백엔드 URL)을 주입한다 — 후자는 저장소 Settings → Secrets and
+  variables → Actions → **Variables** 탭에 등록해야 한다.
+- **백엔드**: GitHub Pages는 정적 파일만 서빙하므로, 정적 프론트가 실제로 데이터를 부르려면
+  백엔드가 어딘가 상시 떠 있어야 한다. `backend/Dockerfile` + `render.yaml`(Render Blueprint)로
+  준비해뒀다 — Render 대시보드 → New → Blueprint → 이 저장소 선택하면 `render.yaml`을 읽어
+  자동 구성한다. `sync: false`로 표시된 환경변수(DB 접속정보, Nexon 키)는 Render 대시보드에서
+  직접 입력해야 한다(파일에 실제 값을 커밋하면 안 됨). 배포된 URL을 위 `VITE_API_BASE_URL`
+  변수에 넣고 `deploy-web.yml`을 재실행하면 프론트가 그 백엔드를 바라보게 된다.
+
 ## Nexon match-detail 매핑 (해결됨)
 
 v1 Supabase(anon key, 읽기전용) 표본 조회로 1차 구조를 확인한 뒤, Nexon 공식 match-detail API 문서로
