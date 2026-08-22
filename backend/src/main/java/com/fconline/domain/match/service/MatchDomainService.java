@@ -1,12 +1,14 @@
 package com.fconline.domain.match.service;
 
 import com.fconline.domain.match.repository.MatchDetailRepository;
+import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeCount;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
 import java.time.Instant;
 import java.util.Comparator;
@@ -88,5 +90,15 @@ public class MatchDomainService {
     private String bucketLabel(int upper) {
         int lower = upper - 14;
         return lower + "-" + upper;
+    }
+
+    /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. */
+    public List<ShotPoint> shotHeatmap(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly) {
+        return matchDetailRepository.findShotPoints(ouid, matchType, from, to, goalsOnly);
+    }
+
+    /** 어시스트 선수 -> 득점 선수 조합별 골 수, 내림차순 상위 limit건. */
+    public List<AssistChainCount> assistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
+        return matchDetailRepository.aggregateAssistChains(ouid, matchType, from, to, limit);
     }
 }

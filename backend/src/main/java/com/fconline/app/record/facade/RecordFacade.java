@@ -2,13 +2,19 @@ package com.fconline.app.record.facade;
 
 import com.fconline.app.common.SeasonRangeResolver;
 import com.fconline.app.common.dto.MatchTallyResponse;
+import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.ShotHeatmapResponse;
+import com.fconline.app.record.dto.ShotPointResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.domain.match.service.MatchDomainService;
+import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
+import com.fconline.domain.match.vo.ShootResult;
+import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.meta.PlayerMeta;
@@ -21,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecordFacade {
 
     private static final int TOP_PLAYER_LIMIT = 3;
+    private static final int ASSIST_CHAIN_LIMIT = 10;
 
     private final TrackedUserRepository trackedUserRepository;
     private final SeasonRangeResolver seasonRangeResolver;
@@ -94,6 +102,53 @@ public class RecordFacade {
 
     private Map<String, String> playerNamesOf(List<TopPlayerStat> topPlayers) {
         List<String> spIds = topPlayers.stream().map(TopPlayerStat::spId).toList();
+        return playerMetaRepository.findBySpIdIn(spIds).stream()
+                .collect(Collectors.toMap(PlayerMeta::getSpId, PlayerMeta::getSpName, (a, b) -> a));
+    }
+
+    /** 좌표 히트맵(화면: 슛/득점 위치 시각화). goalsOnly=true면 득점한 슛만 반환한다. */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, boolean goalsOnly) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        List<ShotPoint> points = matchDomainService.shotHeatmap(
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), goalsOnly);
+
+        List<ShotPointResponse> pointResponses = points.stream()
+                .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
+                        p.result() == ShootResult.GOAL))
+                .toList();
+
+        return new ShotHeatmapResponse(ouid, pointResponses);
+    }
+
+    /** 어시스트 체인(화면: 누가 누구에게 어시스트해서 득점했는지). 상위 {@value #ASSIST_CHAIN_LIMIT}건. */
+    @Transactional(readOnly = true)
+    public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        List<AssistChainCount> chains = matchDomainService.assistChains(
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), ASSIST_CHAIN_LIMIT);
+
+        Map<String, String> playerNames = playerNamesOfChains(chains);
+
+        return chains.stream()
+                .map(c -> new AssistChainResponse(
+                        c.assisterSpId(), playerNames.getOrDefault(c.assisterSpId(), c.assisterSpId()),
+                        c.scorerSpId(), playerNames.getOrDefault(c.scorerSpId(), c.scorerSpId()),
+                        c.goals()))
+                .toList();
+    }
+
+    private Map<String, String> playerNamesOfChains(List<AssistChainCount> chains) {
+        List<String> spIds = chains.stream()
+                .flatMap(c -> Stream.of(c.assisterSpId(), c.scorerSpId()))
+                .distinct()
+                .toList();
         return playerMetaRepository.findBySpIdIn(spIds).stream()
                 .collect(Collectors.toMap(PlayerMeta::getSpId, PlayerMeta::getSpName, (a, b) -> a));
     }

@@ -1,12 +1,14 @@
 package com.fconline.domain.match.repository;
 
 import com.fconline.domain.match.MatchDetail;
+import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
 import java.time.Instant;
 import java.util.List;
@@ -48,4 +50,10 @@ public interface MatchDetailRepositoryCustom {
     /** 특정 상대와의 개별 경기 목록 (페이지네이션). */
     Page<MatchDetail> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
                                              Instant from, Instant to, Pageable pageable);
+
+    /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외. */
+    List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly);
+
+    /** 어시스트→득점 선수 조합별 골 수, 내림차순 상위 limit건. */
+    List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit);
 }

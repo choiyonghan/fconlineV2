@@ -1,11 +1,13 @@
 package com.fconline.infrastructure.persistence.match;
 
+import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.QMatch;
 import com.fconline.domain.match.QMatchDetail;
 import com.fconline.domain.match.QShootEvent;
@@ -239,6 +241,57 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .fetchOne());
 
         return new PageImpl<>(contentQuery.fetch(), pageable, total);
+    }
+
+    @Override
+    public List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to)
+                .and(se.x.isNotNull())
+                .and(se.y.isNotNull());
+        if (goalsOnly) {
+            where.and(se.result.eq(ShootResult.GOAL));
+        }
+
+        return queryFactory
+                .select(se.x, se.y, se.shootType, se.result)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(where)
+                .fetch().stream()
+                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result)))
+                .toList();
+    }
+
+    @Override
+    public List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to,
+                                                          int limit) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        List<Tuple> rows = queryFactory
+                .select(se.assistSpId, se.spId, se.id.count())
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to)
+                        .and(se.result.eq(ShootResult.GOAL))
+                        .and(se.assist.isTrue())
+                        .and(se.assistSpId.isNotNull())
+                        .and(se.spId.isNotNull()))
+                .groupBy(se.assistSpId, se.spId)
+                .orderBy(se.id.count().desc())
+                .limit(limit)
+                .fetch();
+
+        return rows.stream()
+                .map(row -> new AssistChainCount(row.get(se.assistSpId), row.get(se.spId), nzl(row.get(se.id.count()))))
+                .toList();
     }
 
     /** from은 포함(>=), to는 배제(<) — Season.endInstantExclusiveOrNull()과 짝을 이루는 규약. */
