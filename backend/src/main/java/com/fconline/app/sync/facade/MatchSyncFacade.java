@@ -118,12 +118,19 @@ public class MatchSyncFacade {
             return;
         }
 
-        for (TrackedUser user : targets) {
+        log.info("스트릭 재계산 시작: 대상 {}명 (matchType={}, seasonId={})", targets.size(), matchType, currentSeason.getId());
+
+        for (int i = 0; i < targets.size(); i++) {
+            TrackedUser user = targets.get(i);
             List<OpponentTally> tallies = matchDomainService.opponentTallies(
                     user.getOuid(), matchType, currentSeason.startInstant(), currentSeason.endInstantExclusiveOrNull());
 
             Set<String> opponents = new HashSet<>();
             tallies.forEach(tally -> opponents.add(tally.opponentOuid()));
+
+            // 상대 1명당 SELECT 2회 + save 1회가 원격 DB로 나간다 — 상대 수가 많으면
+            // 이 구간이 몇 분씩 걸릴 수 있어 유저 단위로 진행 상황을 남긴다.
+            log.info("[{}/{}] ouid={} 스트릭 재계산 시작 (상대 {}명)", i + 1, targets.size(), user.getOuid(), opponents.size());
 
             for (String opponentOuid : opponents) {
                 streakDomainService.recalculate(user.getOuid(), opponentOuid, matchType, currentSeason.getId(),
