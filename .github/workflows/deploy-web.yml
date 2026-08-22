@@ -37,6 +37,9 @@ jobs:
       - run: npm run build
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          # GitHub 프로젝트 페이지는 username.github.io/${{ github.event.repository.name }}/
+          # 서브패스에서 서빙된다 — svelte.config.js가 이 값을 kit.paths.base로 읽는다.
+          BASE_PATH: /${{ github.event.repository.name }}
 
       - uses: actions/configure-pages@v5
 
