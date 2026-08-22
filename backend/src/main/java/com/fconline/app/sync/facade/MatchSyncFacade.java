@@ -103,6 +103,9 @@ public class MatchSyncFacade {
             NexonMatchData data = nexonMatchGateway.fetchMatchDetail(matchId);
             matchIngestionService.ingest(data);
             insertedCount++;
+            // 매치 1건당 Nexon API 요청 딜레이(기본 300ms) + 네트워크 왕복이 있어 신규 매치가
+            // 많으면 수십 초~분 단위로 걸린다 — 이 사이에 로그가 없으면 멈춘 것처럼 보인다.
+            log.info("  matchId={} 저장 완료 ({}/{})", matchId, insertedCount, newCount);
         }
         return insertedCount;
     }
