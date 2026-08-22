@@ -39,6 +39,8 @@ public class RecordFacade {
 
     private static final int TOP_PLAYER_LIMIT = 3;
     private static final int ASSIST_CHAIN_LIMIT = 10;
+    /** "전체 선수" 그리드/최다 세이브 등에 쓰는 사실상 무제한 한도. */
+    private static final int ALL_PLAYERS_LIMIT = 1000;
 
     private final TrackedUserRepository trackedUserRepository;
     private final SeasonRangeResolver seasonRangeResolver;
@@ -98,6 +100,28 @@ public class RecordFacade {
                 goalTypeDistribution,
                 goalTimeDistribution
         );
+    }
+
+    /** 화면: 정렬 가능한 "전체 선수 스탯" 그리드, 최다 세이브 등 top-3 밖의 통계. */
+    @Transactional(readOnly = true)
+    public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        List<TopPlayerStat> players = matchDomainService.topPlayers(
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), ALL_PLAYERS_LIMIT);
+
+        Map<String, String> playerNames = playerNamesOf(players);
+
+        return players.stream()
+                .map(stat -> new TopPlayerResponse(
+                        stat.spId(),
+                        playerNames.getOrDefault(stat.spId(), stat.spId()),
+                        stat.goals(), stat.assists(), stat.saves(),
+                        stat.tackles(), stat.intercepts(), stat.blocks(),
+                        stat.contributionScore()))
+                .toList();
     }
 
     private Map<String, String> playerNamesOf(List<TopPlayerStat> topPlayers) {

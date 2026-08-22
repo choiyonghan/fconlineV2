@@ -4,6 +4,7 @@ import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
+import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.domain.match.vo.MatchType;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,5 +44,13 @@ public class RecordController {
                                                        @RequestParam MatchType matchType,
                                                        @RequestParam(required = false) Long seasonId) {
         return recordFacade.getAssistChains(ouid, matchType, seasonId);
+    }
+
+    /** 정렬 가능한 "전체 선수" 그리드, 최다 세이브 등 top-3 밖 통계용 — 사실상 전체 목록. */
+    @GetMapping("/players")
+    public List<TopPlayerResponse> getAllPlayers(@RequestParam String ouid,
+                                                  @RequestParam MatchType matchType,
+                                                  @RequestParam(required = false) Long seasonId) {
+        return recordFacade.getAllPlayers(ouid, matchType, seasonId);
     }
 }
