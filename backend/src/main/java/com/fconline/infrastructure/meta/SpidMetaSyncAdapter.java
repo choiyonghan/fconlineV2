@@ -31,11 +31,11 @@ public class SpidMetaSyncAdapter {
     private static final int BATCH_SIZE = 500;
 
     private static final String UPSERT_SQL = """
-            INSERT INTO v2.player_meta (sp_id, sp_name, updated_at)
+            INSERT INTO fconline.player_meta (sp_id, sp_name, updated_at)
             VALUES (?, ?, now())
             ON CONFLICT (sp_id) DO UPDATE
                 SET sp_name = excluded.sp_name, updated_at = excluded.updated_at
-                WHERE v2.player_meta.sp_name IS DISTINCT FROM excluded.sp_name
+                WHERE fconline.player_meta.sp_name IS DISTINCT FROM excluded.sp_name
             """;
 
     private final RestClient nexonStaticRestClient;

@@ -24,10 +24,10 @@ public interface SiteVisitorRepository extends JpaRepository<SiteVisitor, LocalD
     @Modifying
     @Transactional
     @Query(value = """
-            INSERT INTO v2.site_visitors (visit_date, count)
+            INSERT INTO fconline.site_visitors (visit_date, count)
             VALUES (:visitDate, 1)
             ON CONFLICT (visit_date) DO UPDATE
-                SET count = v2.site_visitors.count + 1
+                SET count = fconline.site_visitors.count + 1
             """, nativeQuery = true)
     void incrementVisit(@Param("visitDate") LocalDate visitDate);
 }
