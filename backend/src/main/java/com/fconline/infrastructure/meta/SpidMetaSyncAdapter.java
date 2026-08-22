@@ -1,7 +1,6 @@
 package com.fconline.infrastructure.meta;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fconline.domain.meta.PlayerMeta;
 import com.fconline.domain.meta.repository.PlayerMetaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +12,10 @@ import org.springframework.web.client.RestClient;
  * v1은 이 대용량 정적 파일을 페이지 로드마다 브라우저가 재요청했다(analysis 6.10) —
  * v2는 배치가 주기적으로 갱신하고, 조회 API가 이미 캐시된 이름을 응답에 포함해 내려준다.
  *
- * TODO(구현 착수 시 검증 필요): spid.json 응답의 실제 필드명("id"/"name" 추정)을 확인해 보정할 것.
+ * sync.yml의 matrix(CUSTOM/OFFICIAL) 두 job이 각자 독립적으로 이 메서드를 호출하므로
+ * (matchType과 무관하게 항상 실행), 두 job이 겹쳐 도는 구간에는 같은 spId를 동시에
+ * 처음 보는 경우가 생긴다 — findById 후 save()로는 이 레이스에서 unique 제약을 위반하고
+ * 죽었다. PlayerMetaRepository.upsert()가 INSERT ... ON CONFLICT로 원자적으로 처리한다.
  */
 @Component
 public class SpidMetaSyncAdapter {
@@ -48,15 +50,7 @@ public class SpidMetaSyncAdapter {
                 continue;
             }
 
-            PlayerMeta existing = playerMetaRepository.findById(spId).orElse(null);
-            if (existing == null) {
-                playerMetaRepository.save(PlayerMeta.of(spId, spName));
-                updated++;
-            } else if (!existing.getSpName().equals(spName)) {
-                existing.rename(spName);
-                playerMetaRepository.save(existing);
-                updated++;
-            }
+            updated += playerMetaRepository.upsert(spId, spName);
         }
 
         log.info("spid.json 동기화 완료: {}건 갱신", updated);

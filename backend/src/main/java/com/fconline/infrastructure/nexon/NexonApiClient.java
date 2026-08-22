@@ -13,7 +13,10 @@ import com.fconline.domain.match.vo.ShootType;
 import com.fconline.domain.shared.exception.NexonApiException;
 import com.fconline.domain.shared.exception.RateLimitException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -263,14 +266,20 @@ public class NexonApiClient implements NexonMatchGateway {
         };
     }
 
+    /**
+     * matchDate 실 응답 형태는 "2026-08-20T14:15:11" — 오프셋/Z가 없는 UTC 시각이다
+     * (공식 문서 예시 "2023-10-29T12:22:48" + "(UTC0)" 설명). OffsetDateTime.parse도
+     * Instant.parse도 오프셋이 없으면 둘 다 실패하므로, LocalDateTime으로 파싱한 뒤
+     * UTC로 명시 해석한다. 혹시 오프셋이 붙은 형태로 오는 경우도 대비해 우선 시도한다.
+     */
     private Instant parseInstant(String raw) {
         if (raw == null || raw.isBlank()) {
             return Instant.now();
         }
         try {
             return OffsetDateTime.parse(raw).toInstant();
-        } catch (Exception e) {
-            return Instant.parse(raw);
+        } catch (DateTimeParseException e) {
+            return LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC);
         }
     }
 
