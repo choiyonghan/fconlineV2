@@ -31,16 +31,7 @@ public class VisitorFacade {
 
     @Transactional
     public VisitorSummaryResponse recordVisit() {
-        LocalDate today = LocalDate.now(KstZone.ID);
-        SiteVisitor visitor = siteVisitorRepository.findByVisitDate(today).orElse(null);
-
-        if (visitor == null) {
-            siteVisitorRepository.save(SiteVisitor.firstVisitOf(today));
-        } else {
-            visitor.increment();
-            siteVisitorRepository.save(visitor);
-        }
-
+        siteVisitorRepository.incrementVisit(LocalDate.now(KstZone.ID));
         return summary();
     }
 }
