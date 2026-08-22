@@ -210,7 +210,10 @@ public class NexonApiClient implements NexonMatchGateway {
                         player.path("spPosition").asInt(0),
                         status.path("goal").asInt(0),
                         status.path("assist").asInt(0),
-                        status.path("save").asInt(0),
+                        // Nexon 공식 문서의 player[].status 스키마에는 "save" 필드가 아예 없다 —
+                        // v1(app.js/official.js)이 실전에서 발견해 "st.save || st.defending"로 우회한
+                        // 것과 동일하게, 골키퍼의 세이브 수는 "defending" 필드에 들어온다(outfield는 0).
+                        status.path("defending").asInt(0),
                         status.path("tackle").asInt(0),
                         status.path("intercept").asInt(0),
                         status.path("block").asInt(0)
