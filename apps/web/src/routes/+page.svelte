@@ -16,6 +16,7 @@
 	let record = $state<OverallRecord | null>(null);
 	let opponents = $state<OpponentSummary[]>([]);
 	let loadingRecord = $state(false);
+	let loadingInitial = $state(true);
 	let loadError = $state<string | null>(null);
 
 	onMount(async () => {
@@ -24,6 +25,8 @@
 		} catch {
 			loadError = '유저/시즌 목록을 불러오지 못했습니다. 백엔드가 실행 중인지 확인해 주세요.';
 			return;
+		} finally {
+			loadingInitial = false;
 		}
 
 		// URL 쿼리 → 초기 선택 상태 복원 (없으면 첫 유저 + 현재 시즌 + CUSTOM으로 기본값)
@@ -98,7 +101,11 @@
 	<SeasonPicker {seasons} selectedSeasonId={$selection.seasonId} onSelect={selectSeason} />
 </section>
 
-{#if loadError}
+{#if loadingInitial}
+	<!-- 백엔드가 Render 무료 티어처럼 콜드스타트를 쓰면 첫 응답이 30초~1분 걸릴 수 있다 —
+	     이 사이 화면이 비어 보이지 않도록 안내 문구를 보여준다. -->
+	<p class="muted">불러오는 중입니다... (서버가 잠들어 있었다면 최대 1분 정도 걸릴 수 있어요)</p>
+{:else if loadError}
 	<p class="muted">{loadError}</p>
 {/if}
 
