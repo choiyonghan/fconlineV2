@@ -57,6 +57,9 @@ public class SpidMetaSyncAdapter {
             return 0;
         }
 
+        int total = body.size();
+        log.info("spid.json 동기화 시작: 총 {}건", total);
+
         List<Object[]> batch = new ArrayList<>(BATCH_SIZE);
         int processed = 0;
         for (JsonNode node : body) {
@@ -71,6 +74,7 @@ public class SpidMetaSyncAdapter {
                 jdbcTemplate.batchUpdate(UPSERT_SQL, batch);
                 processed += batch.size();
                 batch.clear();
+                log.info("spid.json 진행: {}/{}건", processed, total);
             }
         }
         if (!batch.isEmpty()) {

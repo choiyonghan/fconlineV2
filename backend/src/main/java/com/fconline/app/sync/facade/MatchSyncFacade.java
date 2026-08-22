@@ -60,20 +60,24 @@ public class MatchSyncFacade {
 
     public SyncSummary sync(MatchType matchType) {
         List<TrackedUser> targets = trackedUserRepository.findByTrackedTrueOrderByDisplayOrderAsc();
+        log.info("매치 동기화 대상: {}명 (matchType={})", targets.size(), matchType);
 
         int fetched = 0;
         int inserted = 0;
         int failed = 0;
 
-        for (TrackedUser user : targets) {
+        for (int i = 0; i < targets.size(); i++) {
+            TrackedUser user = targets.get(i);
             try {
-                inserted += syncUser(user, matchType);
+                int insertedCount = syncUser(user, matchType);
+                inserted += insertedCount;
                 fetched++;
+                log.info("[{}/{}] ouid={} 완료 (신규 {}건 저장)", i + 1, targets.size(), user.getOuid(), insertedCount);
             } catch (NexonApiException e) {
                 // v1은 이 상황에서도 워크플로우가 exit 0으로 성공 처리되어 실패가 드러나지 않았다
                 // (analysis 6.9) — v2는 실패를 세어 배치 종료 코드에 반영한다 (MatchSyncCliRunner 참고).
                 failed++;
-                log.error("동기화 실패: ouid={}, matchType={}", user.getOuid(), matchType, e);
+                log.error("[{}/{}] ouid={} 실패: matchType={}", i + 1, targets.size(), user.getOuid(), matchType, e);
             }
         }
 
@@ -88,6 +92,8 @@ public class MatchSyncFacade {
 
         // v1은 매치 ID마다 개별 SELECT를 했다(최대 900회/실행) — IN절 1회 배치 조회로 대체(analysis 6.10).
         Set<String> existingIds = matchRepository.findExistingMatchIds(matchIds);
+        int newCount = matchIds.size() - existingIds.size();
+        log.info("ouid={} 매치 {}건 조회, 신규 {}건 처리 시작", user.getOuid(), matchIds.size(), newCount);
 
         int insertedCount = 0;
         for (String matchId : matchIds) {
