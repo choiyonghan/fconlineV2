@@ -2,6 +2,7 @@ package com.fconline.app.common;
 
 import com.fconline.domain.season.Season;
 import com.fconline.domain.season.repository.SeasonRepository;
+import com.fconline.domain.shared.KstZone;
 import com.fconline.domain.shared.exception.DomainException;
 import java.time.LocalDate;
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class SeasonRangeResolver {
             return seasonRepository.findById(seasonId)
                     .orElseThrow(() -> new DomainException("존재하지 않는 시즌입니다: " + seasonId));
         }
-        return seasonRepository.findCurrent(LocalDate.now())
+        return seasonRepository.findCurrent(LocalDate.now(KstZone.ID))
                 .orElseThrow(() -> new DomainException("진행 중인 시즌이 설정되어 있지 않습니다."));
     }
 }

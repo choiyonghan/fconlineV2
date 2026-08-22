@@ -1,6 +1,7 @@
 package com.fconline.app.visitor.facade;
 
 import com.fconline.app.visitor.dto.VisitorSummaryResponse;
+import com.fconline.domain.shared.KstZone;
 import com.fconline.domain.visitor.SiteVisitor;
 import com.fconline.domain.visitor.repository.SiteVisitorRepository;
 import java.time.LocalDate;
@@ -21,7 +22,7 @@ public class VisitorFacade {
 
     @Transactional(readOnly = true)
     public VisitorSummaryResponse summary() {
-        long today = siteVisitorRepository.findByVisitDate(LocalDate.now())
+        long today = siteVisitorRepository.findByVisitDate(LocalDate.now(KstZone.ID))
                 .map(SiteVisitor::getCount)
                 .orElse(0L);
         long total = siteVisitorRepository.sumAllCounts();
@@ -30,7 +31,7 @@ public class VisitorFacade {
 
     @Transactional
     public VisitorSummaryResponse recordVisit() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(KstZone.ID);
         SiteVisitor visitor = siteVisitorRepository.findByVisitDate(today).orElse(null);
 
         if (visitor == null) {

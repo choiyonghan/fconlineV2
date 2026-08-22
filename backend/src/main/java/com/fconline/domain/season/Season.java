@@ -1,5 +1,6 @@
 package com.fconline.domain.season;
 
+import com.fconline.domain.shared.KstZone;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,7 +9,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -59,14 +59,12 @@ public class Season {
      * 하나로 고정해 v1의 타임존 처리 불일치(analysis 6.5 — getKstDateString/parseToKst/
      * formatDateToKstString이 서로 다른 기준을 썼던 문제)가 재발하지 않게 한다.
      */
-    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
-
     public Instant startInstant() {
-        return startDate.atStartOfDay(KST).toInstant();
+        return startDate.atStartOfDay(KstZone.ID).toInstant();
     }
 
     /** 진행 중인 시즌(endDate == null)이면 상한 없음을 의미하는 null을 반환한다. */
     public Instant endInstantExclusiveOrNull() {
-        return endDate == null ? null : endDate.plusDays(1).atStartOfDay(KST).toInstant();
+        return endDate == null ? null : endDate.plusDays(1).atStartOfDay(KstZone.ID).toInstant();
     }
 }

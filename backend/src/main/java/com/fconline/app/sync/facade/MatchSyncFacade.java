@@ -11,6 +11,7 @@ import com.fconline.domain.match.gateway.NexonMatchGateway;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
 import com.fconline.domain.season.repository.SeasonRepository;
+import com.fconline.domain.shared.KstZone;
 import com.fconline.domain.shared.exception.NexonApiException;
 import com.fconline.domain.streak.service.StreakDomainService;
 import com.fconline.domain.user.TrackedUser;
@@ -102,7 +103,7 @@ public class MatchSyncFacade {
 
     /** 진행 중인 시즌이 있으면 이번 동기화로 새 경기가 들어온 상대들의 스트릭을 재계산한다. */
     private void recalculateStreaksForCurrentSeason(List<TrackedUser> targets, MatchType matchType) {
-        Season currentSeason = seasonRepository.findCurrent(LocalDate.now()).orElse(null);
+        Season currentSeason = seasonRepository.findCurrent(LocalDate.now(KstZone.ID)).orElse(null);
         if (currentSeason == null) {
             log.warn("진행 중인 시즌이 설정되어 있지 않아 스트릭 재계산을 건너뜁니다.");
             return;
