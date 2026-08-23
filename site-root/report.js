@@ -291,6 +291,21 @@
     });
   });
 
+  // 방문자수 배지 — 유저/시즌 선택과 무관하게 페이지 로드 시 한 번만 기록/조회한다.
+  // 기록(POST)에 실패해도(백엔드 콜드 스타트 등) 조회(GET)로 폴백하고, 둘 다 실패하면 조용히
+  // 숨긴다 — 방문자수 실패가 나머지 화면 표시를 막으면 안 된다.
+  function loadVisitorBadge() {
+    var badge = document.getElementById('visitor-badge');
+    if (!badge) return;
+    function show(summary) {
+      badge.textContent = '오늘 ' + fmt(summary.today) + ' · 누적 ' + fmt(summary.total);
+      badge.hidden = false;
+    }
+    apiPost('/api/v1/visitors/visits').then(show).catch(function () {
+      apiGet('/api/v1/visitors/summary').then(show).catch(function () { /* 조용히 숨김 유지 */ });
+    });
+  }
+
   var allUsers = [];
   var allSeasons = [];
 
@@ -1539,4 +1554,5 @@
   }
 
   init();
+  loadVisitorBadge();
 })();

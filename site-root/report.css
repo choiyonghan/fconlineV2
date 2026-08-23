@@ -107,6 +107,7 @@
     margin: 0;
     text-wrap: balance;
   }
+  .visitor-badge { margin: 0; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
   .filters {
     display: flex;
     align-items: center;
