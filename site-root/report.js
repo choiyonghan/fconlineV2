@@ -1091,18 +1091,19 @@
   function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches) {
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
+    var possContainer = document.getElementById('playstyle-possession');
     var attackChart = document.getElementById('chart-playstyle-attack');
     var defenseChart = document.getElementById('chart-playstyle-defense');
     var possChart = document.getElementById('chart-playstyle-possession');
     attackContainer.replaceChildren();
     defenseContainer.replaceChildren();
+    possContainer.replaceChildren();
 
     if (!totalGames) {
       document.getElementById('playstyle-caption').textContent = '표시할 경기가 없습니다.';
       attackChart.replaceChildren();
       defenseChart.replaceChildren();
       possChart.replaceChildren();
-      document.getElementById('possession-caption').textContent = '';
       document.getElementById('defense-trend-caption').textContent = '';
       return;
     }
@@ -1174,12 +1175,14 @@
       { label: '실점 xG값', color: 'var(--series-3)', values: defenseMatches.map(function (m) { return round1(concededXgByMatch[m.matchId] || 0); }) }
     ], { labels: matchIndexLabels(defenseMatches.length), unit: '골', yMin: 0, ariaLabel: '경기별 실점 대 실점 xG값 추이' });
 
-    // 점유율 — 표본 전체 추이 라인. 55%↑/45%↓ 버킷 카운트는 캡션으로 같이 보여준다.
+    // 점유율 — 공격/수비 성향과 같은 stat-mini-grid + 추이 라인차트 구성.
     var high = overall.highPossessionGames || 0;
     var low = overall.lowPossessionGames || 0;
     var mid = Math.max(totalGames - high - low, 0);
-    document.getElementById('possession-caption').textContent =
-      '저점유(45%↓) ' + low + '경기 · 균형(46~54%) ' + mid + '경기 · 고점유(55%↑) ' + high + '경기';
+    statMini(possContainer, '저점유(45%↓)', fmt(low) + '경기', pctOf(low, totalGames) + '%');
+    statMini(possContainer, '균형(46~54%)', fmt(mid) + '경기', pctOf(mid, totalGames) + '%');
+    statMini(possContainer, '고점유(55%↑)', fmt(high) + '경기', pctOf(high, totalGames) + '%');
+    statMini(possContainer, '평균 점유율', Math.round(overall.possessionAverage) + '%', '표본 전체 평균');
     lineChart(possChart, [
       {
         label: '점유율', color: 'var(--series-3)',
