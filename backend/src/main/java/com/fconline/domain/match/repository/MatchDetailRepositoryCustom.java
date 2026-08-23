@@ -8,6 +8,7 @@ import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.PlayerGrade;
 import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
@@ -79,4 +80,11 @@ public interface MatchDetailRepositoryCustom {
 
     /** 어시스트→득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit);
+
+    /**
+     * spId별 "가장 최근 매치에서 관측된" 카드 강화 단계(0~11강). shoot_events.sp_grade는 이미
+     * 저장돼 있는 컬럼이라 새 컬럼/마이그레이션 없이 그대로 조회한다 — 슛을 한 번도 안 쏜
+     * 선수(예: 무실점만 지킨 골키퍼)는 shoot_events에 행이 없어 결과에서 빠진다.
+     */
+    List<PlayerGrade> findLatestSpGrades(String ouid, MatchType matchType, Instant from, Instant to);
 }

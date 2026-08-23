@@ -7,6 +7,7 @@ import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.PlayerGrade;
 import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.QMatch;
@@ -25,9 +26,11 @@ import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -453,6 +456,31 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         return rows.stream()
                 .map(row -> new AssistChainCount(row.get(se.assistSpId), row.get(se.spId), nzl(row.get(se.id.count()))))
                 .toList();
+    }
+
+    @Override
+    public List<PlayerGrade> findLatestSpGrades(String ouid, MatchType matchType, Instant from, Instant to) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        // 매치 날짜 내림차순으로 가져온 뒤, spId별로 처음 만난 행(=가장 최근 매치)만 남긴다.
+        List<Tuple> rows = queryFactory
+                .select(se.spId, se.spGrade, m.matchDate)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to)
+                        .and(se.spId.isNotNull())
+                        .and(se.spGrade.isNotNull()))
+                .orderBy(m.matchDate.desc())
+                .fetch();
+
+        Map<String, PlayerGrade> latestBySpId = new LinkedHashMap<>();
+        for (Tuple row : rows) {
+            latestBySpId.putIfAbsent(row.get(se.spId), new PlayerGrade(row.get(se.spId), row.get(se.spGrade)));
+        }
+        return new ArrayList<>(latestBySpId.values());
     }
 
     /** from은 포함(>=), to는 배제(<) — Season.endInstantExclusiveOrNull()과 짝을 이루는 규약. */

@@ -3,6 +3,7 @@ package com.fconline.app.record.controller;
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
@@ -67,6 +68,17 @@ public class RecordController {
                                                   @RequestParam MatchType matchType,
                                                   @RequestParam(required = false) Long seasonId) {
         return recordFacade.getAllPlayers(ouid, matchType, seasonId);
+    }
+
+    /**
+     * spId별 카드 강화 단계(0~11강, 가장 최근 매치 기준) — 선수 이름이 나오는 화면에서 공용으로
+     * 붙여 쓰는 조회. 슛을 한 번도 안 쏜 선수는 목록에서 빠진다(shoot_events 기반).
+     */
+    @GetMapping("/player-grades")
+    public List<PlayerGradeResponse> getPlayerGrades(@RequestParam String ouid,
+                                                       @RequestParam MatchType matchType,
+                                                       @RequestParam(required = false) Long seasonId) {
+        return recordFacade.getPlayerGrades(ouid, matchType, seasonId);
     }
 
     /** 상대 무관, 이 유저의 진짜 최신 경기 목록(매치 날짜 내림차순, 더보기 페이징). */

@@ -6,6 +6,7 @@ import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.ShotPointResponse;
@@ -225,6 +226,24 @@ public class RecordFacade {
                         c.assisterSpId(), playerNames.getOrDefault(c.assisterSpId(), c.assisterSpId()),
                         c.scorerSpId(), playerNames.getOrDefault(c.scorerSpId(), c.scorerSpId()),
                         c.goals()))
+                .toList();
+    }
+
+    /**
+     * spId별 카드 강화 단계(0~11강, 가장 최근 매치 기준). 선수 이름이 나오는 화면(TOP7/전체 선수
+     * 스탯/환상의 콤비)이 공용으로 붙여 쓰는 조회다. 슛을 한 번도 안 쏜 선수는 목록에서 빠진다
+     * (shoot_events 기반이라 — DomainService/Repository 주석 참고).
+     */
+    @Transactional(readOnly = true)
+    public List<PlayerGradeResponse> getPlayerGrades(String ouid, MatchType matchType, Long seasonId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        return matchDomainService.latestSpGrades(
+                        ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull())
+                .stream()
+                .map(g -> new PlayerGradeResponse(g.spId(), g.grade()))
                 .toList();
     }
 

@@ -477,6 +477,18 @@
   .player-name-badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
   .player-season-icon { flex: none; width: 16px; height: 16px; object-fit: contain; border-radius: 3px; }
   .bar-cat .player-name-badge, .bar-cat-stacked .player-name-badge { vertical-align: text-bottom; }
+  .player-grade-badge {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-secondary);
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
 
   .chip {
     display: inline-block;

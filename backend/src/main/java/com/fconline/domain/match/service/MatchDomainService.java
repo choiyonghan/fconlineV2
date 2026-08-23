@@ -9,6 +9,7 @@ import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.PlayerGrade;
 import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
 import java.time.Instant;
@@ -122,5 +123,10 @@ public class MatchDomainService {
     /** 어시스트 선수 -> 득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     public List<AssistChainCount> assistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
         return matchDetailRepository.aggregateAssistChains(ouid, matchType, from, to, limit);
+    }
+
+    /** spId별 가장 최근 매치에서 관측된 카드 강화 단계(0~11강). */
+    public List<PlayerGrade> latestSpGrades(String ouid, MatchType matchType, Instant from, Instant to) {
+        return matchDetailRepository.findLatestSpGrades(ouid, matchType, from, to);
     }
 }

@@ -87,7 +87,11 @@
     return meta ? { name: meta[0], img: meta[1] } : null;
   }
 
-  /** 선수 이름 앞에 카드 등급/시즌 아이콘을 붙인 <span>을 반환한다(매칭 실패 시 이름만). */
+  // spId -> 강화 단계(0~11강). loadSelection이 매번 갱신한다(유저/시즌 바뀔 때마다). 슛을 한
+  // 번도 안 쏜 선수는 이 맵에 없다 — playerNameBadge는 그 경우 강화 배지를 그냥 생략한다.
+  var playerGradeMap = {};
+
+  /** 선수 이름 앞뒤에 카드 등급/시즌 아이콘 + 강화 단계 배지를 붙인 <span>을 반환한다. */
   function playerNameBadge(spId, name) {
     var wrap = el('span', 'player-name-badge');
     var meta = seasonMetaOfSpId(spId);
@@ -104,6 +108,10 @@
       wrap.appendChild(icon);
     }
     wrap.appendChild(document.createTextNode(name));
+    var grade = playerGradeMap[spId];
+    if (grade != null) {
+      wrap.appendChild(el('span', 'player-grade-badge', grade + '강'));
+    }
     return wrap;
   }
 
@@ -1461,10 +1469,14 @@
       apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; }),
       apiGet('/api/v1/records/recent-matches', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: TREND_SAMPLE_SIZE })
         .then(function (page) { return page.content; })
-        .catch(function () { return []; })
+        .catch(function () { return []; }),
+      // 카드 강화 단계 배지용 — 실패해도 나머지 화면 표시를 막으면 안 되니 조용히 빈 목록 폴백.
+      apiGet('/api/v1/records/player-grades', qs).catch(function () { return []; })
     ]).then(function (r) {
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
       setStatus(null);
+      playerGradeMap = {};
+      r[7].forEach(function (g) { playerGradeMap[g.spId] = g.grade; });
       renderAll(user, {
         overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3],
         heatmap: r[4], concededHeatmap: r[5], matches: r[6]
