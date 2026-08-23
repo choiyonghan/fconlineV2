@@ -76,6 +76,65 @@
     if (text !== undefined && text !== null) e.textContent = text;
     return e;
   }
+
+  // ---------------- 아주 가벼운 마크다운 → 안전한 HTML 변환 (AI 답변 렌더링용) ----------------
+  // AI(Gemini) 답변은 굵게/목록 같은 마크다운 서식이 섞여 오는데, 지금까지 textContent로만
+  // 꽂아 넣어서 **별표**가 그대로 문자로 보이고 스타일이 하나도 안 먹혔다. 원문은 먼저
+  // HTML 이스케이프하고, 그 위에 굵게/기울임/코드/목록/문단만 화이트리스트로 태그를 입혀서
+  // XSS 걱정 없이 실제로 스타일이 적용되게 만든다.
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function inlineMarkdown(escapedText) {
+    return escapedText
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>')
+      .replace(/`([^`\n]+?)`/g, '<code>$1</code>');
+  }
+
+  function renderMarkdownSafe(container, raw) {
+    container.replaceChildren();
+    var lines = String(raw).replace(/\r\n/g, '\n').split('\n');
+    var i = 0;
+    var isBullet = function (l) { return /^\s*[-*]\s+/.test(l); };
+    var isNumbered = function (l) { return /^\s*\d+[.)]\s+/.test(l); };
+    while (i < lines.length) {
+      if (!lines[i].trim()) { i++; continue; }
+      if (isBullet(lines[i])) {
+        var ul = document.createElement('ul');
+        while (i < lines.length && isBullet(lines[i])) {
+          var li = el('li');
+          li.innerHTML = inlineMarkdown(escapeHtml(lines[i].replace(/^\s*[-*]\s+/, '')));
+          ul.appendChild(li);
+          i++;
+        }
+        container.appendChild(ul);
+        continue;
+      }
+      if (isNumbered(lines[i])) {
+        var ol = document.createElement('ol');
+        while (i < lines.length && isNumbered(lines[i])) {
+          var oli = el('li');
+          oli.innerHTML = inlineMarkdown(escapeHtml(lines[i].replace(/^\s*\d+[.)]\s+/, '')));
+          ol.appendChild(oli);
+          i++;
+        }
+        container.appendChild(ol);
+        continue;
+      }
+      var paraLines = [];
+      while (i < lines.length && lines[i].trim() && !isBullet(lines[i]) && !isNumbered(lines[i])) {
+        paraLines.push(lines[i]);
+        i++;
+      }
+      var p = document.createElement('p');
+      p.innerHTML = inlineMarkdown(escapeHtml(paraLines.join('\n'))).replace(/\n/g, '<br>');
+      container.appendChild(p);
+    }
+  }
   // ---------------- API helpers ----------------
   function apiGet(path, params) {
     var url = new URL(path, BASE_URL);
@@ -205,7 +264,7 @@
 
   function showAiAnswer(text, isError) {
     aiAnswerBox.classList.toggle('error', !!isError);
-    aiAnswerText.textContent = text;
+    renderMarkdownSafe(aiAnswerText, text);
     aiAnswerBox.hidden = false;
   }
 
