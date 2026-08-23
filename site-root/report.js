@@ -6,14 +6,17 @@
   /**
    * "욱식 점수"는 닉네임에 "욱"이 들어가는 두 유저(지린성에사는욱구, 욱냥0I)만의 재미 요소 규칙
    * (승5/무3/패1)이다 — v1이 WOOK_NICKNAMES에 하드코딩했던 값과 동일. 백엔드 score_rules 테이블은
-   * 건드리지 않고(데이터 마이그레이션 없이) 여기서 노출할 때만 계산한다: 이 두 명의 리포트를 볼
-   * 때만 상대별 전적 전체를 이 공식으로, 다른 유저를 볼 땐(이 두 명이 상대로 나오더라도) 표준
-   * 승점(3/1/0)으로 계산해 보여준다 — 서버가 내려주는 dugsikScore(항상 3/1/0)는 쓰지 않는다.
+   * 건드리지 않고(데이터 마이그레이션 없이) 여기서 노출할 때만 계산한다.
+   * 적용 조건은 OR다 — 둘 중 하나만 맞아도 그 행은 욱식 점수(5/3/1)로 계산한다:
+   *   1) 지금 보고 있는 유저(state.ouid) 자신이 이 둘 중 하나다 → 상대가 누구든 전체 행에 적용.
+   *   2) 상대(opponentOuid)가 이 둘 중 하나다 → 다른 유저를 보고 있어도 "그 상대 행"만 적용.
+   * 나머지 행은 표준 승점(3/1/0). 서버가 내려주는 dugsikScore(항상 3/1/0)는 쓰지 않는다.
    */
   var WOOK_OUIDS = ['1894adb89b4a7953381bdd5671ce7610', '7f3fabc284ffe4b6bedf702a307f0f2e'];
-  function isWookView() { return WOOK_OUIDS.indexOf(state.ouid) !== -1; }
-  function computeScore(tally) {
-    return isWookView()
+  function isWook(ouid) { return WOOK_OUIDS.indexOf(ouid) !== -1; }
+  function rowUsesWookScore(opponentOuid) { return isWook(state.ouid) || isWook(opponentOuid); }
+  function computeScore(tally, opponentOuid) {
+    return rowUsesWookScore(opponentOuid)
       ? (tally.win * 5) + (tally.draw * 3) + (tally.lose * 1)
       : (tally.win * 3) + (tally.draw * 1);
   }
@@ -598,15 +601,15 @@
   function opponentsTable(container, opponents) {
     container.replaceChildren();
     if (!opponents.length) { container.appendChild(el('p', 'card-empty', '상대 전적이 없습니다.')); return; }
-    var sorted = opponents.slice().sort(function (a, b) { return computeScore(b.tally) - computeScore(a.tally); });
-    var scoreLabel = isWookView() ? '욱식 점수' : '승점';
-    document.getElementById('opponents-caption').textContent = isWookView()
-      ? '욱식 점수(승5·무3·패1) 높은 순 · 행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다'
-      : '승점(승3·무1·패0) 높은 순 · 행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다';
+    var sorted = opponents.slice()
+      .sort(function (a, b) { return computeScore(b.tally, b.opponentOuid) - computeScore(a.tally, a.opponentOuid); });
+    document.getElementById('opponents-caption').textContent =
+      '점수 높은 순 · ⚡ 표시는 욱식 점수(승5·무3·패1), 나머지는 표준 승점(승3·무1·패0) · ' +
+      '행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다';
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
-    ['', '상대', '전적 (승-무-패)', '현재 기록', scoreLabel].forEach(function (h, i) {
+    ['', '상대', '전적 (승-무-패)', '현재 기록', '점수'].forEach(function (h, i) {
       htr.appendChild(el('th', i === 4 ? 'num' : '', h));
     });
     thead.appendChild(htr);
@@ -630,7 +633,10 @@
       var streakTd = document.createElement('td');
       streakBadges(streakTd, o.streak);
       tr.appendChild(streakTd);
-      tr.appendChild(el('td', 'num', fmt(computeScore(o.tally))));
+      var wook = rowUsesWookScore(o.opponentOuid);
+      var scoreTd = el('td', 'num', (wook ? '⚡ ' : '') + fmt(computeScore(o.tally, o.opponentOuid)));
+      if (wook) scoreTd.title = '욱식 점수(승5·무3·패1)';
+      tr.appendChild(scoreTd);
 
       var expandTr = document.createElement('tr');
       expandTr.className = 'opp-expand';
@@ -764,7 +770,6 @@
       recentMatchesState.hasMore = (result.number + 1) * result.size < result.totalElements;
       recentMatchesState.page = result.number + 1;
       recentMoreBtn.hidden = !recentMatchesState.hasMore;
-      if (reset) renderTrendCharts(result.content);
     }).catch(function () {
       recentMatchesState.loading = false;
       recentMoreBtn.disabled = false;
@@ -780,33 +785,6 @@
   }
 
   recentMoreBtn.addEventListener('click', function () { loadRecentMatches(false); });
-
-  /** 최근 경기 추이(득점/실점, 점유율) 꺾은선 그래프 — 최근 경기 목록의 첫 페이지를 그대로 재사용한다. */
-  function renderTrendCharts(matches) {
-    var goalsContainer = document.getElementById('chart-trend-goals');
-    var possContainer = document.getElementById('chart-trend-possession');
-    document.getElementById('trend-goals-caption').textContent =
-      matches.length ? '최근 ' + matches.length + '경기를 오래된 순으로 나열' : '표시할 경기가 없습니다.';
-
-    // API는 최신순으로 내려주므로 그래프는 왼쪽(과거)->오른쪽(최신) 순서가 되게 뒤집는다.
-    var chronological = matches.slice().reverse();
-    var labels = chronological.map(function (m) {
-      var d = new Date(m.matchDate);
-      return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
-    });
-
-    lineChart(goalsContainer, [
-      { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
-      { label: '실점', color: 'var(--series-2)', values: chronological.map(function (m) { return m.goalsAgainst; }) }
-    ], { labels: labels, unit: '골', yMin: 0, ariaLabel: '득점 실점 추이' });
-
-    lineChart(possContainer, [
-      {
-        label: '점유율', color: 'var(--series-3)',
-        values: chronological.map(function (m) { return m.possession != null ? m.possession : 50; })
-      }
-    ], { labels: labels, unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
-  }
 
   /**
    * 백엔드는 raw 합계만 주고, 비율/100점 만점 점수는 여기서 계산한다 — "1등이 100점"이 되려면
@@ -841,6 +819,23 @@
       p.defenseRating = maxDefense > 0 ? (p.defenseRaw / maxDefense * 100) : 0;
     });
     return enriched;
+  }
+
+  /**
+   * 선수 기여도 TOP7의 보조 라벨 — 이 선수의 가장 두드러진 지표군을 보여준다.
+   * 세이브가 가장 크면(골키퍼 프로필) 선방만, 수비 지표(태클+인터셉트)가 공격 지표(골+어시)보다
+   * 크면 태클·인터셉트를, 그 외(공격 지표가 두드러지는 필드 플레이어)엔 득점·도움을 보여준다.
+   */
+  function playerRoleSub(p) {
+    var attackSum = p.goals + p.assists;
+    var defenseSum = p.tackles + p.intercepts;
+    if (p.saves > 0 && p.saves >= attackSum && p.saves >= defenseSum) {
+      return '선방 ' + fmt(p.saves);
+    }
+    if (defenseSum > attackSum) {
+      return '태클 ' + fmt(p.tackles) + ' · 인터셉트 ' + fmt(p.intercepts);
+    }
+    return '득점 ' + fmt(p.goals) + ' · 도움 ' + fmt(p.assists);
   }
 
   var currentPlayersList = [];
@@ -956,6 +951,7 @@
   var lastTotalGames = 0;
   var lastConcededPoints = null;
   var lastConcededSampleGames = 0;
+  var lastMatches = null;
 
   var BOX = { xMin: 343 / 400, yMin: 75 / 260, yMax: 185 / 260 };
   var SIX = { xMin: 376 / 400, yMin: 104 / 260, yMax: 156 / 260 };
@@ -1015,7 +1011,9 @@
     zoneAggregate.rateMap = {};
     agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
     if (lastPoints) updateXgTile(lastPoints);
-    if (lastOverall) renderPlayStyle(lastOverall, lastPoints, lastTotalGames, lastConcededPoints, lastConcededSampleGames);
+    if (lastOverall) {
+      renderPlayStyle(lastOverall, lastPoints, lastTotalGames, lastConcededPoints, lastConcededSampleGames, lastMatches);
+    }
   }
 
   function updateXgTile(points) {
@@ -1062,28 +1060,48 @@
     return sum;
   }
 
-  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames) {
+  /** 매치별 xG값 추이 라인차트용 — 슛 포인트를 matchId로 묶어 매치당 xG값 합을 낸다. */
+  function groupExpectedGoalsByMatch(points) {
+    var byMatch = {};
+    if (!zoneAggregate) return byMatch;
+    points.forEach(function (p) {
+      var r = zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+      if (r == null) return;
+      byMatch[p.matchId] = (byMatch[p.matchId] || 0) + r;
+    });
+    return byMatch;
+  }
+
+  function round1(n) { return Math.round(n * 10) / 10; }
+
+  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches) {
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
-    var bar = document.getElementById('possession-bar');
-    var legend = document.getElementById('possession-legend');
+    var attackChart = document.getElementById('chart-playstyle-attack');
+    var defenseChart = document.getElementById('chart-playstyle-defense');
+    var possChart = document.getElementById('chart-playstyle-possession');
     attackContainer.replaceChildren();
     defenseContainer.replaceChildren();
-    bar.replaceChildren();
-    legend.replaceChildren();
 
     if (!totalGames) {
       document.getElementById('playstyle-caption').textContent = '표시할 경기가 없습니다.';
+      attackChart.replaceChildren();
+      defenseChart.replaceChildren();
+      possChart.replaceChildren();
+      document.getElementById('possession-caption').textContent = '';
+      document.getElementById('defense-trend-caption').textContent = '';
       return;
     }
     document.getElementById('playstyle-caption').textContent =
       totalGames + '경기 표본 기준 · 다실점 경기는 3실점 이상, 클린시트는 무실점 경기';
 
+    matches = matches || [];
+    concededPoints = concededPoints || [];
+    concededSampleGames = concededSampleGames || 0;
+
     // 공격 성향
     var actualGoals = points.filter(function (p) { return p.goal; }).length;
     var expectedGoals = expectedGoalsOf(points);
-    concededPoints = concededPoints || [];
-    concededSampleGames = concededSampleGames || 0;
     var onTarget = points.filter(function (p) { return p.result !== 'OFF_TARGET'; }).length;
     var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
 
@@ -1095,7 +1113,7 @@
     statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
 
-    // 수비 성향 — "평균 실점 xG값"은 상대도 추적 대상 유저인 매치만 반영된다(footer 안내 참고).
+    // 수비 성향 — "평균 실점 xG값"은 상대도 추적 대상 유저인 매치만 반영된다.
     var concededExpectedGoals = expectedGoalsOf(concededPoints);
     statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점');
     statMini(defenseContainer, '평균 실점 xG값',
@@ -1105,29 +1123,45 @@
     statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
 
-    // 점유율 분포 — 55% 이상 / 45% 이하 / 그 사이(균형)
+    // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
+    // API는 최신순으로 내려주므로 왼쪽(과거)->오른쪽(최신)이 되도록 뒤집는다.
+    var chronological = matches.slice().reverse();
+    function dateLabel(m) { return new Date(m.matchDate).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }); }
+
+    // 매치별 xG값 — shot-heatmap 포인트를 matchId로 묶어서 계산한다(그룹 안 되면 zoneAggregate가
+    // 아직 준비 안 된 것 — 이 함수는 그때도 다시 불려서 자연히 채워진다).
+    var xgByMatch = groupExpectedGoalsByMatch(points);
+    lineChart(attackChart, [
+      { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
+      { label: 'xG값', color: 'var(--series-2)', values: chronological.map(function (m) { return round1(xgByMatch[m.matchId] || 0); }) }
+    ], { labels: chronological.map(dateLabel), unit: '골', yMin: 0, ariaLabel: '경기별 득점 대 xG값 추이' });
+
+    // "실점" 라인은 상대도 추적 대상이라 xG값을 복원할 수 있는 경기만 골라 같은 x축에 맞춘다
+    // (그래야 실점 선과 실점 xG값 선이 같은 경기끼리 비교된다).
+    var concededXgByMatch = groupExpectedGoalsByMatch(concededPoints);
+    var concededMatchIds = {};
+    concededPoints.forEach(function (p) { concededMatchIds[p.matchId] = true; });
+    var defenseMatches = chronological.filter(function (m) { return concededMatchIds[m.matchId]; });
+    document.getElementById('defense-trend-caption').textContent = defenseMatches.length
+      ? '상대도 추적 대상인 ' + defenseMatches.length + '경기만 표시(우리 DB엔 내가 쏜 슛만 있어서, 상대가 나에게 쏜 슛은 상대도 추적 중일 때만 복원됩니다)'
+      : '상대도 추적 대상인 경기가 없어 표시할 수 없습니다.';
+    lineChart(defenseChart, [
+      { label: '실점', color: 'var(--series-2)', values: defenseMatches.map(function (m) { return m.goalsAgainst; }) },
+      { label: '실점 xG값', color: 'var(--series-3)', values: defenseMatches.map(function (m) { return round1(concededXgByMatch[m.matchId] || 0); }) }
+    ], { labels: defenseMatches.map(dateLabel), unit: '골', yMin: 0, ariaLabel: '경기별 실점 대 실점 xG값 추이' });
+
+    // 점유율 — 표본 전체 추이 라인. 55%↑/45%↓ 버킷 카운트는 캡션으로 같이 보여준다.
     var high = overall.highPossessionGames || 0;
     var low = overall.lowPossessionGames || 0;
     var mid = Math.max(totalGames - high - low, 0);
-    var segments = [
-      { cls: 'low', color: 'var(--series-2)', label: '저점유(45% 이하)', count: low },
-      { cls: 'mid', color: 'var(--baseline)', label: '균형(46~54%)', count: mid },
-      { cls: 'high', color: 'var(--series-3)', label: '고점유(55% 이상)', count: high }
-    ];
-    segments.forEach(function (seg) {
-      if (!seg.count) return;
-      var segEl = document.createElement('div');
-      segEl.className = 'possession-seg ' + seg.cls;
-      segEl.style.width = (seg.count / totalGames * 100) + '%';
-      bar.appendChild(segEl);
-
-      var item = el('div', 'possession-legend-item');
-      var sw = el('span', 'possession-swatch');
-      sw.style.background = seg.color;
-      item.appendChild(sw);
-      item.appendChild(document.createTextNode(seg.label + ' ' + seg.count + '경기 (' + pctOf(seg.count, totalGames) + '%)'));
-      legend.appendChild(item);
-    });
+    document.getElementById('possession-caption').textContent =
+      '저점유(45%↓) ' + low + '경기 · 균형(46~54%) ' + mid + '경기 · 고점유(55%↑) ' + high + '경기';
+    lineChart(possChart, [
+      {
+        label: '점유율', color: 'var(--series-3)',
+        values: chronological.map(function (m) { return m.possession != null ? m.possession : 50; })
+      }
+    ], { labels: chronological.map(dateLabel), unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
   }
 
   // ---------------- 선택 변경 시 데이터 로딩 ----------------
@@ -1141,19 +1175,25 @@
     setStatus('데이터를 불러오는 중입니다…');
 
     var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId };
+    // 플레이 성향 추이 차트는 "최근 몇 경기"가 아니라 표본 전체를 쓴다 — 한 번에 크게 받아온다
+    // (더보기 페이징을 쓰는 "최근 경기" 표와는 별개 용도).
+    var TREND_SAMPLE_SIZE = 1000;
     return Promise.all([
       apiGet('/api/v1/records/overall', qs),
       apiGet('/api/v1/opponents', qs),
       apiGet('/api/v1/records/players', qs),
       apiGet('/api/v1/records/assist-chains', qs),
       apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, goalsOnly: false }),
-      apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; })
+      apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; }),
+      apiGet('/api/v1/records/recent-matches', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: TREND_SAMPLE_SIZE })
+        .then(function (page) { return page.content; })
+        .catch(function () { return []; })
     ]).then(function (r) {
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
       setStatus(null);
       renderAll(user, {
         overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3],
-        heatmap: r[4], concededHeatmap: r[5]
+        heatmap: r[4], concededHeatmap: r[5], matches: r[6]
       });
     }).catch(function (err) {
       if (seq !== loadSeq) return;
@@ -1219,16 +1259,11 @@
     var enrichedPlayers = enrichPlayers(d.allPlayers);
 
     // top players — TOP 7 (전체 목록은 아래 그리드에서 더보기)
-    // 선수마다 가장 두드러지는 지표를 보조 라벨로 보여준다: 세이브가 가장 높으면(골키퍼 프로필)
-    // 선방만, 그 외(득점/도움이 두드러지는 필드 플레이어)는 득점·도움을 함께 보여준다.
     var top7Rows = enrichedPlayers.slice()
       .sort(function (a, b) { return b.overall - a.overall; })
       .slice(0, 7)
       .map(function (p) {
-        var sub = (p.saves > p.goals && p.saves > p.assists && p.saves > 0)
-          ? '선방 ' + fmt(p.saves)
-          : '득점 ' + fmt(p.goals) + ' · 도움 ' + fmt(p.assists);
-        return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)', sub: sub };
+        return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)', sub: playerRoleSub(p) };
       });
     barChart(document.getElementById('chart-players'), top7Rows, { unit: '점' });
 
@@ -1244,21 +1279,18 @@
     verticalBarChart(document.getElementById('chart-goaltime'), timeRows);
 
     // 플레이 성향 (공격/수비 성향 + 점유율 분포)
-    // "평균 실점 xG값"의 표본 경기 수 — conceded-shot-heatmap엔 매치 식별자가 없어서(점 좌표만),
-    // 상대 목록에서 "상대도 추적 대상 유저"인 상대들의 경기 수를 합산해 대신 구한다(백엔드 쿼리가
-    // 상대의 자기 동기화 행을 찾는 조건과 사실상 같은 모집단).
-    var trackedOuidSet = {};
-    allUsers.forEach(function (u) { trackedOuidSet[u.ouid] = true; });
-    var concededSampleGames = d.opponents.reduce(function (sum, o) {
-      if (!trackedOuidSet[o.opponentOuid]) return sum;
-      return sum + o.tally.win + o.tally.draw + o.tally.lose;
-    }, 0);
+    // "평균 실점 xG값"의 표본 경기 수 — conceded-shot-heatmap 포인트에 matchId가 있으니
+    // 그 안의 고유 매치 수를 그대로 센다(= 상대도 추적 대상이라 실제로 슛 데이터를 복원한 경기 수).
+    var concededMatchIdSet = {};
+    d.concededHeatmap.points.forEach(function (p) { concededMatchIdSet[p.matchId] = true; });
+    var concededSampleGames = Object.keys(concededMatchIdSet).length;
 
     lastOverall = overall;
     lastTotalGames = totalGames;
     lastConcededPoints = d.concededHeatmap.points;
     lastConcededSampleGames = concededSampleGames;
-    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames);
+    lastMatches = d.matches;
+    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches);
 
     // heatmap (전체 슈팅 + xG값)
     lastPoints = d.heatmap.points;

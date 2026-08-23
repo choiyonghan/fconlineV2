@@ -160,7 +160,7 @@ public class RecordFacade {
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
-                        p.result() == ShootResult.GOAL))
+                        p.result() == ShootResult.GOAL, p.matchId()))
                 .toList();
 
         return new ShotHeatmapResponse(ouid, pointResponses);
@@ -181,7 +181,7 @@ public class RecordFacade {
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
-                        p.result() == ShootResult.GOAL))
+                        p.result() == ShootResult.GOAL, p.matchId()))
                 .toList();
 
         return new ShotHeatmapResponse(ouid, pointResponses);

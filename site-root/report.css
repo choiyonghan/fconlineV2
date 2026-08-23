@@ -240,8 +240,6 @@
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
 
   /* ---------- 플레이 성향 카드 ---------- */
-  .playstyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
-  @media (max-width: 640px) { .playstyle-grid { grid-template-columns: 1fr; } }
   .playstyle-heading {
     font-family: var(--font-display);
     font-size: 13px;
@@ -281,29 +279,6 @@
     color: var(--text-primary);
     margin: 4px 0 10px;
   }
-  .possession-bar {
-    display: flex;
-    width: 100%;
-    height: 14px;
-    border-radius: 999px;
-    overflow: hidden;
-    background: var(--gridline);
-  }
-  .possession-seg { height: 100%; min-width: 2px; }
-  .possession-seg.low { background: var(--series-2); }
-  .possession-seg.mid { background: var(--baseline); }
-  .possession-seg.high { background: var(--series-3); }
-  .possession-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 10px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-  .possession-legend-item { display: flex; align-items: center; gap: 6px; }
-  .possession-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-
   .card {
     background: var(--surface-1);
     border: 1px solid var(--border);

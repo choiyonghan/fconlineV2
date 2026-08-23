@@ -1,5 +1,5 @@
 package com.fconline.app.record.dto;
 
-/** x/y는 Nexon 원본 그대로(0~1 정규화 좌표, 경기장 전체 기준) — 프론트가 캔버스/SVG 크기에 맞춰 스케일링한다. */
-public record ShotPointResponse(double x, double y, String shootType, String result, boolean goal) {
+/** matchId는 프론트가 매치 단위 집계(경기당 xG값 추이 등)를 만들 때 매치 목록과 조인하는 키다. */
+public record ShotPointResponse(double x, double y, String shootType, String result, boolean goal, String matchId) {
 }

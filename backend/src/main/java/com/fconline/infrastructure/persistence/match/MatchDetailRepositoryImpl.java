@@ -320,13 +320,14 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         }
 
         return queryFactory
-                .select(se.x, se.y, se.shootType, se.result)
+                .select(se.x, se.y, se.shootType, se.result, m.matchId)
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
                 .where(where)
                 .fetch().stream()
-                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result)))
+                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
+                        row.get(m.matchId)))
                 .toList();
     }
 
@@ -375,13 +376,14 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         }
 
         return queryFactory
-                .select(se.x, se.y, se.shootType, se.result)
+                .select(se.x, se.y, se.shootType, se.result, oppMatch.matchId)
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
                 .where(opponentWhere.and(se.x.isNotNull()).and(se.y.isNotNull()))
                 .fetch().stream()
-                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result)))
+                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
+                        row.get(oppMatch.matchId)))
                 .toList();
     }
 

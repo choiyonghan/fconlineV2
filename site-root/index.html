@@ -43,32 +43,20 @@
   <div class="card" style="margin-bottom:14px;">
     <p class="card-title">🎮 플레이 성향</p>
     <p class="card-caption" id="playstyle-caption"></p>
-    <div class="playstyle-grid">
-      <div>
-        <p class="playstyle-heading">⚔️ 공격 성향</p>
-        <div class="stat-mini-grid" id="playstyle-attack"></div>
-      </div>
-      <div>
-        <p class="playstyle-heading">🛡️ 수비 성향</p>
-        <div class="stat-mini-grid" id="playstyle-defense"></div>
-      </div>
-    </div>
-    <p class="possession-heading">⚖️ 점유율 분포</p>
-    <div class="possession-bar" id="possession-bar"></div>
-    <div class="possession-legend" id="possession-legend"></div>
-  </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <p class="card-title">최근 경기 득점 · 실점 추이</p>
-      <p class="card-caption" id="trend-goals-caption">최근 경기를 오래된 순으로 나열</p>
-      <div id="chart-trend-goals"></div>
-    </div>
-    <div class="card">
-      <p class="card-title">최근 경기 점유율 추이</p>
-      <p class="card-caption">점선은 45%/55% 기준선</p>
-      <div id="chart-trend-possession"></div>
-    </div>
+    <p class="playstyle-heading">⚔️ 공격 성향</p>
+    <div class="stat-mini-grid" id="playstyle-attack"></div>
+    <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
+    <div id="chart-playstyle-attack"></div>
+
+    <p class="playstyle-heading" style="margin-top:18px;">🛡️ 수비 성향</p>
+    <div class="stat-mini-grid" id="playstyle-defense"></div>
+    <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
+    <div id="chart-playstyle-defense"></div>
+
+    <p class="possession-heading">⚖️ 점유율 분포</p>
+    <p class="card-caption" id="possession-caption"></p>
+    <div id="chart-playstyle-possession"></div>
   </div>
 
   <div class="grid-2">

@@ -22,10 +22,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * findConcededShotPoints()가 쓰는 "관계로 매핑되지 않은 엔티티 간 ON 조건 조인"(md → 상대 자신의
- * MatchDetail 행 → 그 행의 ShootEvent)이 실제 SQL로 정상 번역되는지 확인하는 통합 테스트.
- * H2(MODE=PostgreSQL, ddl-auto=create-drop)로 JPQL 번역 자체를 검증한다 — Flyway/jsonb처럼
- * Postgres 전용 문법이 아니라 표준 조인이라 H2로도 충분히 신뢰할 수 있는 검증이다.
+ * findConcededShotPoints()가 "내 매치의 (상대, matchId) 목록 -> 상대 자신의 MatchDetail 행을
+ * 표준 연관관계 조인으로 찾기" 2단계로 정확히 동작하는지 확인하는 통합 테스트(matchId까지
+ * 프론트 경기별 xG값 추이 조인 키로 맞게 나오는지 포함). H2(MODE=PostgreSQL, ddl-auto=create-drop)
+ * 로 검증한다 — 표준 조인이라 Postgres 전용 문법이 아니어서 H2로도 충분히 신뢰할 수 있다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -73,5 +73,6 @@ class MatchDetailConcededShotsTest {
         assertThat(point.y()).isEqualTo(0.5);
         assertThat(point.shootType()).isEqualTo(ShootType.FINESSE);
         assertThat(point.result()).isEqualTo(ShootResult.GOAL);
+        assertThat(point.matchId()).isEqualTo("match-1");
     }
 }
