@@ -4,7 +4,7 @@
   var BASE_URL = 'https://fconlinev2-backend.onrender.com';
 
   var state = { ouid: null, matchType: 'CUSTOM', seasonId: null };
-  var playersGridSort = { col: 'contributionScore', dir: 'desc' };
+  var playersGridSort = { col: 'overall', dir: 'desc' };
 
   var savedSelection = {};
   try {
@@ -63,9 +63,8 @@
   }
 
   // ---------------- static chrome ----------------
-  var userSelect = document.getElementById('user-select');
-  var seasonSelect = document.getElementById('season-select');
-  var seasonPill = document.getElementById('season-pill');
+  var userChipRow = document.getElementById('user-select');
+  var seasonChipRow = document.getElementById('season-select');
   var loadStatus = document.getElementById('load-status');
   var mtButtons = document.querySelectorAll('#matchtype-toggle button');
 
@@ -76,6 +75,34 @@
     loadStatus.style.color = isError ? 'var(--status-critical)' : 'var(--text-muted)';
   }
 
+  /** select 대신 가로 스크롤 칩 버튼 목록 — 유저/시즌처럼 값이 몇 개 안 되는 선택지에 더 직관적이다. */
+  function buildChips(container, items, getValue, getLabel, onSelect) {
+    container.replaceChildren();
+    items.forEach(function (item) {
+      var value = getValue(item);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip';
+      btn.textContent = getLabel(item);
+      btn.setAttribute('aria-pressed', 'false');
+      btn.dataset.value = String(value);
+      btn.addEventListener('click', function () {
+        if (btn.getAttribute('aria-pressed') === 'true') return;
+        container.querySelectorAll('.chip').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
+        btn.setAttribute('aria-pressed', 'true');
+        btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        onSelect(value);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  function setActiveChip(container, value) {
+    container.querySelectorAll('.chip').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.value === String(value)));
+    });
+  }
+
   mtButtons.forEach(function (btn) {
     btn.addEventListener('click', function () {
       if (btn.getAttribute('data-mt') === state.matchType) return;
@@ -84,21 +111,6 @@
       persist();
       loadSelection();
     });
-  });
-
-  userSelect.addEventListener('change', function () {
-    state.ouid = userSelect.value;
-    persist();
-    loadSelection();
-  });
-
-  seasonSelect.addEventListener('change', function () {
-    state.seasonId = seasonSelect.value ? Number(seasonSelect.value) : null;
-    var s = allSeasons.filter(function (x) { return String(x.id) === seasonSelect.value; })[0];
-    seasonPill.hidden = !(s && s.current);
-    if (s && s.current) seasonPill.textContent = '진행중';
-    persist();
-    loadSelection();
   });
 
   var allUsers = [];
@@ -112,18 +124,25 @@
         allSeasons = results[1];
         if (!allUsers.length) { setStatus('추적 중인 유저가 없습니다.', true); return; }
 
-        allUsers.slice().sort(function (a, b) { return a.displayOrder - b.displayOrder; }).forEach(function (u) {
-          var opt = document.createElement('option');
-          opt.value = u.ouid;
-          opt.textContent = u.nickname;
-          userSelect.appendChild(opt);
-        });
-        allSeasons.slice().sort(function (a, b) { return b.id - a.id; }).forEach(function (s) {
-          var opt = document.createElement('option');
-          opt.value = s.id;
-          opt.textContent = s.name + (s.current ? ' · 진행중' : '');
-          seasonSelect.appendChild(opt);
-        });
+        var sortedUsers = allUsers.slice().sort(function (a, b) { return a.displayOrder - b.displayOrder; });
+        buildChips(userChipRow, sortedUsers,
+          function (u) { return u.ouid; },
+          function (u) { return u.nickname; },
+          function (value) {
+            state.ouid = value;
+            persist();
+            loadSelection();
+          });
+
+        var sortedSeasons = allSeasons.slice().sort(function (a, b) { return b.id - a.id; });
+        buildChips(seasonChipRow, sortedSeasons,
+          function (s) { return s.id; },
+          function (s) { return s.name + (s.current ? ' · 진행중' : ''); },
+          function (value) {
+            state.seasonId = Number(value);
+            persist();
+            loadSelection();
+          });
 
         state.ouid = (savedSelection.ouid && allUsers.some(function (u) { return u.ouid === savedSelection.ouid; }))
           ? savedSelection.ouid
@@ -133,15 +152,11 @@
         var currentSeason = allSeasons.filter(function (s) { return s.current; })[0];
         state.seasonId = seasonMatch ? seasonMatch.id : (currentSeason ? currentSeason.id : (allSeasons[0] ? allSeasons[0].id : null));
 
-        userSelect.value = state.ouid;
-        seasonSelect.value = state.seasonId != null ? String(state.seasonId) : '';
-        var activeSeason = allSeasons.filter(function (s) { return s.id === state.seasonId; })[0];
-        seasonPill.hidden = !(activeSeason && activeSeason.current);
-        if (activeSeason && activeSeason.current) seasonPill.textContent = '진행중';
+        setActiveChip(userChipRow, state.ouid);
+        setActiveChip(seasonChipRow, state.seasonId);
         mtButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mt') === state.matchType)); });
 
         setStatus(null);
-        document.getElementById('snapshot-badge').innerHTML = '<strong>LIVE</strong> · 매 로딩마다 백엔드를 직접 호출';
         loadZoneAggregate();
         return loadSelection();
       })
@@ -269,7 +284,7 @@
       var xgPct = p.xg != null ? Math.round(p.xg * 100) + '%' : null;
       var showFn = function (evt) {
         var lines = [p.shootType + ' · ' + (RESULT_KO[p.result] || p.result)];
-        if (xgPct) lines.push('이 구역 실측 골 전환율(근사 xG) ' + xgPct);
+        if (xgPct) lines.push('이 구역 xG값 ' + xgPct);
         showTip(evt, lines);
       };
       c.addEventListener('pointerenter', showFn);
@@ -296,29 +311,6 @@
     legend.appendChild(gi); legend.appendChild(mi);
     container.appendChild(legend);
   }
-  function xgZoneTable(container, rows, sampleSize) {
-    container.replaceChildren();
-    var table = document.createElement('table');
-    var thead = document.createElement('thead');
-    var htr = document.createElement('tr');
-    ['구역', '슈팅 수', '골', '실측 전환율(근사 xG)'].forEach(function (h, i) {
-      htr.appendChild(el('th', i >= 1 ? 'num' : '', h));
-    });
-    thead.appendChild(htr);
-    table.appendChild(thead);
-    var tbody = document.createElement('tbody');
-    rows.forEach(function (r) {
-      var tr = document.createElement('tr');
-      tr.appendChild(el('td', 'name-cell', r.zone));
-      tr.appendChild(el('td', 'num', fmt(r.shots)));
-      tr.appendChild(el('td', 'num', fmt(r.goals)));
-      tr.appendChild(el('td', 'num', Math.round(r.rate * 1000) / 10 + '%'));
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    container.appendChild(table);
-  }
-
   // ---------------- tables ----------------
   function assistTable(container, chains) {
     container.replaceChildren();
@@ -542,9 +534,15 @@
     container.appendChild(table);
   }
 
-  function recentMatchesTable(container, matches) {
+  // ---------------- 최근 경기 (상대 무관, 더보기 페이징) ----------------
+  var recentMoreBtn = document.getElementById('recent-more-btn');
+  var recentMatchesState = { page: 0, size: 10, hasMore: false, loading: false };
+
+  function recentTableBody() {
+    var container = document.getElementById('table-recent');
+    var existing = container.querySelector('table');
+    if (existing) return existing.querySelector('tbody');
     container.replaceChildren();
-    if (!matches.length) { container.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.')); return; }
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
@@ -554,42 +552,87 @@
     thead.appendChild(htr);
     table.appendChild(thead);
     var tbody = document.createElement('tbody');
-    matches.forEach(function (m) { tbody.appendChild(buildMatchRow(m, true)); });
     table.appendChild(tbody);
     container.appendChild(table);
-    var hint = el('p', 'card-caption', '행을 클릭하면 상세 정보가 열립니다.');
-    hint.style.marginTop = '8px';
-    hint.style.marginBottom = '0';
-    container.appendChild(hint);
+    return tbody;
   }
 
-  function renderHeadlineRecords(opponents) {
-    var container = document.getElementById('headline-records');
-    container.replaceChildren();
-    if (!opponents.length) {
-      container.appendChild(el('p', 'card-empty', '집계된 상대 전적이 없습니다.'));
-      return;
-    }
-    var specs = [
-      { key: 'maxWin', label: '최다 연승', unit: '연승' },
-      { key: 'maxLose', label: '최다 연패', unit: '연패' },
-      { key: 'maxUnbeaten', label: '최다 무패', unit: '무패' },
-      { key: 'maxWinless', label: '최다 무승', unit: '무승' }
-    ];
-    specs.forEach(function (spec) {
-      var best = opponents.reduce(function (acc, o) {
-        return (!acc || o.streak[spec.key] > acc.streak[spec.key]) ? o : acc;
-      }, null);
-      var tile = el('div', 'headline-tile');
-      tile.appendChild(el('p', 'tile-label', spec.label));
-      if (!best || best.streak[spec.key] === 0) {
-        tile.appendChild(el('div', 'tile-value', '-'));
-      } else {
-        tile.appendChild(el('div', 'tile-value', best.streak[spec.key] + spec.unit));
-        tile.appendChild(el('div', 'tile-sub', 'vs ' + best.opponentNickname));
+  function loadRecentMatches(reset) {
+    if (recentMatchesState.loading) return Promise.resolve();
+    if (reset) recentMatchesState.page = 0;
+    recentMatchesState.loading = true;
+    recentMoreBtn.disabled = true;
+    var seq = loadSeq;
+    return apiGet('/api/v1/records/recent-matches', {
+      ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId,
+      page: recentMatchesState.page, size: recentMatchesState.size
+    }).then(function (result) {
+      recentMatchesState.loading = false;
+      recentMoreBtn.disabled = false;
+      if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
+
+      var container = document.getElementById('table-recent');
+      if (reset) {
+        container.replaceChildren();
+        if (!result.content.length) {
+          container.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.'));
+          recentMoreBtn.hidden = true;
+          return;
+        }
       }
-      container.appendChild(tile);
+      var tbody = recentTableBody();
+      result.content.forEach(function (m) { tbody.appendChild(buildMatchRow(m, true)); });
+      recentMatchesState.hasMore = (result.number + 1) * result.size < result.totalElements;
+      recentMatchesState.page = result.number + 1;
+      recentMoreBtn.hidden = !recentMatchesState.hasMore;
+    }).catch(function () {
+      recentMatchesState.loading = false;
+      recentMoreBtn.disabled = false;
+      if (seq !== loadSeq) return;
+      recentMoreBtn.hidden = true;
+      if (reset) {
+        var container = document.getElementById('table-recent');
+        container.replaceChildren();
+        container.appendChild(el('p', 'card-empty', '최근 경기를 불러오지 못했습니다.'));
+      }
     });
+  }
+
+  recentMoreBtn.addEventListener('click', function () { loadRecentMatches(false); });
+
+  /**
+   * 백엔드는 raw 합계만 주고, 비율/100점 만점 점수는 여기서 계산한다 — "1등이 100점"이 되려면
+   * 그룹(현재 유저·매치타입·시즌의 전체 선수) 안에서의 최댓값을 알아야 하는데 그건 이 목록이
+   * 다 모여야 알 수 있어서다.
+   *
+   * 종합 = (골×3 + 도움×2 + (태클+인터셉트+블록+세이브)×0.5)를 최댓값 100점 기준으로 재조정.
+   * 공격력/수비력은 그 자체로 요청받은 정식 지표가 아니라, 종합과 같은 방식(그룹 내 최댓값=100)으로
+   * 계산한 별도의 참고용 합성 점수다 — 공격력은 골/도움/유효슛/드리블 성공, 수비력은
+   * 태클/인터셉트/블록/공중볼 성공에 가중치를 둔다.
+   */
+  function enrichPlayers(players) {
+    var maxScore = 0, maxAttack = 0, maxDefense = 0;
+    var enriched = players.map(function (p) {
+      var copy = {};
+      for (var k in p) copy[k] = p[k];
+      copy.attackPoints = p.goals + p.assists;
+      copy.shootAccuracy = p.shootTotal > 0 ? (p.effectiveShoot / p.shootTotal * 100) : null;
+      copy.passAccuracy = p.passTry > 0 ? (p.passSuccess / p.passTry * 100) : null;
+      copy.dribbleRate = p.dribbleTry > 0 ? (p.dribbleSuccess / p.dribbleTry * 100) : null;
+      copy.aerialRate = p.aerialTry > 0 ? (p.aerialSuccess / p.aerialTry * 100) : null;
+      copy.attackRaw = (p.goals * 3) + (p.assists * 2) + (p.effectiveShoot * 0.3) + (p.dribbleSuccess * 0.2);
+      copy.defenseRaw = p.tackles + p.intercepts + p.blocks + (p.aerialSuccess * 0.3);
+      if (p.contributionScore > maxScore) maxScore = p.contributionScore;
+      if (copy.attackRaw > maxAttack) maxAttack = copy.attackRaw;
+      if (copy.defenseRaw > maxDefense) maxDefense = copy.defenseRaw;
+      return copy;
+    });
+    enriched.forEach(function (p) {
+      p.overall = maxScore > 0 ? (p.contributionScore / maxScore * 100) : 0;
+      p.attackRating = maxAttack > 0 ? (p.attackRaw / maxAttack * 100) : 0;
+      p.defenseRating = maxDefense > 0 ? (p.defenseRaw / maxDefense * 100) : 0;
+    });
+    return enriched;
   }
 
   var currentPlayersList = [];
@@ -601,18 +644,32 @@
 
     var cols = [
       { key: 'playerName', label: '선수', numeric: false },
+      { key: 'appearances', label: '출전', numeric: true },
+      { key: 'attackRating', label: '공격력', numeric: true },
+      { key: 'defenseRating', label: '수비력', numeric: true },
       { key: 'goals', label: '골', numeric: true },
-      { key: 'assists', label: '어시스트', numeric: true },
-      { key: 'saves', label: '세이브', numeric: true },
+      { key: 'assists', label: '도움', numeric: true },
+      { key: 'attackPoints', label: '공격P', numeric: true },
+      { key: 'shootAccuracy', label: '슛정확', numeric: true },
+      { key: 'passAccuracy', label: '패스', numeric: true },
+      { key: 'dribbleRate', label: '드리블', numeric: true },
+      { key: 'aerialRate', label: '공중볼', numeric: true },
       { key: 'tackles', label: '태클', numeric: true },
       { key: 'intercepts', label: '인터셉트', numeric: true },
       { key: 'blocks', label: '블록', numeric: true },
-      { key: 'contributionScore', label: '기여도', numeric: true }
+      { key: 'avgRating', label: '평점', numeric: true },
+      { key: 'overall', label: '종합', numeric: true }
     ];
 
     var sorted = players.slice().sort(function (a, b) {
       var av = a[playersGridSort.col], bv = b[playersGridSort.col];
-      var cmp = typeof av === 'string' ? av.localeCompare(bv, 'ko') : av - bv;
+      var cmp;
+      if (typeof av === 'string') {
+        cmp = av.localeCompare(bv, 'ko');
+      } else {
+        // 슛정확/패스/드리블/공중볼은 시도가 0건이면 null — 정렬 시엔 맨 뒤로 보낸다.
+        cmp = (av == null ? -1 : av) - (bv == null ? -1 : bv);
+      }
       return playersGridSort.dir === 'asc' ? cmp : -cmp;
     });
 
@@ -644,17 +701,27 @@
     thead.appendChild(htr);
     table.appendChild(thead);
 
+    function pct(v) { return v == null ? '-' : Math.round(v) + '%'; }
+
     var tbody = document.createElement('tbody');
     sorted.forEach(function (p) {
       var tr = document.createElement('tr');
       tr.appendChild(el('td', 'name-cell', p.playerName));
+      tr.appendChild(el('td', 'num', fmt(p.appearances)));
+      tr.appendChild(el('td', 'num', fmt(Math.round(p.attackRating))));
+      tr.appendChild(el('td', 'num', fmt(Math.round(p.defenseRating))));
       tr.appendChild(el('td', 'num', fmt(p.goals)));
       tr.appendChild(el('td', 'num', fmt(p.assists)));
-      tr.appendChild(el('td', 'num', fmt(p.saves)));
+      tr.appendChild(el('td', 'num', fmt(p.attackPoints)));
+      tr.appendChild(el('td', 'num', pct(p.shootAccuracy)));
+      tr.appendChild(el('td', 'num', pct(p.passAccuracy)));
+      tr.appendChild(el('td', 'num', pct(p.dribbleRate)));
+      tr.appendChild(el('td', 'num', pct(p.aerialRate)));
       tr.appendChild(el('td', 'num', fmt(p.tackles)));
       tr.appendChild(el('td', 'num', fmt(p.intercepts)));
       tr.appendChild(el('td', 'num', fmt(p.blocks)));
-      tr.appendChild(el('td', 'num', fmt1(p.contributionScore)));
+      tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
+      tr.appendChild(el('td', 'num', fmt(Math.round(p.overall))));
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -735,8 +802,6 @@
     zoneAggregate = agg;
     zoneAggregate.rateMap = {};
     agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
-    document.getElementById('xg-sample-size').textContent = fmt(agg.sampleSize);
-    xgZoneTable(document.getElementById('table-xgzones'), agg.table, agg.sampleSize);
     if (lastPoints) updateXgTile(lastPoints);
   }
 
@@ -781,7 +846,7 @@
     ]).then(function (r) {
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
       setStatus(null);
-      renderAll(user, { overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3], heatmap: r[4] }, seq);
+      renderAll(user, { overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3], heatmap: r[4] });
     }).catch(function (err) {
       if (seq !== loadSeq) return;
       setStatus('데이터를 불러오지 못했습니다. 새로고침해서 다시 시도해 주세요. (' + err.message + ')', true);
@@ -789,7 +854,7 @@
   }
 
   // ---------------- main render ----------------
-  function renderAll(user, d, seq) {
+  function renderAll(user, d) {
     var overall = d.overall;
 
     var tiles = document.getElementById('tiles');
@@ -833,18 +898,21 @@
     tiles.appendChild(cardTile);
 
     var xgTile = el('div', 'tile');
-    xgTile.appendChild(el('p', 'tile-label', '실제 득점 vs 근사 xG'));
+    xgTile.appendChild(el('p', 'tile-label', '실제 득점 vs 실제 xG값'));
     var xgValue = el('div', 'tile-value', '—'); xgValue.id = 'xg-tile-value';
     var xgSub = el('div', 'tile-sub', ''); xgSub.id = 'xg-tile-sub';
     xgTile.appendChild(xgValue);
     xgTile.appendChild(xgSub);
     tiles.appendChild(xgTile);
 
-    // top players — 점수만, TOP 7 (전체 목록은 아래 그리드에서 더보기)
-    var top7Rows = d.allPlayers.slice()
-      .sort(function (a, b) { return b.contributionScore - a.contributionScore; })
+    // 선수 스탯 — raw 합계로부터 100점 만점 종합/공격력/수비력, 슛정확/패스/드리블/공중볼 %를 계산
+    var enrichedPlayers = enrichPlayers(d.allPlayers);
+
+    // top players — TOP 7 (전체 목록은 아래 그리드에서 더보기)
+    var top7Rows = enrichedPlayers.slice()
+      .sort(function (a, b) { return b.overall - a.overall; })
       .slice(0, 7)
-      .map(function (p) { return { label: p.playerName, value: Math.round(p.contributionScore * 10) / 10, color: 'var(--series-1)' }; });
+      .map(function (p) { return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)' }; });
     barChart(document.getElementById('chart-players'), top7Rows, { unit: '점' });
 
     // goal type distribution
@@ -858,7 +926,7 @@
     var timeRows = overall.goalTimeDistribution.map(function (t) { return { label: t.periodLabel, value: t.count }; });
     verticalBarChart(document.getElementById('chart-goaltime'), timeRows);
 
-    // heatmap (전체 슈팅 + 근사 xG)
+    // heatmap (전체 슈팅 + xG값)
     lastPoints = d.heatmap.points;
     var actualGoalsNow = d.heatmap.points.filter(function (p) { return p.goal; }).length;
     document.getElementById('heatmap-caption').textContent =
@@ -872,47 +940,18 @@
     pitchHeatmap(document.getElementById('chart-heatmap'), shotsForPitch);
     updateXgTile(d.heatmap.points);
 
-    // assist chains
-    assistTable(document.getElementById('table-assists'), d.assistChains);
-
-    // headline records (역대 최고 연속 기록)
-    renderHeadlineRecords(d.opponents);
+    // 환상의 콤비 (어시스트 체인) — 상위 5건만
+    assistTable(document.getElementById('table-assists'), d.assistChains.slice(0, 5));
 
     // opponents (행 클릭 시 해당 상대 최근 경기를 그때 불러와 펼침)
     opponentsTable(document.getElementById('table-opponents'), d.opponents);
 
-    // recent matches — 전적이 가장 많은 상대와의 최근 경기만 그때 불러온다
-    var topOpp = d.opponents.slice().sort(function (a, b) {
-      var am = a.tally.win + a.tally.draw + a.tally.lose;
-      var bm = b.tally.win + b.tally.draw + b.tally.lose;
-      return bm - am;
-    })[0];
-    document.getElementById('recent-caption').textContent = topOpp
-      ? ('전적이 가장 많은 상대 "' + topOpp.opponentNickname + '"와의 최근 경기')
-      : '표시할 최근 경기가 없습니다.';
-    if (topOpp) {
-      apiGet('/api/v1/opponents/' + encodeURIComponent(topOpp.opponentOuid) + '/matches',
-        { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId, page: 0, size: 10 })
-        .then(function (page) {
-          if (seq !== loadSeq) return;
-          var matches = page.content.map(function (m) {
-            var withName = {};
-            for (var k in m) withName[k] = m[k];
-            withName.opponentNickname = topOpp.opponentNickname;
-            return withName;
-          });
-          recentMatchesTable(document.getElementById('table-recent'), matches);
-        })
-        .catch(function () {
-          if (seq === loadSeq) recentMatchesTable(document.getElementById('table-recent'), []);
-        });
-    } else {
-      recentMatchesTable(document.getElementById('table-recent'), []);
-    }
+    // recent matches — 상대 무관, 이 유저의 진짜 최신 경기 (더보기 페이징)
+    loadRecentMatches(true);
 
-    // 전체 선수 스탯 그리드 — 유저/매치타입 바뀔 때마다 정렬 상태는 초기화(기여도 desc)
-    playersGridSort = { col: 'contributionScore', dir: 'desc' };
-    renderPlayersGrid(d.allPlayers);
+    // 전체 선수 스탯 그리드 — 유저/매치타입 바뀔 때마다 정렬 상태는 초기화(종합 desc)
+    playersGridSort = { col: 'overall', dir: 'desc' };
+    renderPlayersGrid(enrichedPlayers);
   }
 
   init();

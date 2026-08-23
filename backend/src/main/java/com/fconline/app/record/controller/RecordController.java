@@ -3,10 +3,14 @@ package com.fconline.app.record.controller;
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.domain.match.vo.MatchType;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -52,5 +56,16 @@ public class RecordController {
                                                   @RequestParam MatchType matchType,
                                                   @RequestParam(required = false) Long seasonId) {
         return recordFacade.getAllPlayers(ouid, matchType, seasonId);
+    }
+
+    /** 상대 무관, 이 유저의 진짜 최신 경기 목록(매치 날짜 내림차순, 더보기 페이징). */
+    @GetMapping("/recent-matches")
+    public Page<RecentMatchResponse> getRecentMatches(@RequestParam String ouid,
+                                                        @RequestParam MatchType matchType,
+                                                        @RequestParam(required = false) Long seasonId,
+                                                        @RequestParam(defaultValue = "0") int page,
+                                                        @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return recordFacade.getRecentMatches(ouid, matchType, seasonId, pageable);
     }
 }

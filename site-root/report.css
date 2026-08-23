@@ -107,16 +107,6 @@
     margin: 0;
     text-wrap: balance;
   }
-  .snapshot-badge {
-    font-family: var(--font-display);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-  .snapshot-badge strong { color: var(--text-secondary); font-weight: 600; }
-
   .filters {
     display: flex;
     align-items: center;
@@ -132,18 +122,33 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  select.user-select {
-    font-family: var(--font-body);
-    font-size: 14px;
+  /* select 대신 가로 스크롤 칩 버튼 — 유저/시즌처럼 선택지가 몇 개 안 될 때 눈에 바로 들어온다. */
+  .chip-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: min(420px, 60vw);
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .chip {
+    flex: none;
+    font-family: var(--font-display);
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text-primary);
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
     background: var(--page-plane);
     border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 7px 10px;
-    min-width: 180px;
+    border-radius: 999px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: pointer;
   }
-  select.user-select:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
+  .chip[aria-pressed="true"] { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+  .chip:hover:not([aria-pressed="true"]) { border-color: var(--text-muted); }
+  .chip:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
 
   .segmented {
     display: inline-flex;
@@ -165,19 +170,6 @@
   .segmented button + button { border-left: 1px solid var(--border); }
   .segmented button[aria-pressed="true"] { background: var(--series-1); color: #fff; }
   .segmented button:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
-
-  .season-pill {
-    font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    color: var(--pitch);
-    background: var(--pitch-wash);
-    border: 1px solid var(--pitch);
-    border-radius: 999px;
-    padding: 4px 10px;
-    white-space: nowrap;
-  }
 
   /* ---------- stat tile strip ---------- */
   .tiles {
@@ -456,11 +448,3 @@
   tr.match-row:hover td { background: var(--page-plane); }
   tr.match-row:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
 
-  .headline-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1px;
-    background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
-  }
-  .headline-tile { background: var(--surface-1); padding: 12px 14px; }
-  .headline-tile .tile-value { font-size: 20px; }

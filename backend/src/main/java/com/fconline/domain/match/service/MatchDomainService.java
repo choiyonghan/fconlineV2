@@ -3,6 +3,7 @@ package com.fconline.domain.match.service;
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeCount;
+import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
@@ -28,6 +29,14 @@ public class MatchDomainService {
     /** 90분(+연장)을 15분 단위로 나눈 시간대 라벨. v1의 시간대 분포 집계 로직을 단일화. */
     private static final int[] BUCKET_UPPER_BOUNDS = {15, 30, 45, 60, 75, 90};
     private static final String EXTRA_TIME_LABEL = "연장전";
+
+    /**
+     * ShootEvent.goalTimeMinutes는 period(1 전반~5 승부차기) 시작 시점 기준 경과분이라, 절대
+     * "경기 시작 기준 누적 분"으로 바꾸려면 이 오프셋을 더해야 한다 — NexonApiClient의 goalTime
+     * 인코딩 주석과 동일한 period 정의(전반/후반/연장전반/연장후반/승부차기)를 그대로 따른다.
+     * period가 null이거나 1~5 밖이면(예전 데이터 결측) 오프셋 없이 그대로 쓴다.
+     */
+    private static final int[] PERIOD_OFFSET_MINUTES = {0, 0, 45, 90, 105, 120};
 
     private final MatchDetailRepository matchDetailRepository;
 
@@ -58,9 +67,9 @@ public class MatchDomainService {
                 .toList();
     }
 
-    /** 득점 시각(분) 원시값을 15분 단위 버킷으로 집계한다. */
+    /** 득점 시각(분) 원시값을 절대 누적 분으로 환산해 15분 단위 버킷으로 집계한다. */
     public List<GoalTimeCount> goalTimeDistribution(String ouid, MatchType matchType, Instant from, Instant to) {
-        List<Integer> minutes = matchDetailRepository.findGoalMinutes(ouid, matchType, from, to);
+        List<GoalTimeRaw> raws = matchDetailRepository.findGoalMinutes(ouid, matchType, from, to);
 
         Map<String, Long> counts = new LinkedHashMap<>();
         for (int upper : BUCKET_UPPER_BOUNDS) {
@@ -68,14 +77,22 @@ public class MatchDomainService {
         }
         counts.put(EXTRA_TIME_LABEL, 0L);
 
-        for (Integer minute : minutes) {
-            String label = bucketLabelFor(minute);
+        for (GoalTimeRaw raw : raws) {
+            int absoluteMinute = raw.minute() + periodOffset(raw.period());
+            String label = bucketLabelFor(absoluteMinute);
             counts.merge(label, 1L, Long::sum);
         }
 
         return counts.entrySet().stream()
                 .map(e -> new GoalTimeCount(e.getKey(), e.getValue()))
                 .toList();
+    }
+
+    private int periodOffset(Integer period) {
+        if (period == null || period < 1 || period >= PERIOD_OFFSET_MINUTES.length) {
+            return 0;
+        }
+        return PERIOD_OFFSET_MINUTES[period];
     }
 
     private String bucketLabelFor(int minute) {

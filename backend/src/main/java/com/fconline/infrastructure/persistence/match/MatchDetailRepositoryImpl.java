@@ -1,6 +1,7 @@
 package com.fconline.infrastructure.persistence.match;
 
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
@@ -112,8 +113,14 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         QSquadEntry se = QSquadEntry.squadEntry;
 
         List<Tuple> rows = queryFactory
-                .select(se.spId, se.goal.sumAggregate(), se.assist.sumAggregate(), se.save.sumAggregate(),
-                        se.tackle.sumAggregate(), se.intercept.sumAggregate(), se.block.sumAggregate())
+                .select(se.spId, se.id.count(),
+                        se.goal.sumAggregate(), se.assist.sumAggregate(), se.save.sumAggregate(),
+                        se.tackle.sumAggregate(), se.intercept.sumAggregate(), se.block.sumAggregate(),
+                        se.shootTotal.sumAggregate(), se.effectiveShoot.sumAggregate(),
+                        se.passTry.sumAggregate(), se.passSuccess.sumAggregate(),
+                        se.dribbleTry.sumAggregate(), se.dribbleSuccess.sumAggregate(),
+                        se.aerialTry.sumAggregate(), se.aerialSuccess.sumAggregate(),
+                        se.rating.avg())
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
@@ -123,14 +130,26 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
         return rows.stream()
                 .map(row -> {
+                    int appearances = (int) nzl(row.get(se.id.count()));
                     int goals = nz(row.get(se.goal.sumAggregate()));
                     int assists = nz(row.get(se.assist.sumAggregate()));
                     int saves = nz(row.get(se.save.sumAggregate()));
                     int tackles = nz(row.get(se.tackle.sumAggregate()));
                     int intercepts = nz(row.get(se.intercept.sumAggregate()));
                     int blocks = nz(row.get(se.block.sumAggregate()));
-                    double score = (goals * 4.0) + (assists * 3.0) + (tackles + intercepts + blocks + saves) * 0.5;
-                    return new TopPlayerStat(row.get(se.spId), goals, assists, saves, tackles, intercepts, blocks, score);
+                    int shootTotal = nz(row.get(se.shootTotal.sumAggregate()));
+                    int effectiveShoot = nz(row.get(se.effectiveShoot.sumAggregate()));
+                    int passTry = nz(row.get(se.passTry.sumAggregate()));
+                    int passSuccess = nz(row.get(se.passSuccess.sumAggregate()));
+                    int dribbleTry = nz(row.get(se.dribbleTry.sumAggregate()));
+                    int dribbleSuccess = nz(row.get(se.dribbleSuccess.sumAggregate()));
+                    int aerialTry = nz(row.get(se.aerialTry.sumAggregate()));
+                    int aerialSuccess = nz(row.get(se.aerialSuccess.sumAggregate()));
+                    Double avgRating = row.get(se.rating.avg());
+                    double score = (goals * 3.0) + (assists * 2.0) + (tackles + intercepts + blocks + saves) * 0.5;
+                    return new TopPlayerStat(row.get(se.spId), appearances, goals, assists, saves, tackles,
+                            intercepts, blocks, shootTotal, effectiveShoot, passTry, passSuccess,
+                            dribbleTry, dribbleSuccess, aerialTry, aerialSuccess, avgRating, score);
                 })
                 .sorted(Comparator.comparingDouble(TopPlayerStat::contributionScore).reversed())
                 .limit(limit)
@@ -158,13 +177,13 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
-    public List<Integer> findGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to) {
+    public List<GoalTimeRaw> findGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
         QShootEvent se = QShootEvent.shootEvent;
 
-        return queryFactory
-                .select(se.goalTimeMinutes)
+        List<Tuple> rows = queryFactory
+                .select(se.goalTimeMinutes, se.period)
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
@@ -172,6 +191,10 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                         .and(se.result.eq(ShootResult.GOAL))
                         .and(se.goalTimeMinutes.isNotNull()))
                 .fetch();
+
+        return rows.stream()
+                .map(row -> new GoalTimeRaw(row.get(se.goalTimeMinutes), row.get(se.period)))
+                .toList();
     }
 
     @Override
@@ -224,6 +247,32 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         QMatch m = QMatch.match;
 
         BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to).and(md.opponentOuid.eq(opponentOuid));
+
+        JPAQuery<MatchDetail> contentQuery = queryFactory
+                .selectFrom(md)
+                .join(md.match, m).fetchJoin()
+                .where(where)
+                .orderBy(m.matchDate.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize());
+
+        long total = nzl(queryFactory
+                .select(md.count())
+                .from(md)
+                .join(md.match, m)
+                .where(where)
+                .fetchOne());
+
+        return new PageImpl<>(contentQuery.fetch(), pageable, total);
+    }
+
+    @Override
+    public Page<MatchDetail> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to,
+                                               Pageable pageable) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to);
 
         JPAQuery<MatchDetail> contentQuery = queryFactory
                 .selectFrom(md)

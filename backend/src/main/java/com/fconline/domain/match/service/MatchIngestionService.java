@@ -81,7 +81,10 @@ public class MatchIngestionService {
 
         participant.squadEntries().forEach(entry -> detail.addSquadEntry(
                 SquadEntry.of(detail, entry.spId(), entry.spPosition(), entry.goal(), entry.assist(),
-                        entry.save(), entry.tackle(), entry.intercept(), entry.block())));
+                        entry.save(), entry.tackle(), entry.intercept(), entry.block(),
+                        entry.shootTotal(), entry.effectiveShoot(), entry.passTry(), entry.passSuccess(),
+                        entry.dribbleTry(), entry.dribbleSuccess(), entry.aerialTry(), entry.aerialSuccess(),
+                        entry.rating())));
 
         return detail;
     }

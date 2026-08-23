@@ -53,6 +53,9 @@ public record NexonParticipantData(
     }
 
     public record SquadEntryData(String spId, int spPosition, int goal, int assist,
-                                  int save, int tackle, int intercept, int block) {
+                                  int save, int tackle, int intercept, int block,
+                                  int shootTotal, int effectiveShoot, int passTry, int passSuccess,
+                                  int dribbleTry, int dribbleSuccess, int aerialTry, int aerialSuccess,
+                                  Double rating) {
     }
 }

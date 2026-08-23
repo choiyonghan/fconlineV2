@@ -2,6 +2,7 @@ package com.fconline.domain.match.repository;
 
 import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
 import com.fconline.domain.match.vo.MatchStatsSummary;
@@ -34,8 +35,13 @@ public interface MatchDetailRepositoryCustom {
     /** 득점(ShootResult.GOAL)만 대상으로 슛 유형별 개수 집계. */
     List<GoalTypeCount> aggregateGoalTypeDistribution(String ouid, MatchType matchType, Instant from, Instant to);
 
-    /** 득점 시각(분) 원시값 목록 — 시간대 버킷 계산은 도메인 서비스(MatchDomainService)가 담당. */
-    List<Integer> findGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to);
+    /**
+     * 득점 시각(분,period) 원시값 목록 — period별 절대 분 환산 및 버킷 계산은
+     * 도메인 서비스(MatchDomainService)가 담당한다. minute은 해당 period 시작 기준 경과분이라
+     * period 오프셋을 더하기 전까지는 "경기 시작 기준 누적 분"이 아니다 — 예전엔 이 오프셋 없이
+     * minute을 그대로 버킷팅해서 후반/연장 골이 전부 0~45분대로 잘못 집계되고 있었다.
+     */
+    List<GoalTimeRaw> findGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to);
 
     /** 상대별 승/무/패 집계 목록 (상대별 카드 화면의 기반 데이터). */
     List<OpponentTally> aggregateOpponentTallies(String ouid, MatchType matchType, Instant from, Instant to);
@@ -50,6 +56,9 @@ public interface MatchDetailRepositoryCustom {
     /** 특정 상대와의 개별 경기 목록 (페이지네이션). */
     Page<MatchDetail> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
                                              Instant from, Instant to, Pageable pageable);
+
+    /** 상대 무관, 이 유저의 전체 최근 경기 목록 — 매치 날짜 내림차순 (페이지네이션). */
+    Page<MatchDetail> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to, Pageable pageable);
 
     /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외. */
     List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly);

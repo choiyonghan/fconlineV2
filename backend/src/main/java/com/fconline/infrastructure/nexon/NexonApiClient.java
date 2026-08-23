@@ -228,7 +228,16 @@ public class NexonApiClient implements NexonMatchGateway {
                         status.path("defending").asInt(0),
                         status.path("tackle").asInt(0),
                         status.path("intercept").asInt(0),
-                        status.path("block").asInt(0)
+                        status.path("block").asInt(0),
+                        status.path("shoot").asInt(0),
+                        status.path("effectiveShoot").asInt(0),
+                        status.path("passTry").asInt(0),
+                        status.path("passSuccess").asInt(0),
+                        status.path("dribbleTry").asInt(0),
+                        status.path("dribbleSuccess").asInt(0),
+                        status.path("aerialTry").asInt(0),
+                        status.path("aerialSuccess").asInt(0),
+                        status.path("spRating").isMissingNode() ? null : status.path("spRating").asDouble()
                 ));
             }
         }

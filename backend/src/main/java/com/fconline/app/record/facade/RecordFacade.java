@@ -6,9 +6,12 @@ import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.ShotPointResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
+import com.fconline.domain.match.MatchDetail;
+import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.MatchStatsSummary;
@@ -28,6 +31,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,13 +51,16 @@ public class RecordFacade {
     private final SeasonRangeResolver seasonRangeResolver;
     private final MatchDomainService matchDomainService;
     private final PlayerMetaRepository playerMetaRepository;
+    private final MatchDetailRepository matchDetailRepository;
 
     public RecordFacade(TrackedUserRepository trackedUserRepository, SeasonRangeResolver seasonRangeResolver,
-                         MatchDomainService matchDomainService, PlayerMetaRepository playerMetaRepository) {
+                         MatchDomainService matchDomainService, PlayerMetaRepository playerMetaRepository,
+                         MatchDetailRepository matchDetailRepository) {
         this.trackedUserRepository = trackedUserRepository;
         this.seasonRangeResolver = seasonRangeResolver;
         this.matchDomainService = matchDomainService;
         this.playerMetaRepository = playerMetaRepository;
+        this.matchDetailRepository = matchDetailRepository;
     }
 
     @Transactional(readOnly = true)
@@ -82,9 +90,12 @@ public class RecordFacade {
                 .map(stat -> new TopPlayerResponse(
                         stat.spId(),
                         playerNames.getOrDefault(stat.spId(), stat.spId()),
+                        stat.appearances(),
                         stat.goals(), stat.assists(), stat.saves(),
                         stat.tackles(), stat.intercepts(), stat.blocks(),
-                        stat.contributionScore()))
+                        stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
+                        stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
+                        stat.avgRating(), stat.contributionScore()))
                 .toList();
 
         return new OverallRecordResponse(
@@ -118,9 +129,12 @@ public class RecordFacade {
                 .map(stat -> new TopPlayerResponse(
                         stat.spId(),
                         playerNames.getOrDefault(stat.spId(), stat.spId()),
+                        stat.appearances(),
                         stat.goals(), stat.assists(), stat.saves(),
                         stat.tackles(), stat.intercepts(), stat.blocks(),
-                        stat.contributionScore()))
+                        stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
+                        stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
+                        stat.avgRating(), stat.contributionScore()))
                 .toList();
     }
 
@@ -166,6 +180,47 @@ public class RecordFacade {
                         c.scorerSpId(), playerNames.getOrDefault(c.scorerSpId(), c.scorerSpId()),
                         c.goals()))
                 .toList();
+    }
+
+    /** 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). */
+    @Transactional(readOnly = true)
+    public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
+                                                        Pageable pageable) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        Page<MatchDetail> page = matchDetailRepository.findRecentByOuid(
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), pageable);
+
+        return page.map(this::toRecentMatchResponse);
+    }
+
+    private RecentMatchResponse toRecentMatchResponse(MatchDetail detail) {
+        var stats = detail.getStats();
+        return new RecentMatchResponse(
+                detail.getMatch().getMatchId(),
+                detail.getMatch().getMatchDate(),
+                detail.getOpponentNickname(),
+                detail.getResult().label(),
+                nz(stats.getGoalsFor()),
+                nz(stats.getGoalsAgainst()),
+                stats.getAverageRating(),
+                stats.getPossession(),
+                stats.getShootTotal(),
+                stats.getEffectiveShoot(),
+                stats.getPassTry(),
+                stats.getPassSuccess(),
+                stats.getTackleTry(),
+                stats.getTackleSuccess(),
+                stats.getFoul(),
+                stats.getYellowCards(),
+                stats.getRedCards()
+        );
+    }
+
+    private static int nz(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private Map<String, String> playerNamesOfChains(List<AssistChainCount> chains) {
