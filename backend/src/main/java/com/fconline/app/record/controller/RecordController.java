@@ -62,12 +62,16 @@ public class RecordController {
         return recordFacade.getAssistChains(ouid, matchType, seasonId, limit);
     }
 
-    /** 정렬 가능한 "전체 선수" 그리드, 최다 세이브 등 top-3 밖 통계용 — 사실상 전체 목록. */
+    /**
+     * 정렬 가능한 "전체 선수" 그리드, 최다 세이브 등 top-3 밖 통계용 — 사실상 전체 목록.
+     * opponentOuid를 지정하면 그 상대와의 경기만 집계한다("상대별 전적" 행을 펼쳤을 때 씀).
+     */
     @GetMapping("/players")
     public List<TopPlayerResponse> getAllPlayers(@RequestParam String ouid,
                                                   @RequestParam MatchType matchType,
-                                                  @RequestParam(required = false) Long seasonId) {
-        return recordFacade.getAllPlayers(ouid, matchType, seasonId);
+                                                  @RequestParam(required = false) Long seasonId,
+                                                  @RequestParam(required = false) String opponentOuid) {
+        return recordFacade.getAllPlayers(ouid, matchType, seasonId, opponentOuid);
     }
 
     /**

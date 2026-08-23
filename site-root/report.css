@@ -496,6 +496,23 @@
     padding: 1px 5px;
   }
 
+  /* ---------- 상대별 전적 펼침 — 이 상대전 평균/TOP3 ---------- */
+  .opp-summary-grid { margin-bottom: 14px; }
+  .opp-top3-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .top3-list { display: flex; flex-direction: column; gap: 6px; }
+  .top3-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    padding: 6px 10px;
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+  }
+  .top3-rank { flex: none; color: var(--text-muted); font-family: var(--font-display); font-size: 11px; }
+  .top3-stat { margin-left: auto; flex: none; color: var(--text-secondary); white-space: nowrap; }
+
   .chip {
     display: inline-block;
     font-family: var(--font-display);

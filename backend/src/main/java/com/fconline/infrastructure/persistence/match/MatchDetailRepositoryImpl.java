@@ -124,10 +124,16 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
-    public List<TopPlayerStat> aggregateTopPlayers(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
+    public List<TopPlayerStat> aggregateTopPlayers(String ouid, MatchType matchType, Instant from, Instant to,
+                                                     String opponentOuid, int limit) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
         QSquadEntry se = QSquadEntry.squadEntry;
+
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to).and(se.substitute.isFalse());
+        if (opponentOuid != null) {
+            where.and(md.opponentOuid.eq(opponentOuid));
+        }
 
         List<Tuple> rows = queryFactory
                 .select(se.spId, se.id.count(),
@@ -141,7 +147,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
-                .where(baseWhere(md, m, ouid, matchType, from, to).and(se.substitute.isFalse()))
+                .where(where)
                 .groupBy(se.spId)
                 .fetch();
 

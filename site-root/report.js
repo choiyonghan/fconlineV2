@@ -913,6 +913,9 @@
 
       // v2: 전체 상대의 최근 경기를 미리 다 받아두던 스냅샷 방식 대신, 펼칠 때 그 상대 것만 그때 불러온다
       // (백엔드가 상대당 페이지 API를 이미 갖고 있어서 — 미리 당겨둘 이유가 없다).
+      // OPPONENT_SAMPLE_SIZE: 이 상대와의 전체 경기 수 만큼 한 번에 받아 평균/TOP3를 정확히 계산한다
+      // (친구 그룹 특성상 한 상대와 수백 경기씩 붙는 경우는 없어 페이징 없이도 충분히 가볍다).
+      var OPPONENT_SAMPLE_SIZE = 500;
       var expanded = false;
       var loaded = false;
       var toggle = function () {
@@ -924,15 +927,57 @@
           loaded = true;
           inner.replaceChildren();
           inner.appendChild(el('p', 'card-empty', '불러오는 중…'));
-          apiGet('/api/v1/opponents/' + encodeURIComponent(o.opponentOuid) + '/matches',
-            { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId, page: 0, size: 10 })
-            .then(function (page) {
+          var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId };
+          Promise.all([
+            apiGet('/api/v1/opponents/' + encodeURIComponent(o.opponentOuid) + '/matches',
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: OPPONENT_SAMPLE_SIZE })
+              .then(function (page) { return page.content; }),
+            // 이 상대전 선수 기여도 TOP3(득점/도움/선방/수비)용 — 실패해도 나머지 표시는 막지 않는다.
+            apiGet('/api/v1/records/players',
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid })
+              .catch(function () { return []; })
+          ]).then(function (results) {
+              var matches = results[0];
+              var vsOpponentPlayers = results[1];
               inner.replaceChildren();
-              var matches = page.content;
               if (!matches.length) {
                 inner.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.'));
                 return;
               }
+
+              // 평균 득실점 / 유효슈팅 비율 — 이 상대와의 전체 경기 기준.
+              var n = matches.length;
+              var sum = function (key) { return matches.reduce(function (s, m) { return s + (m[key] || 0); }, 0); };
+              var goalsFor = sum('goalsFor'), goalsAgainst = sum('goalsAgainst');
+              var shootTotal = sum('shootTotal'), effectiveShoot = sum('effectiveShoot');
+              var summaryGrid = el('div', 'stat-mini-grid opp-summary-grid');
+              statMini(summaryGrid, '평균 득점', fmt1(goalsFor / n), '경기당 실제 득점');
+              statMini(summaryGrid, '평균 실점', fmt1(goalsAgainst / n), '경기당 실제 실점');
+              statMini(summaryGrid, '평균 슈팅', fmt1(effectiveShoot / n) + ' / ' + fmt1(shootTotal / n), '유효 / 전체');
+              statMini(summaryGrid, '유효슈팅 비율', shootTotal > 0 ? pctOf(effectiveShoot, shootTotal) + '%' : '-',
+                '총 ' + fmt(effectiveShoot) + '회');
+              inner.appendChild(summaryGrid);
+
+              // 이 상대전 선수 기여도 TOP3.
+              var top3Wrap = el('div', 'opp-top3-wrap');
+              [
+                ['⚽ 이 상대전 최다 득점 TOP3', function (p) { return p.goals; }, '골'],
+                ['👟 이 상대전 최다 도움 TOP3', function (p) { return p.assists; }, '도움'],
+                ['🧤 이 상대전 최다 선방 TOP3', function (p) { return p.saves; }, '선방'],
+                ['🛡️ 이 상대전 수비의 핵 TOP3', function (p) { return p.tackles + p.intercepts + p.blocks; }, '회 차단']
+              ].forEach(function (spec) {
+                var section = el('div', 'opp-top3-section');
+                section.appendChild(el('p', 'card-caption', spec[0]));
+                var list = el('div', 'top3-list');
+                topPlayersList(list, vsOpponentPlayers, spec[1], spec[2]);
+                section.appendChild(list);
+                top3Wrap.appendChild(section);
+              });
+              inner.appendChild(top3Wrap);
+
+              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기');
+              matchCaption.style.marginTop = '14px';
+              inner.appendChild(matchCaption);
               var mtable = document.createElement('table');
               var mthead = document.createElement('thead');
               var mhtr = document.createElement('tr');
@@ -1310,6 +1355,28 @@
     box.appendChild(el('div', 'stat-mini-value', value));
     if (sub) box.appendChild(el('div', 'stat-mini-sub', sub));
     container.appendChild(box);
+  }
+
+  /**
+   * players(TopPlayerResponse[])에서 statFn 기준 상위 3명을 뽑아 렌더링한다 — "상대별 전적"
+   * 행을 펼쳤을 때 그 상대전 최다 득점/도움/선방/수비 TOP3를 보여주는 용도.
+   */
+  function topPlayersList(container, players, statFn, unit) {
+    container.replaceChildren();
+    var ranked = players
+      .map(function (p) { return { p: p, val: statFn(p) }; })
+      .filter(function (r) { return r.val > 0; })
+      .sort(function (a, b) { return b.val - a.val; })
+      .slice(0, 3);
+    if (!ranked.length) { container.appendChild(el('p', 'card-empty', '기록 없음')); return; }
+    ranked.forEach(function (r, i) {
+      var row = el('div', 'top3-row');
+      row.appendChild(el('span', 'top3-rank', (i + 1) + '.'));
+      row.appendChild(playerNameBadge(r.p.spId, r.p.playerName));
+      var avg = r.p.appearances > 0 ? round1(r.val / r.p.appearances) : 0;
+      row.appendChild(el('span', 'top3-stat', r.p.appearances + '경기 ' + fmt(r.val) + unit + ' (평균 ' + avg + ')'));
+      container.appendChild(row);
+    });
   }
 
   function pctOf(count, total) {

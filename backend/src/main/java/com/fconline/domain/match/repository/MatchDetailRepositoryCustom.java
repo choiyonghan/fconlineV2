@@ -30,8 +30,13 @@ public interface MatchDetailRepositoryCustom {
     /** 평균 평점/점유율, 파울·카드 누계. */
     MatchStatsSummary aggregateStatsSummary(String ouid, MatchType matchType, Instant from, Instant to);
 
-    /** 선수별(spId) 골/어시스트/수비 기여 집계, 기여도 점수 내림차순 상위 limit건. */
-    List<TopPlayerStat> aggregateTopPlayers(String ouid, MatchType matchType, Instant from, Instant to, int limit);
+    /**
+     * 선수별(spId) 골/어시스트/수비 기여 집계, 기여도 점수 내림차순 상위 limit건.
+     * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만(상대별 전적 펼침에서
+     * "이 상대전 최다 득점/도움/선방/수비 TOP3"를 보여줄 때 씀 — aggregateTally와 같은 패턴).
+     */
+    List<TopPlayerStat> aggregateTopPlayers(String ouid, MatchType matchType, Instant from, Instant to,
+                                             String opponentOuid, int limit);
 
     /** 득점(ShootResult.GOAL)만 대상으로 슛 유형별 개수 집계. */
     List<GoalTypeCount> aggregateGoalTypeDistribution(String ouid, MatchType matchType, Instant from, Instant to);

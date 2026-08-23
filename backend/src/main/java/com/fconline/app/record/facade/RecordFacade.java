@@ -82,7 +82,7 @@ public class RecordFacade {
 
         MatchTally tally = matchDomainService.overallTally(ouid, matchType, from, to);
         MatchStatsSummary statsSummary = matchDomainService.statsSummary(ouid, matchType, from, to);
-        List<TopPlayerStat> topPlayers = matchDomainService.topPlayers(ouid, matchType, from, to, TOP_PLAYER_LIMIT);
+        List<TopPlayerStat> topPlayers = matchDomainService.topPlayers(ouid, matchType, from, to, null, TOP_PLAYER_LIMIT);
         List<GoalTypeStatResponse> goalTypeDistribution = matchDomainService
                 .goalTypeDistribution(ouid, matchType, from, to).stream()
                 .map(gt -> new GoalTypeStatResponse(gt.shootType().label(), gt.count()))
@@ -128,12 +128,22 @@ public class RecordFacade {
     /** 화면: 정렬 가능한 "전체 선수 스탯" 그리드, 최다 세이브 등 top-3 밖의 통계. */
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId) {
+        return getAllPlayers(ouid, matchType, seasonId, null);
+    }
+
+    /**
+     * opponentOuid를 지정하면 그 상대와의 경기만 집계한다 — "상대별 전적" 행을 펼쳤을 때
+     * "이 상대전 최다 득점/도움/선방/수비 TOP3"를 계산하는 데 쓴다(프론트에서 goals/assists/
+     * saves/tackles+intercepts+blocks 기준으로 각각 상위 3명을 클라이언트에서 뽑는다).
+     */
+    @Transactional(readOnly = true)
+    public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId, String opponentOuid) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
         List<TopPlayerStat> players = matchDomainService.topPlayers(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), ALL_PLAYERS_LIMIT);
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid, ALL_PLAYERS_LIMIT);
 
         Map<String, String> playerNames = playerNamesOf(players);
 

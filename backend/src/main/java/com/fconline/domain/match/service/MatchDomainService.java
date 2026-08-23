@@ -53,8 +53,9 @@ public class MatchDomainService {
         return matchDetailRepository.aggregateStatsSummary(ouid, matchType, from, to);
     }
 
-    public List<TopPlayerStat> topPlayers(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
-        return matchDetailRepository.aggregateTopPlayers(ouid, matchType, from, to, limit);
+    public List<TopPlayerStat> topPlayers(String ouid, MatchType matchType, Instant from, Instant to,
+                                           String opponentOuid, int limit) {
+        return matchDetailRepository.aggregateTopPlayers(ouid, matchType, from, to, opponentOuid, limit);
     }
 
     public List<GoalTypeCount> goalTypeDistribution(String ouid, MatchType matchType, Instant from, Instant to) {
