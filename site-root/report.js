@@ -151,6 +151,23 @@
     });
   });
 
+  // 플레이 성향 탭 — 공격/수비/점유율 중 하나만 보여준다. 데이터와 무관한 순수 UI 상태라
+  // 한 번만 연결해두면 되고, loadSelection과 별개로 항상 동작한다.
+  var playstyleTabButtons = document.querySelectorAll('#playstyle-tabs button');
+  var playstylePanels = {
+    attack: document.getElementById('playstyle-panel-attack'),
+    defense: document.getElementById('playstyle-panel-defense'),
+    possession: document.getElementById('playstyle-panel-possession')
+  };
+  playstyleTabButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var tab = btn.getAttribute('data-tab');
+      if (btn.getAttribute('aria-pressed') === 'true') return;
+      playstyleTabButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
+      Object.keys(playstylePanels).forEach(function (key) { playstylePanels[key].hidden = key !== tab; });
+    });
+  });
+
   var allUsers = [];
   var allSeasons = [];
 

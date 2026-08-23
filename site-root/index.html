@@ -40,33 +40,6 @@
 
   <section class="tiles" id="tiles" aria-label="종합 스탯"></section>
 
-  <div class="card" style="margin-bottom:14px;">
-    <p class="card-title">🎮 플레이 성향</p>
-    <p class="card-caption" id="playstyle-caption"></p>
-
-    <div class="playstyle-grid">
-      <div class="playstyle-box">
-        <p class="playstyle-heading">⚔️ 공격 성향</p>
-        <div class="stat-mini-grid" id="playstyle-attack"></div>
-        <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
-        <div id="chart-playstyle-attack"></div>
-      </div>
-      <div class="playstyle-box">
-        <p class="playstyle-heading">🛡️ 수비 성향</p>
-        <div class="stat-mini-grid" id="playstyle-defense"></div>
-        <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
-        <div id="chart-playstyle-defense"></div>
-      </div>
-    </div>
-
-    <div class="possession-box">
-      <p class="playstyle-heading">⚖️ 점유율 분포</p>
-      <div class="stat-mini-grid" id="playstyle-possession"></div>
-      <p class="card-caption" style="margin-top:10px;">경기별 점유율 추이(표본 전체)</p>
-      <div id="chart-playstyle-possession"></div>
-    </div>
-  </div>
-
   <div class="grid-2">
     <div class="card">
       <p class="card-title">선수 기여도 TOP 7</p>
@@ -88,6 +61,33 @@
       <p class="card-title">슈팅 위치 &amp; 실제 xG값</p>
       <p class="card-caption" id="heatmap-caption"></p>
       <div class="pitch-wrap" id="chart-heatmap"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <p class="card-title">🎮 플레이 성향</p>
+    <p class="card-caption" id="playstyle-caption"></p>
+
+    <div class="segmented" id="playstyle-tabs" role="group" aria-label="플레이 성향 탭">
+      <button type="button" data-tab="attack" aria-pressed="true">⚔️ 공격 성향</button>
+      <button type="button" data-tab="defense" aria-pressed="false">🛡️ 수비 성향</button>
+      <button type="button" data-tab="possession" aria-pressed="false">⚖️ 점유율</button>
+    </div>
+
+    <div class="playstyle-box" id="playstyle-panel-attack">
+      <div class="stat-mini-grid" id="playstyle-attack"></div>
+      <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
+      <div id="chart-playstyle-attack"></div>
+    </div>
+    <div class="playstyle-box" id="playstyle-panel-defense" hidden>
+      <div class="stat-mini-grid" id="playstyle-defense"></div>
+      <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
+      <div id="chart-playstyle-defense"></div>
+    </div>
+    <div class="playstyle-box" id="playstyle-panel-possession" hidden>
+      <div class="stat-mini-grid" id="playstyle-possession"></div>
+      <p class="card-caption" style="margin-top:10px;">경기별 점유율 추이(표본 전체)</p>
+      <div id="chart-playstyle-possession"></div>
     </div>
   </div>
 

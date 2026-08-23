@@ -240,17 +240,8 @@
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
 
   /* ---------- 플레이 성향 카드 ---------- */
-  /* 공격/수비 성향을 나란히 2열로 — 스탯 표와 그 안의 차트가 같은 폭으로 grid-2 카드들만큼 작아진다. */
-  .playstyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
-  @media (max-width: 760px) { .playstyle-grid { grid-template-columns: 1fr; } }
-  .playstyle-heading {
-    font-family: var(--font-display);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--text-primary);
-    margin: 0 0 10px;
-  }
+  /* 탭(공격/수비/점유율) 중 하나만 보여준다 — 스탯 표+차트 폭을 grid-2 카드들만큼 작게 고정. */
+  .playstyle-box { max-width: 560px; margin: 12px auto 0; }
   .stat-mini-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -274,8 +265,6 @@
   .stat-mini-value { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--text-primary); }
   .stat-mini-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
-  /* 공격/수비 성향 표(playstyle-box)와 같은 폭으로 맞춘다. */
-  .possession-box { max-width: 560px; margin: 0 auto; }
   .card {
     background: var(--surface-1);
     border: 1px solid var(--border);
