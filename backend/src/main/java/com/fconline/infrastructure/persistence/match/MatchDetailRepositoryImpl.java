@@ -26,7 +26,11 @@ import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -338,18 +342,44 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     public List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
+
+        // 1) 이 유저 관점 매치들에서 (상대 ouid, matchId) 쌍을 모은다.
+        List<Tuple> myMatches = queryFactory
+                .select(md.opponentOuid, m.matchId)
+                .from(md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to))
+                .fetch();
+        if (myMatches.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Set<String>> matchIdsByOpponent = new HashMap<>();
+        for (Tuple row : myMatches) {
+            matchIdsByOpponent
+                    .computeIfAbsent(row.get(md.opponentOuid), key -> new HashSet<>())
+                    .add(row.get(m.matchId));
+        }
+
+        // 2) "상대 자신의 관점" 행(ouid=상대, matchId가 위 목록에 속함)을 찾아 그 슛을 가져온다.
+        //    관계로 매핑 안 된 엔티티 간 ON 조인 대신, 이미 다른 메서드들이 다 쓰는 표준 연관관계
+        //    조인(se.matchDetail, opp.match)만 사용한다 — 조인은 상대 후보 수(최대 몇 명)만큼
+        //    OR로 묶는다.
         QMatchDetail opp = new QMatchDetail("concededOpponentDetail");
+        QMatch oppMatch = new QMatch("concededOpponentMatch");
         QShootEvent se = new QShootEvent("concededShootEvent");
+
+        BooleanBuilder opponentWhere = new BooleanBuilder();
+        for (Map.Entry<String, Set<String>> entry : matchIdsByOpponent.entrySet()) {
+            opponentWhere.or(opp.ouid.eq(entry.getKey()).and(oppMatch.matchId.in(entry.getValue())));
+        }
 
         return queryFactory
                 .select(se.x, se.y, se.shootType, se.result)
-                .from(md)
-                .join(md.match, m)
-                .join(opp).on(opp.match.eq(m).and(opp.ouid.eq(md.opponentOuid)))
-                .join(se).on(se.matchDetail.eq(opp))
-                .where(baseWhere(md, m, ouid, matchType, from, to)
-                        .and(se.x.isNotNull())
-                        .and(se.y.isNotNull()))
+                .from(se)
+                .join(se.matchDetail, opp)
+                .join(opp.match, oppMatch)
+                .where(opponentWhere.and(se.x.isNotNull()).and(se.y.isNotNull()))
                 .fetch().stream()
                 .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result)))
                 .toList();
