@@ -7,18 +7,29 @@
    * "욱식 점수"는 닉네임에 "욱"이 들어가는 두 유저(지린성에사는욱구, 욱냥0I)만의 재미 요소 규칙
    * (승5/무3/패1)이다 — v1이 WOOK_NICKNAMES에 하드코딩했던 값과 동일. 백엔드 score_rules 테이블은
    * 건드리지 않고(데이터 마이그레이션 없이) 여기서 노출할 때만 계산한다.
-   * 적용 조건은 OR다 — 둘 중 하나만 맞아도 그 행은 욱식 점수(5/3/1)로 계산한다:
-   *   1) 지금 보고 있는 유저(state.ouid) 자신이 이 둘 중 하나다 → 상대가 누구든 전체 행에 적용.
-   *   2) 상대(opponentOuid)가 이 둘 중 하나다 → 다른 유저를 보고 있어도 "그 상대 행"만 적용.
-   * 나머지 행은 표준 승점(3/1/0). 서버가 내려주는 dugsikScore(항상 3/1/0)는 쓰지 않는다.
+   *
+   * 상대별 전적 한 행에는 "내 승점"과 "상대 승점" 둘 다 있고, 각자 자기 자신의 승/무/패 기준으로
+   * 따로 계산한다 — 욱식 가중치는 그 점수의 주인이 욱(지린성에사는욱구/욱냥0I)일 때만 그 사람
+   * 점수에 붙는다("내 승점"에 상대가 욱이라고 묻어가는 게 아니다). 예: 내혀를가져가(비욱) vs
+   * 욱냥0I(욱)가 1승1무1패면 — 내혀를가져가 승점 = 1×3+1×1+1×0 = 4(표준), 욱냥0I 승점은 그
+   * 미러 전적(1승1무1패, 이기고 진 게 뒤집힘)에 욱식 가중치 = 1×5+1×3+1×1 = 9.
+   * 서버가 내려주는 dugsikScore(항상 3/1/0)는 쓰지 않는다.
    */
   var WOOK_OUIDS = ['1894adb89b4a7953381bdd5671ce7610', '7f3fabc284ffe4b6bedf702a307f0f2e'];
   function isWook(ouid) { return WOOK_OUIDS.indexOf(ouid) !== -1; }
-  function rowUsesWookScore(opponentOuid) { return isWook(state.ouid) || isWook(opponentOuid); }
-  function computeScore(tally, opponentOuid) {
-    return rowUsesWookScore(opponentOuid)
+  function scoreFromTally(tally, subjectIsWook) {
+    return subjectIsWook
       ? (tally.win * 5) + (tally.draw * 3) + (tally.lose * 1)
       : (tally.win * 3) + (tally.draw * 1);
+  }
+  /** "내 승점" — 보고 있는 유저 본인의 승/무/패 기준. */
+  function myScore(o) {
+    return scoreFromTally(o.tally, isWook(state.ouid));
+  }
+  /** "상대 승점" — 상대 입장에서의 승/무/패(내 승↔상대 패, 무는 그대로)로 뒤집어서 계산. */
+  function opponentScore(o) {
+    var mirrored = { win: o.tally.lose, draw: o.tally.draw, lose: o.tally.win };
+    return scoreFromTally(mirrored, isWook(o.opponentOuid));
   }
 
   var state = { ouid: null, matchType: 'CUSTOM', seasonId: null };
@@ -633,15 +644,15 @@
     container.replaceChildren();
     if (!opponents.length) { container.appendChild(el('p', 'card-empty', '상대 전적이 없습니다.')); return; }
     var sorted = opponents.slice()
-      .sort(function (a, b) { return computeScore(b.tally, b.opponentOuid) - computeScore(a.tally, a.opponentOuid); });
+      .sort(function (a, b) { return myScore(b) - myScore(a); });
     document.getElementById('opponents-caption').textContent =
-      '점수 높은 순 · ⚡ 표시는 욱식 점수(승5·무3·패1), 나머지는 표준 승점(승3·무1·패0) · ' +
+      '내 승점 높은 순 · ⚡ 표시는 욱식 점수(승5·무3·패1) 적용, 나머지는 표준 승점(승3·무1·패0) · ' +
       '행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다';
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
-    ['', '상대', '전적 (승-무-패)', '현재 기록', '점수'].forEach(function (h, i) {
-      htr.appendChild(el('th', i === 4 ? 'num' : '', h));
+    ['', '상대', '전적 (승-무-패)', '현재 기록', '내 승점', '상대 승점'].forEach(function (h, i) {
+      htr.appendChild(el('th', i >= 4 ? 'num' : '', h));
     });
     thead.appendChild(htr);
     table.appendChild(thead);
@@ -664,16 +675,22 @@
       var streakTd = document.createElement('td');
       streakBadges(streakTd, o.streak);
       tr.appendChild(streakTd);
-      var wook = rowUsesWookScore(o.opponentOuid);
-      var scoreTd = el('td', 'num', (wook ? '⚡ ' : '') + fmt(computeScore(o.tally, o.opponentOuid)));
-      if (wook) scoreTd.title = '욱식 점수(승5·무3·패1)';
-      tr.appendChild(scoreTd);
+
+      var myWook = isWook(state.ouid);
+      var myScoreTd = el('td', 'num', (myWook ? '⚡ ' : '') + fmt(myScore(o)));
+      if (myWook) myScoreTd.title = '욱식 점수(승5·무3·패1)';
+      tr.appendChild(myScoreTd);
+
+      var oppWook = isWook(o.opponentOuid);
+      var oppScoreTd = el('td', 'num', (oppWook ? '⚡ ' : '') + fmt(opponentScore(o)));
+      if (oppWook) oppScoreTd.title = '욱식 점수(승5·무3·패1)';
+      tr.appendChild(oppScoreTd);
 
       var expandTr = document.createElement('tr');
       expandTr.className = 'opp-expand';
       expandTr.hidden = true;
       var expandTd = document.createElement('td');
-      expandTd.colSpan = 5;
+      expandTd.colSpan = 6;
       var inner = el('div', 'expand-inner');
       expandTd.appendChild(inner);
       expandTr.appendChild(expandTd);
