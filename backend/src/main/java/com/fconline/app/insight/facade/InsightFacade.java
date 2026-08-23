@@ -4,11 +4,14 @@ import com.fconline.app.common.SeasonRangeResolver;
 import com.fconline.app.insight.dto.AskRequest;
 import com.fconline.app.insight.dto.AskResponse;
 import com.fconline.app.insight.dto.InsightSnapshotContent;
+import com.fconline.app.user.dto.TrackedUserResponse;
+import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
 import com.fconline.infrastructure.gemini.GeminiApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -24,6 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
  * (GithubInsightSnapshotClient로) 읽어서 그대로 쓴다. 별도 DB 테이블 없이 리포지토리 자체를
  * 캐시 저장소로 쓰는 구조 — 커밋된 JSON이 곧 "오늘의 스냅샷"이다. 스냅샷이 아직 없거나
  * (첫 실행, 새 시즌 등) 조회에 실패했을 때만 즉석에서 조립한다(InsightSnapshotBuilder 참고).
+ *
+ * 질문이 "현재 선택된 유저" 말고 다른 추적 유저(닉네임 또는 실명)를 함께 언급하면, 그 유저
+ * 자신의 스냅샷도 따로 불러와 붙여준다 — 그래야 "A랑 B 중 누가 잘해?" 같은, 현재 선택된
+ * 유저 관점이 아닌 제3자 간 비교 질문에도 각자의 실제 데이터로 답할 수 있다(그전엔 현재
+ * 선택된 유저 기준 상대 전적만 있어서, 관계없는 두 유저를 비교하려면 공통 상대를 거쳐 추론하는
+ * 식으로 답이 새곤 했다).
  */
 @Component
 public class InsightFacade {
@@ -41,6 +50,9 @@ public class InsightFacade {
             데이터에 없는 걸 물어보면 모른다고 솔직히 답하세요. "보고서"나 "플레이스타일"
             같은 분석을 요청하면 제공된 데이터를 폭넓게 활용해(선수단 기여도, 팀 전체
             공격 지표, 득점 유형/시간대, 상대별 전적 등) 여러 각도로 상세히 답변하세요.
+            질문이 "현재 선택된 유저" 관점 데이터뿐 아니라 다른 유저 자신의 데이터도 함께
+            주어지면, 두 유저를 그 각자의 데이터로 직접 비교하세요 — 다른 유저를 통해
+            간접적으로 추론하지 말고, 직접 맞붙은 기록이 있으면 그걸 최우선 근거로 쓰세요.
             존댓말은 유지하되 말투는 캐주얼하고 재미있게 하세요.
             """;
 
@@ -48,17 +60,20 @@ public class InsightFacade {
     private final GithubInsightSnapshotClient githubInsightSnapshotClient;
     private final InsightSnapshotBuilder insightSnapshotBuilder;
     private final TrackedUserAliasResolver aliasResolver;
+    private final UserFacade userFacade;
     private final GeminiApiClient geminiApiClient;
 
     public InsightFacade(SeasonRangeResolver seasonRangeResolver,
                           GithubInsightSnapshotClient githubInsightSnapshotClient,
                           InsightSnapshotBuilder insightSnapshotBuilder,
                           TrackedUserAliasResolver aliasResolver,
+                          UserFacade userFacade,
                           GeminiApiClient geminiApiClient) {
         this.seasonRangeResolver = seasonRangeResolver;
         this.githubInsightSnapshotClient = githubInsightSnapshotClient;
         this.insightSnapshotBuilder = insightSnapshotBuilder;
         this.aliasResolver = aliasResolver;
+        this.userFacade = userFacade;
         this.geminiApiClient = geminiApiClient;
     }
 
@@ -66,21 +81,38 @@ public class InsightFacade {
     public AskResponse ask(AskRequest request) {
         String ouid = request.ouid();
         MatchType matchType = request.matchType();
+        String question = request.question();
         Season season = seasonRangeResolver.resolve(request.seasonId());
 
-        InsightSnapshotContent content = githubInsightSnapshotClient.fetch(ouid, matchType)
-                .map(file -> new InsightSnapshotContent(file.summaryText(), file.opponentDetailByNickname()))
-                .orElseGet(() -> {
-                    log.warn("인사이트 스냅샷이 없어 즉석에서 조립합니다: ouid={}, matchType={}, seasonId={}",
-                            ouid, matchType, season.getId());
-                    return insightSnapshotBuilder.build(ouid, matchType, season.getId());
-                });
+        InsightSnapshotContent primary = loadContent(ouid, matchType, season.getId());
+        StringBuilder dataSummary = new StringBuilder(appendMentionedOpponent(primary, question));
 
-        String dataSummary = appendMentionedOpponent(content, request.question());
-        String userPrompt = dataSummary + "\n\n[질문]\n" + request.question();
+        List<TrackedUserResponse> otherMentioned = userFacade.listTrackedUsers().stream()
+                .filter(u -> !u.ouid().equals(ouid))
+                .filter(u -> aliasResolver.mentions(question, u.nickname()))
+                .toList();
+
+        for (TrackedUserResponse other : otherMentioned) {
+            InsightSnapshotContent otherContent = loadContent(other.ouid(), matchType, season.getId());
+            dataSummary.append("\n\n[질문에서 언급된 다른 추적 유저: ").append(labelOf(other.nickname()))
+                    .append(" 본인 데이터]\n").append(otherContent.summaryText());
+        }
+
+        String userPrompt = dataSummary + "\n\n[질문]\n" + question;
 
         String answer = geminiApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
         return new AskResponse(answer);
+    }
+
+    /** 스냅샷 파일을 읽고, 없으면(첫 실행 등) 즉석 조립으로 폴백한다. */
+    private InsightSnapshotContent loadContent(String ouid, MatchType matchType, Long seasonId) {
+        return githubInsightSnapshotClient.fetch(ouid, matchType)
+                .map(file -> new InsightSnapshotContent(file.summaryText(), file.opponentDetailByNickname()))
+                .orElseGet(() -> {
+                    log.warn("인사이트 스냅샷이 없어 즉석에서 조립합니다: ouid={}, matchType={}, seasonId={}",
+                            ouid, matchType, seasonId);
+                    return insightSnapshotBuilder.build(ouid, matchType, seasonId);
+                });
     }
 
     /**
@@ -98,5 +130,10 @@ public class InsightFacade {
             return content.summaryText();
         }
         return content.summaryText() + "\n\n" + mentioned.get().getValue();
+    }
+
+    private String labelOf(String nickname) {
+        String realName = aliasResolver.realNameOf(nickname);
+        return realName == null ? nickname : nickname + "(" + realName + ")";
     }
 }
