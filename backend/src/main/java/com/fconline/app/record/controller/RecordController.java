@@ -2,6 +2,7 @@ package com.fconline.app.record.controller;
 
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
+import com.fconline.app.record.dto.MatchShotResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -34,23 +35,39 @@ public class RecordController {
         return recordFacade.getOverallRecord(ouid, matchType, seasonId);
     }
 
-    /** 좌표 히트맵. goalsOnly=true면 득점한 슛만(기본값 false, 전체 슛). */
+    /**
+     * 좌표 히트맵. goalsOnly=true면 득점한 슛만(기본값 false, 전체 슛).
+     * opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 득점 xG값 계산용).
+     */
     @GetMapping("/shot-heatmap")
     public ShotHeatmapResponse getShotHeatmap(@RequestParam String ouid,
                                                @RequestParam MatchType matchType,
                                                @RequestParam(required = false) Long seasonId,
+                                               @RequestParam(required = false) String opponentOuid,
                                                @RequestParam(required = false, defaultValue = "false") boolean goalsOnly) {
-        return recordFacade.getShotHeatmap(ouid, matchType, seasonId, goalsOnly);
+        return recordFacade.getShotHeatmap(ouid, matchType, seasonId, opponentOuid, goalsOnly);
     }
 
     /**
      * "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표(상대가 추적 대상인 매치만 포함).
+     * opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 실점 xG값 계산용).
      */
     @GetMapping("/conceded-shot-heatmap")
     public ShotHeatmapResponse getConcededShotHeatmap(@RequestParam String ouid,
                                                         @RequestParam MatchType matchType,
-                                                        @RequestParam(required = false) Long seasonId) {
-        return recordFacade.getConcededShotHeatmap(ouid, matchType, seasonId);
+                                                        @RequestParam(required = false) Long seasonId,
+                                                        @RequestParam(required = false) String opponentOuid) {
+        return recordFacade.getConcededShotHeatmap(ouid, matchType, seasonId, opponentOuid);
+    }
+
+    /**
+     * 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트 전체(누가 골, 누가 어시, 어디서 쐈는지 등).
+     */
+    @GetMapping("/match-shots")
+    public List<MatchShotResponse> getMatchShots(@RequestParam String ouid,
+                                                  @RequestParam MatchType matchType,
+                                                  @RequestParam String matchId) {
+        return recordFacade.getMatchShots(ouid, matchType, matchId);
     }
 
     /** 어시스트 체인 상위 목록(누가 누구에게 어시스트해서 득점했는지). */

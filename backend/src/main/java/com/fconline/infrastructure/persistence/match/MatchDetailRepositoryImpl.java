@@ -4,6 +4,7 @@ import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
+import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
@@ -357,7 +358,8 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
-    public List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly) {
+    public List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                           String opponentOuid, boolean goalsOnly) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
         QShootEvent se = QShootEvent.shootEvent;
@@ -365,6 +367,9 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to)
                 .and(se.x.isNotNull())
                 .and(se.y.isNotNull());
+        if (opponentOuid != null) {
+            where.and(md.opponentOuid.eq(opponentOuid));
+        }
         if (goalsOnly) {
             where.and(se.result.eq(ShootResult.GOAL));
         }
@@ -390,16 +395,22 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
      * 구조라 대부분 커버되지만, 100%는 아니다 — 프론트 캡션에 이 한계를 명시한다).
      */
     @Override
-    public List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to) {
+    public List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                                    String opponentOuid) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
 
-        // 1) 이 유저 관점 매치들에서 (상대 ouid, matchId) 쌍을 모은다.
+        // 1) 이 유저 관점 매치들에서 (상대 ouid, matchId) 쌍을 모은다. opponentOuid가 지정되면
+        // 그 상대와의 매치로만 좁힌다 — 이후 단계는 그대로라 자연스럽게 그 상대 실점만 나온다.
+        BooleanBuilder myMatchesWhere = baseWhere(md, m, ouid, matchType, from, to);
+        if (opponentOuid != null) {
+            myMatchesWhere.and(md.opponentOuid.eq(opponentOuid));
+        }
         List<Tuple> myMatches = queryFactory
                 .select(md.opponentOuid, m.matchId)
                 .from(md)
                 .join(md.match, m)
-                .where(baseWhere(md, m, ouid, matchType, from, to))
+                .where(myMatchesWhere)
                 .fetch();
         if (myMatches.isEmpty()) {
             return List.of();
@@ -434,6 +445,27 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .fetch().stream()
                 .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
                         row.get(oppMatch.matchId)))
+                .toList();
+    }
+
+    @Override
+    public List<MatchShotDetail> findShotsByMatch(String ouid, MatchType matchType, String matchId) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        return queryFactory
+                .select(se.spId, se.x, se.y, se.shootType, se.result, se.goalTimeMinutes, se.period,
+                        se.assist, se.assistSpId)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(md.ouid.eq(ouid).and(m.matchType.eq(matchType)).and(m.matchId.eq(matchId)))
+                .orderBy(se.goalTimeMinutes.asc().nullsLast())
+                .fetch().stream()
+                .map(row -> new MatchShotDetail(
+                        row.get(se.spId), row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
+                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId)))
                 .toList();
     }
 

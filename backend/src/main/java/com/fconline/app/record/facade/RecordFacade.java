@@ -5,6 +5,7 @@ import com.fconline.app.common.dto.MatchTallyResponse;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
+import com.fconline.app.record.dto.MatchShotResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -14,6 +15,7 @@ import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.RecentMatchRaw;
@@ -27,8 +29,10 @@ import com.fconline.domain.season.Season;
 import com.fconline.domain.shared.exception.DomainException;
 import com.fconline.domain.user.TrackedUser;
 import com.fconline.domain.user.repository.TrackedUserRepository;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -169,12 +173,19 @@ public class RecordFacade {
     /** 좌표 히트맵(화면: 슛/득점 위치 시각화). goalsOnly=true면 득점한 슛만 반환한다. */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, boolean goalsOnly) {
+        return getShotHeatmap(ouid, matchType, seasonId, null, goalsOnly);
+    }
+
+    /** opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 득점 xG값 계산용). */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
+                                               boolean goalsOnly) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
         List<ShotPoint> points = matchDomainService.shotHeatmap(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), goalsOnly);
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid, goalsOnly);
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
@@ -190,12 +201,19 @@ public class RecordFacade {
      */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId) {
+        return getConcededShotHeatmap(ouid, matchType, seasonId, null);
+    }
+
+    /** opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 실점 xG값 계산용). */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId,
+                                                        String opponentOuid) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
         List<ShotPoint> points = matchDomainService.concededShotHeatmap(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull());
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid);
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
@@ -203,6 +221,36 @@ public class RecordFacade {
                 .toList();
 
         return new ShotHeatmapResponse(ouid, pointResponses);
+    }
+
+    /**
+     * 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트 전체(누가 어디서 어떤 유형/결과로 쐈는지,
+     * 골이면 시각과 어시스트 여부까지). 선수 이름은 spId/assistSpId를 모아 한 번에 조회해 붙인다.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchShotResponse> getMatchShots(String ouid, MatchType matchType, String matchId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        List<MatchShotDetail> shots = matchDomainService.shotsByMatch(ouid, matchType, matchId);
+
+        Set<String> spIds = new HashSet<>();
+        shots.forEach(s -> {
+            spIds.add(s.spId());
+            if (s.assistSpId() != null) spIds.add(s.assistSpId());
+        });
+        Map<String, String> playerNames = playerMetaRepository.findBySpIdIn(List.copyOf(spIds)).stream()
+                .collect(Collectors.toMap(PlayerMeta::getSpId, PlayerMeta::getSpName, (a, b) -> a));
+
+        return shots.stream()
+                .map(s -> new MatchShotResponse(
+                        s.spId(), playerNames.getOrDefault(s.spId(), s.spId()),
+                        s.x(), s.y(), s.shootType().label(), s.result().name(),
+                        s.result() == ShootResult.GOAL,
+                        s.goalTimeMinutes(), s.period(),
+                        Boolean.TRUE.equals(s.assist()), s.assistSpId(),
+                        s.assistSpId() != null ? playerNames.getOrDefault(s.assistSpId(), s.assistSpId()) : null))
+                .toList();
     }
 
     /** 어시스트 체인(화면: 누가 누구에게 어시스트해서 득점했는지). 상위 {@value #ASSIST_CHAIN_LIMIT}건. */

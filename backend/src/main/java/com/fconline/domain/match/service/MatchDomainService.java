@@ -8,6 +8,7 @@ import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
+import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.OpponentTally;
 import com.fconline.domain.match.vo.PlayerGrade;
 import com.fconline.domain.match.vo.ShotPoint;
@@ -111,14 +112,27 @@ public class MatchDomainService {
         return lower + "-" + upper;
     }
 
-    /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. */
-    public List<ShotPoint> shotHeatmap(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly) {
-        return matchDetailRepository.findShotPoints(ouid, matchType, from, to, goalsOnly);
+    /**
+     * 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만.
+     * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만.
+     */
+    public List<ShotPoint> shotHeatmap(String ouid, MatchType matchType, Instant from, Instant to,
+                                        String opponentOuid, boolean goalsOnly) {
+        return matchDetailRepository.findShotPoints(ouid, matchType, from, to, opponentOuid, goalsOnly);
     }
 
-    /** "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표 목록(상대가 추적 대상인 매치만). */
-    public List<ShotPoint> concededShotHeatmap(String ouid, MatchType matchType, Instant from, Instant to) {
-        return matchDetailRepository.findConcededShotPoints(ouid, matchType, from, to);
+    /**
+     * "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표 목록(상대가 추적 대상인 매치만).
+     * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만.
+     */
+    public List<ShotPoint> concededShotHeatmap(String ouid, MatchType matchType, Instant from, Instant to,
+                                                String opponentOuid) {
+        return matchDetailRepository.findConcededShotPoints(ouid, matchType, from, to, opponentOuid);
+    }
+
+    /** 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트 전체(위치/유형/결과/득점 시각/어시스트). */
+    public List<MatchShotDetail> shotsByMatch(String ouid, MatchType matchType, String matchId) {
+        return matchDetailRepository.findShotsByMatch(ouid, matchType, matchId);
     }
 
     /** 어시스트 선수 -> 득점 선수 조합별 골 수, 내림차순 상위 limit건. */

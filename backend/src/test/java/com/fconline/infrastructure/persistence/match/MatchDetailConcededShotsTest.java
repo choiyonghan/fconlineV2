@@ -65,7 +65,7 @@ class MatchDetailConcededShotsTest {
         entityManager.flush();
         entityManager.clear();
 
-        List<ShotPoint> conceded = matchDetailRepository.findConcededShotPoints("A", MatchType.CUSTOM, null, null);
+        List<ShotPoint> conceded = matchDetailRepository.findConcededShotPoints("A", MatchType.CUSTOM, null, null, null);
 
         assertThat(conceded).hasSize(1);
         ShotPoint point = conceded.get(0);

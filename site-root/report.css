@@ -657,6 +657,9 @@
   .modal-stat-value {
     font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 600; color: var(--text-primary);
   }
+  .modal-shots-section { margin-top: 14px; }
+  .modal-shots-section .card-title { margin-top: 0; margin-bottom: 8px; }
+  .modal-shots-section .top3-row { margin-bottom: 6px; }
 
   /* ---------- expandable opponent row ---------- */
   tr.opp-row { cursor: pointer; }

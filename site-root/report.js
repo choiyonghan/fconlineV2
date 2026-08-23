@@ -602,6 +602,18 @@
 
   var RESULT_KO = { GOAL: '골', ON_TARGET: '온타겟', OFF_TARGET: '오프타겟' };
 
+  // 백엔드 MatchDomainService.PERIOD_OFFSET_MINUTES와 동일 — period(1~5)별 절대 분 환산.
+  // goalTimeMinutes는 "그 period 시작 기준 경과분"이라, 매치 상세 모달에 "실제 몇 분"으로
+  // 보여주려면 이 오프셋을 더해야 한다(안 더하면 후반/연장 골이 전부 0~45분대로 보임).
+  var PERIOD_OFFSET_MINUTES = [0, 0, 45, 90, 105, 120];
+  function absoluteMinuteOf(minutes, period) {
+    if (minutes == null) return null;
+    var offset = (period != null && period >= 1 && period < PERIOD_OFFSET_MINUTES.length)
+      ? PERIOD_OFFSET_MINUTES[period] : 0;
+    return minutes + offset;
+  }
+  var PERIOD_KO = { 1: '전반', 2: '후반', 3: '연장 전반', 4: '연장 후반', 5: '승부차기' };
+
   function pitchHeatmap(container, points) {
     container.replaceChildren();
     var svgNS = 'http://www.w3.org/2000/svg';
@@ -782,8 +794,53 @@
     return box;
   }
 
+  /** 매치 상세 모달의 "⚽ 득점 상세" + "🎯 슈팅 위치" 섹션 — 슛 이벤트 목록을 받아 렌더링한다. */
+  function renderModalShots(container, shots) {
+    container.replaceChildren();
+    if (!shots.length) {
+      container.appendChild(el('p', 'card-empty', '기록된 슈팅이 없습니다.'));
+      return;
+    }
+
+    function xgOf(p) {
+      if (!zoneAggregate) return null;
+      return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+    }
+
+    var goals = shots.filter(function (s) { return s.isGoal; });
+    if (goals.length) {
+      container.appendChild(el('p', 'card-title', '⚽ 득점 상세'));
+      goals.forEach(function (g) {
+        var row = el('div', 'top3-row');
+        row.appendChild(playerNameBadge(g.spId, g.playerName));
+        var minute = absoluteMinuteOf(g.goalTimeMinutes, g.period);
+        var xg = xgOf(g);
+        var detailParts = [];
+        if (minute != null) detailParts.push((PERIOD_KO[g.period] || '') + ' ' + minute + '분');
+        detailParts.push(g.shootType);
+        detailParts.push(g.assist && g.assistPlayerName ? '어시스트: ' + g.assistPlayerName : '어시스트 없음');
+        if (xg != null) detailParts.push('이 구역 xG ' + Math.round(xg * 100) + '%');
+        row.appendChild(el('span', 'top3-stat', detailParts.join(' · ')));
+        container.appendChild(row);
+      });
+    }
+
+    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
+    pitchTitle.style.marginTop = goals.length ? '14px' : '0';
+    container.appendChild(pitchTitle);
+    var pitchWrap = el('div', 'pitch-wrap');
+    var pitchPoints = shots.map(function (s) {
+      return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOf(s) };
+    }).filter(function (p) { return p.x != null && p.y != null; });
+    pitchHeatmap(pitchWrap, pitchPoints);
+    container.appendChild(pitchWrap);
+  }
+
+  var modalRequestSeq = 0;
+
   function openMatchModal(m) {
     modalLastFocus = document.activeElement;
+    var seq = ++modalRequestSeq;
     var d = new Date(m.matchDate);
     modalTitle.textContent = 'vs ' + m.opponentNickname + ' · ' + d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
@@ -810,6 +867,22 @@
     grid.appendChild(statBlock('옐로카드', m.yellowCards != null ? fmt(m.yellowCards) : '-'));
     grid.appendChild(statBlock('레드카드', m.redCards != null ? fmt(m.redCards) : '-'));
     modalBody.appendChild(grid);
+
+    // ⚽ 득점 상세(누가 골, 누가 어시, xG값) + 🎯 슈팅 위치 — 매치 1건의 슛 이벤트를 그때 불러온다.
+    var shotSection = el('div', 'modal-shots-section');
+    shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오는 중…'));
+    modalBody.appendChild(shotSection);
+
+    apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
+      .then(function (shots) {
+        if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
+        renderModalShots(shotSection, shots);
+      })
+      .catch(function () {
+        if (seq !== modalRequestSeq) return;
+        shotSection.replaceChildren();
+        shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오지 못했습니다.'));
+      });
 
     var idLine = el('p', 'card-caption', '매치 ID ' + m.matchId);
     idLine.style.marginTop = '10px';
@@ -846,11 +919,9 @@
     tr.appendChild(resTd);
     tr.appendChild(el('td', 'num', m.goalsFor + ' : ' + m.goalsAgainst));
     tr.appendChild(el('td', 'num', m.possession != null ? m.possession + '%' : '-'));
-    if (withDate) {
-      tr.appendChild(el('td', 'num', (m.effectiveShoot != null ? m.effectiveShoot : '-') + ' / ' + (m.shootTotal != null ? m.shootTotal : '-')));
-      tr.appendChild(el('td', 'num', (m.passSuccess != null ? m.passSuccess : '-') + ' / ' + (m.passTry != null ? m.passTry : '-')));
-      tr.appendChild(el('td', 'num', (m.tackleSuccess != null ? m.tackleSuccess : '-') + ' / ' + (m.tackleTry != null ? m.tackleTry : '-')));
-    }
+    tr.appendChild(el('td', 'num', (m.effectiveShoot != null ? m.effectiveShoot : '-') + ' / ' + (m.shootTotal != null ? m.shootTotal : '-')));
+    tr.appendChild(el('td', 'num', (m.passSuccess != null ? m.passSuccess : '-') + ' / ' + (m.passTry != null ? m.passTry : '-')));
+    tr.appendChild(el('td', 'num', (m.tackleSuccess != null ? m.tackleSuccess : '-') + ' / ' + (m.tackleTry != null ? m.tackleTry : '-')));
     var openFn = function () { openMatchModal(m); };
     tr.addEventListener('click', openFn);
     tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFn(); } });
@@ -935,24 +1006,37 @@
             // 이 상대전 선수 기여도 TOP3(득점/도움/선방/수비)용 — 실패해도 나머지 표시는 막지 않는다.
             apiGet('/api/v1/records/players',
               { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid })
-              .catch(function () { return []; })
+              .catch(function () { return []; }),
+            // 이 상대전 평균 득점/실점 xG값용 — 실패해도 나머지 표시는 막지 않는다.
+            apiGet('/api/v1/records/shot-heatmap',
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid, goalsOnly: false })
+              .catch(function () { return { points: [] }; }),
+            apiGet('/api/v1/records/conceded-shot-heatmap',
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid })
+              .catch(function () { return { points: [] }; })
           ]).then(function (results) {
               var matches = results[0];
               var vsOpponentPlayers = results[1];
+              var shotPoints = results[2].points;
+              var concededPoints = results[3].points;
               inner.replaceChildren();
               if (!matches.length) {
                 inner.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.'));
                 return;
               }
 
-              // 평균 득실점 / 유효슈팅 비율 — 이 상대와의 전체 경기 기준.
+              // 평균 득실점 / xG값 / 유효슈팅 비율 — 이 상대와의 전체 경기 기준.
               var n = matches.length;
               var sum = function (key) { return matches.reduce(function (s, m) { return s + (m[key] || 0); }, 0); };
               var goalsFor = sum('goalsFor'), goalsAgainst = sum('goalsAgainst');
               var shootTotal = sum('shootTotal'), effectiveShoot = sum('effectiveShoot');
+              var expectedGoalsFor = expectedGoalsOf(shotPoints);
+              var expectedGoalsAgainst = expectedGoalsOf(concededPoints);
               var summaryGrid = el('div', 'stat-mini-grid opp-summary-grid');
               statMini(summaryGrid, '평균 득점', fmt1(goalsFor / n), '경기당 실제 득점');
+              statMini(summaryGrid, '평균 득점 xG값', zoneAggregate ? fmt1(expectedGoalsFor / n) : '계산 중…', '경기당 기대 득점');
               statMini(summaryGrid, '평균 실점', fmt1(goalsAgainst / n), '경기당 실제 실점');
+              statMini(summaryGrid, '평균 실점 xG값', zoneAggregate ? fmt1(expectedGoalsAgainst / n) : '계산 중…', '경기당 기대 실점');
               statMini(summaryGrid, '평균 슈팅', fmt1(effectiveShoot / n) + ' / ' + fmt1(shootTotal / n), '유효 / 전체');
               statMini(summaryGrid, '유효슈팅 비율', shootTotal > 0 ? pctOf(effectiveShoot, shootTotal) + '%' : '-',
                 '총 ' + fmt(effectiveShoot) + '회');
@@ -975,13 +1059,14 @@
               });
               inner.appendChild(top3Wrap);
 
-              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기');
+              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기 · 행을 클릭하면 상세 정보가 열립니다');
               matchCaption.style.marginTop = '14px';
               inner.appendChild(matchCaption);
+              var mScroll = el('div', 'table-scroll');
               var mtable = document.createElement('table');
               var mthead = document.createElement('thead');
               var mhtr = document.createElement('tr');
-              ['결과', '스코어', '점유율'].forEach(function (h, i) {
+              ['결과', '스코어', '점유율', '슈팅', '패스 성공', '태클 성공'].forEach(function (h, i) {
                 mhtr.appendChild(el('th', i >= 1 ? 'num' : '', h));
               });
               mthead.appendChild(mhtr);
@@ -994,7 +1079,8 @@
                 mtbody.appendChild(buildMatchRow(withName, false));
               });
               mtable.appendChild(mtbody);
-              inner.appendChild(mtable);
+              mScroll.appendChild(mtable);
+              inner.appendChild(mScroll);
             })
             .catch(function () {
               loaded = false;

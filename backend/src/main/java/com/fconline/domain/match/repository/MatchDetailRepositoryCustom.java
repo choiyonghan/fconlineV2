@@ -4,6 +4,7 @@ import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
+import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
@@ -73,15 +74,30 @@ public interface MatchDetailRepositoryCustom {
      */
     Page<RecentMatchRaw> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to, Pageable pageable);
 
-    /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외. */
-    List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly);
+    /**
+     * 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외.
+     * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만(상대별 전적 펼침의
+     * "이 상대전 평균 득점 xG값" 계산용 — aggregateTally와 같은 패턴).
+     */
+    List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                    String opponentOuid, boolean goalsOnly);
 
     /**
      * "실점 xG값"용 — 상대도 추적 대상 유저인 매치에 한해, 그 상대가 이 유저를 향해 쏜 슛 좌표
      * 목록(상대 본인 관점으로 동기화된 shootEvents를 그대로 가져온다). 상대가 추적 대상이 아니면
-     * 그 매치는 결과에서 빠진다.
+     * 그 매치는 결과에서 빠진다. opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의
+     * 경기만(상대별 전적 펼침의 "이 상대전 평균 실점 xG값" 계산용).
      */
-    List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to);
+    List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                            String opponentOuid);
+
+    /**
+     * 특정 매치 1건의 슛 이벤트 전체(위치/유형/결과/득점 시각/어시스트 여부) — 매치 상세 모달에서
+     * "누가 골, 누가 어시, 어디서 슛했는지"를 보여줄 때 쓴다. matchId+ouid+matchType으로 정확히
+     * 한 참가자 시점의 슛 목록만 가져온다(같은 matchId라도 참가자마다 각자의 shoot_events 행이
+     * 따로 있다).
+     */
+    List<MatchShotDetail> findShotsByMatch(String ouid, MatchType matchType, String matchId);
 
     /** 어시스트→득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit);
