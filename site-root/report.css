@@ -239,6 +239,12 @@
   /* ---------- cards / grid ---------- */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+  /* 그리드 아이템은 기본값이 min-width:auto라, 안에 min-width:560px짜리 표(환상의 콤비 등)가
+     있으면 그 표의 최소 폭만큼 카드/그리드 트랙 전체가 강제로 넓어져 모바일에서 페이지가
+     가로로 삐져나온다(짝인 플레이 성향 카드까지 같은 폭으로 끌려나감) — min-width:0으로
+     그리드 아이템이 정상적으로 줄어들 수 있게 하고, 넘치는 표는 .table-scroll의
+     overflow-x:auto가 카드 안에서만 스크롤되도록 처리한다. */
+  .grid-2 > .card { min-width: 0; }
 
   /* ---------- 플레이 성향 카드 ---------- */
   /* 탭(공격/수비/점유율) 중 하나만 보여준다. 카드 자체가 grid-2 안에 있어 폭은 자동으로 맞춰진다. */
