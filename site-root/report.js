@@ -1126,16 +1126,21 @@
       '실제 득점 ÷ xG값');
     statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
+    statMini(attackContainer, '경기당 슈팅', fmt1(points.length / totalGames), '표본 전체 평균');
 
-    // 수비 성향 — "평균 실점 xG값"은 상대도 추적 대상 유저인 매치만 반영된다.
+    // 수비 성향 — "평균 실점 xG값"/"상대 결정력"은 상대도 추적 대상 유저인 매치만 반영된다.
     var concededExpectedGoals = expectedGoalsOf(concededPoints);
+    var concededActualGoals = concededPoints.filter(function (p) { return p.goal; }).length;
     statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점');
     statMini(defenseContainer, '평균 실점 xG값',
       zoneAggregate && concededSampleGames ? fmt1(concededExpectedGoals / concededSampleGames) : '-',
-      concededSampleGames ? concededSampleGames + '경기(상대도 추적 대상인 경기만)' : '상대 추적 데이터 없음');
+      concededSampleGames ? concededSampleGames + '경기' : '데이터 없음');
     statMini(defenseContainer, '클린시트', fmt(overall.cleanSheets) + '경기', pctOf(overall.cleanSheets, totalGames) + '%');
     statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
+    statMini(defenseContainer, '상대 결정력',
+      zoneAggregate && concededExpectedGoals > 0 ? Math.round(concededActualGoals / concededExpectedGoals * 100) + '%' : '-',
+      '상대 실제 득점 ÷ 실점 xG값');
 
     // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
     // API는 최신순으로 내려주므로 왼쪽(과거)->오른쪽(최신)이 되도록 뒤집는다.
@@ -1162,8 +1167,8 @@
     concededPoints.forEach(function (p) { concededMatchIds[p.matchId] = true; });
     var defenseMatches = chronological.filter(function (m) { return concededMatchIds[m.matchId]; });
     document.getElementById('defense-trend-caption').textContent = defenseMatches.length
-      ? '상대도 추적 대상인 ' + defenseMatches.length + '경기만 표시(우리 DB엔 내가 쏜 슛만 있어서, 상대가 나에게 쏜 슛은 상대도 추적 중일 때만 복원됩니다)'
-      : '상대도 추적 대상인 경기가 없어 표시할 수 없습니다.';
+      ? '상대도 추적 대상인 ' + defenseMatches.length + '경기만 표시'
+      : '표시할 경기가 없습니다.';
     lineChart(defenseChart, [
       { label: '실점', color: 'var(--series-2)', values: defenseMatches.map(function (m) { return m.goalsAgainst; }) },
       { label: '실점 xG값', color: 'var(--series-3)', values: defenseMatches.map(function (m) { return round1(concededXgByMatch[m.matchId] || 0); }) }
