@@ -109,7 +109,11 @@ public class RecordFacade {
                 statsSummary.redCards(),
                 topPlayerResponses,
                 goalTypeDistribution,
-                goalTimeDistribution
+                goalTimeDistribution,
+                statsSummary.cleanSheets(),
+                statsSummary.multiConcededGames(),
+                statsSummary.highPossessionGames(),
+                statsSummary.lowPossessionGames()
         );
     }
 

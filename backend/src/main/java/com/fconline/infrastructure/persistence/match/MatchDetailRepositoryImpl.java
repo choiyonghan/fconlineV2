@@ -85,9 +85,15 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
 
+        NumberExpression<Integer> cleanSheetCount = cleanSheetCase(md);
+        NumberExpression<Integer> multiConcededCount = multiConcededCase(md);
+        NumberExpression<Integer> highPossessionCount = highPossessionCase(md);
+        NumberExpression<Integer> lowPossessionCount = lowPossessionCase(md);
+
         Tuple result = queryFactory
                 .select(md.stats.averageRating.avg(), md.stats.possession.avg(),
-                        md.stats.foul.sumAggregate(), md.stats.yellowCards.sumAggregate(), md.stats.redCards.sumAggregate())
+                        md.stats.foul.sumAggregate(), md.stats.yellowCards.sumAggregate(), md.stats.redCards.sumAggregate(),
+                        cleanSheetCount, multiConcededCount, highPossessionCount, lowPossessionCount)
                 .from(md)
                 .join(md.match, m)
                 .where(baseWhere(md, m, ouid, matchType, from, to))
@@ -102,7 +108,11 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 nzd(result.get(md.stats.possession.avg())),
                 nz(result.get(md.stats.foul.sumAggregate())),
                 nz(result.get(md.stats.yellowCards.sumAggregate())),
-                nz(result.get(md.stats.redCards.sumAggregate()))
+                nz(result.get(md.stats.redCards.sumAggregate())),
+                nz(result.get(cleanSheetCount)),
+                nz(result.get(multiConcededCount)),
+                nz(result.get(highPossessionCount)),
+                nz(result.get(lowPossessionCount))
         );
     }
 
@@ -368,6 +378,27 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
     private NumberExpression<Integer> loseCase(QMatchDetail md) {
         return new CaseBuilder().when(md.result.eq(MatchResult.LOSE)).then(1).otherwise(0).sumAggregate();
+    }
+
+    /** "플레이 성향" 카드(수비 성향)용 — 임계값은 프론트 캡션에도 그대로 노출한다. */
+    private static final int MULTI_CONCEDED_THRESHOLD = 3;
+    private static final int HIGH_POSSESSION_THRESHOLD = 55;
+    private static final int LOW_POSSESSION_THRESHOLD = 45;
+
+    private NumberExpression<Integer> cleanSheetCase(QMatchDetail md) {
+        return new CaseBuilder().when(md.stats.goalsAgainst.eq(0)).then(1).otherwise(0).sumAggregate();
+    }
+
+    private NumberExpression<Integer> multiConcededCase(QMatchDetail md) {
+        return new CaseBuilder().when(md.stats.goalsAgainst.goe(MULTI_CONCEDED_THRESHOLD)).then(1).otherwise(0).sumAggregate();
+    }
+
+    private NumberExpression<Integer> highPossessionCase(QMatchDetail md) {
+        return new CaseBuilder().when(md.stats.possession.goe(HIGH_POSSESSION_THRESHOLD)).then(1).otherwise(0).sumAggregate();
+    }
+
+    private NumberExpression<Integer> lowPossessionCase(QMatchDetail md) {
+        return new CaseBuilder().when(md.stats.possession.loe(LOW_POSSESSION_THRESHOLD)).then(1).otherwise(0).sumAggregate();
     }
 
     private static int nz(Integer value) {

@@ -66,24 +66,44 @@
   var userChipRow = document.getElementById('user-select');
   var seasonChipRow = document.getElementById('season-select');
   var loadStatus = document.getElementById('load-status');
+  var loadingOverlay = document.getElementById('loading-overlay');
+  var loadingText = document.getElementById('loading-text');
   var mtButtons = document.querySelectorAll('#matchtype-toggle button');
 
+  /**
+   * 로딩 중엔 배경을 완전히 가리지 않고 블러 처리한 모달로 보여준다(계속 화면이 보이는 채로
+   * "불러오는 중"임을 알림). 에러는 모달 대신 조용한 배너로 — 막지 않고 계속 보이면서 재시도를
+   * 유도한다.
+   */
   function setStatus(msg, isError) {
-    if (!msg) { loadStatus.hidden = true; return; }
-    loadStatus.hidden = false;
-    loadStatus.textContent = msg;
-    loadStatus.style.color = isError ? 'var(--status-critical)' : 'var(--text-muted)';
+    if (isError) {
+      loadingOverlay.hidden = true;
+      loadStatus.hidden = false;
+      loadStatus.textContent = msg;
+      loadStatus.style.color = 'var(--status-critical)';
+      return;
+    }
+    loadStatus.hidden = true;
+    if (!msg) { loadingOverlay.hidden = true; return; }
+    loadingText.textContent = msg;
+    loadingOverlay.hidden = false;
   }
 
-  /** select 대신 가로 스크롤 칩 버튼 목록 — 유저/시즌처럼 값이 몇 개 안 되는 선택지에 더 직관적이다. */
-  function buildChips(container, items, getValue, getLabel, onSelect) {
+  /** select 대신 줄바꿈되는 칩 버튼 목록 — 유저/시즌처럼 값이 몇 개 안 되는 선택지에 더 직관적이다.
+      getAvatarText가 주어지면 칩 앞에 원형 아바타(글자 1개)를 붙인다(유저 칩용). */
+  function buildChips(container, items, getValue, getLabel, onSelect, getAvatarText) {
     container.replaceChildren();
     items.forEach(function (item) {
       var value = getValue(item);
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'chip';
-      btn.textContent = getLabel(item);
+      btn.className = getAvatarText ? 'chip' : 'chip chip--plain';
+      if (getAvatarText) {
+        var avatar = el('span', 'chip-avatar', getAvatarText(item));
+        avatar.setAttribute('aria-hidden', 'true');
+        btn.appendChild(avatar);
+      }
+      btn.appendChild(document.createTextNode(getLabel(item)));
       btn.setAttribute('aria-pressed', 'false');
       btn.dataset.value = String(value);
       btn.addEventListener('click', function () {
@@ -132,12 +152,13 @@
             state.ouid = value;
             persist();
             loadSelection();
-          });
+          },
+          function (u) { return u.nickname.charAt(0); });
 
         var sortedSeasons = allSeasons.slice().sort(function (a, b) { return b.id - a.id; });
         buildChips(seasonChipRow, sortedSeasons,
           function (s) { return s.id; },
-          function (s) { return s.name + (s.current ? ' · 진행중' : ''); },
+          function (s) { return s.name; },
           function (value) {
             state.seasonId = Number(value);
             persist();
@@ -423,7 +444,6 @@
     resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
     tr.appendChild(resTd);
     tr.appendChild(el('td', 'num', m.goalsFor + ' : ' + m.goalsAgainst));
-    tr.appendChild(el('td', 'num', m.averageRating != null ? fmt1(m.averageRating) : '-'));
     tr.appendChild(el('td', 'num', m.possession != null ? m.possession + '%' : '-'));
     if (withDate) {
       tr.appendChild(el('td', 'num', (m.effectiveShoot != null ? m.effectiveShoot : '-') + ' / ' + (m.shootTotal != null ? m.shootTotal : '-')));
@@ -502,7 +522,7 @@
               var mtable = document.createElement('table');
               var mthead = document.createElement('thead');
               var mhtr = document.createElement('tr');
-              ['결과', '스코어', '평점', '점유율'].forEach(function (h, i) {
+              ['결과', '스코어', '점유율'].forEach(function (h, i) {
                 mhtr.appendChild(el('th', i >= 1 ? 'num' : '', h));
               });
               mthead.appendChild(mhtr);
@@ -536,7 +556,20 @@
 
   // ---------------- 최근 경기 (상대 무관, 더보기 페이징) ----------------
   var recentMoreBtn = document.getElementById('recent-more-btn');
+  var recentMoreBtnLabel = recentMoreBtn.textContent;
   var recentMatchesState = { page: 0, size: 10, hasMore: false, loading: false };
+
+  function setMoreBtnLoading(loading) {
+    recentMoreBtn.replaceChildren();
+    if (loading) {
+      var spin = el('span', 'btn-spinner');
+      spin.setAttribute('aria-hidden', 'true');
+      recentMoreBtn.appendChild(spin);
+      recentMoreBtn.appendChild(document.createTextNode('불러오는 중…'));
+    } else {
+      recentMoreBtn.appendChild(document.createTextNode(recentMoreBtnLabel));
+    }
+  }
 
   function recentTableBody() {
     var container = document.getElementById('table-recent');
@@ -546,7 +579,7 @@
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
-    ['날짜', '상대', '결과', '스코어', '평점', '점유율', '슈팅', '패스 성공', '태클 성공'].forEach(function (h, i) {
+    ['날짜', '상대', '결과', '스코어', '점유율', '슈팅', '패스 성공', '태클 성공'].forEach(function (h, i) {
       htr.appendChild(el('th', i >= 3 ? 'num' : '', h));
     });
     thead.appendChild(htr);
@@ -562,6 +595,7 @@
     if (reset) recentMatchesState.page = 0;
     recentMatchesState.loading = true;
     recentMoreBtn.disabled = true;
+    setMoreBtnLoading(true);
     var seq = loadSeq;
     return apiGet('/api/v1/records/recent-matches', {
       ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId,
@@ -569,6 +603,7 @@
     }).then(function (result) {
       recentMatchesState.loading = false;
       recentMoreBtn.disabled = false;
+      setMoreBtnLoading(false);
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
 
       var container = document.getElementById('table-recent');
@@ -588,6 +623,7 @@
     }).catch(function () {
       recentMatchesState.loading = false;
       recentMoreBtn.disabled = false;
+      setMoreBtnLoading(false);
       if (seq !== loadSeq) return;
       recentMoreBtn.hidden = true;
       if (reset) {
@@ -744,6 +780,8 @@
   var ZONE_CACHE_KEY = 'matchreport-zonecache-v1';
   var zoneAggregate = null; // { table:[{zone,shots,goals,rate}], sampleSize, rateMap:{zone:rate} }
   var lastPoints = null;
+  var lastOverall = null;
+  var lastTotalGames = 0;
 
   var BOX = { xMin: 343 / 400, yMin: 75 / 260, yMax: 185 / 260 };
   var SIX = { xMin: 376 / 400, yMin: 104 / 260, yMax: 156 / 260 };
@@ -803,6 +841,7 @@
     zoneAggregate.rateMap = {};
     agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
     if (lastPoints) updateXgTile(lastPoints);
+    if (lastOverall) renderPlayStyle(lastOverall, lastPoints, lastTotalGames);
   }
 
   function updateXgTile(points) {
@@ -824,6 +863,85 @@
     valueEl.textContent = actualGoals + ' : ' + fmt1(expectedGoals);
     subEl.textContent = (diff > 0 ? '+' : '') + fmt1(diff) + (diff >= 0 ? ' 기대 이상 마무리' : ' 기대 이하 마무리');
     subEl.style.color = diff >= 0 ? 'var(--success-text)' : 'var(--status-critical)';
+  }
+
+  // ---------------- 플레이 성향 ----------------
+  function statMini(container, label, value, sub) {
+    var box = el('div', 'stat-mini');
+    box.appendChild(el('p', 'stat-mini-label', label));
+    box.appendChild(el('div', 'stat-mini-value', value));
+    if (sub) box.appendChild(el('div', 'stat-mini-sub', sub));
+    container.appendChild(box);
+  }
+
+  function pctOf(count, total) {
+    return total > 0 ? Math.round((count / total) * 100) : 0;
+  }
+
+  function renderPlayStyle(overall, points, totalGames) {
+    var attackContainer = document.getElementById('playstyle-attack');
+    var defenseContainer = document.getElementById('playstyle-defense');
+    var bar = document.getElementById('possession-bar');
+    var legend = document.getElementById('possession-legend');
+    attackContainer.replaceChildren();
+    defenseContainer.replaceChildren();
+    bar.replaceChildren();
+    legend.replaceChildren();
+
+    if (!totalGames) {
+      document.getElementById('playstyle-caption').textContent = '표시할 경기가 없습니다.';
+      return;
+    }
+    document.getElementById('playstyle-caption').textContent =
+      totalGames + '경기 표본 기준 · 다실점 경기는 3실점 이상, 클린시트는 무실점 경기';
+
+    // 공격 성향
+    var actualGoals = points.filter(function (p) { return p.goal; }).length;
+    var expectedGoals = 0;
+    points.forEach(function (p) {
+      var r = zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null;
+      if (r != null) expectedGoals += r;
+    });
+    var onTarget = points.filter(function (p) { return p.result !== 'OFF_TARGET'; }).length;
+    var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
+
+    statMini(attackContainer, '평균 xG값', zoneAggregate ? fmt1(expectedGoals / totalGames) : '계산 중…', '경기당');
+    statMini(attackContainer, '결정력',
+      zoneAggregate && expectedGoals > 0 ? Math.round(actualGoals / expectedGoals * 100) + '%' : '-',
+      '실제 득점 ÷ xG값');
+    statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
+    statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
+
+    // 수비 성향
+    var avgConceded = overall.tally.goalsAgainst / totalGames;
+    statMini(defenseContainer, '평균 실점', fmt1(avgConceded), '경기당');
+    statMini(defenseContainer, '클린시트', fmt(overall.cleanSheets) + '경기', pctOf(overall.cleanSheets, totalGames) + '%');
+    statMini(defenseContainer, '다실점 경기', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
+    statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
+
+    // 점유율 분포 — 55% 이상 / 45% 이하 / 그 사이(균형)
+    var high = overall.highPossessionGames || 0;
+    var low = overall.lowPossessionGames || 0;
+    var mid = Math.max(totalGames - high - low, 0);
+    var segments = [
+      { cls: 'low', color: 'var(--series-2)', label: '저점유(45% 이하)', count: low },
+      { cls: 'mid', color: 'var(--baseline)', label: '균형(46~54%)', count: mid },
+      { cls: 'high', color: 'var(--series-3)', label: '고점유(55% 이상)', count: high }
+    ];
+    segments.forEach(function (seg) {
+      if (!seg.count) return;
+      var segEl = document.createElement('div');
+      segEl.className = 'possession-seg ' + seg.cls;
+      segEl.style.width = (seg.count / totalGames * 100) + '%';
+      bar.appendChild(segEl);
+
+      var item = el('div', 'possession-legend-item');
+      var sw = el('span', 'possession-swatch');
+      sw.style.background = seg.color;
+      item.appendChild(sw);
+      item.appendChild(document.createTextNode(seg.label + ' ' + seg.count + '경기 (' + pctOf(seg.count, totalGames) + '%)'));
+      legend.appendChild(item);
+    });
   }
 
   // ---------------- 선택 변경 시 데이터 로딩 ----------------
@@ -881,10 +999,12 @@
     goalTile.appendChild(el('div', 'tile-sub', '득실차 ' + (diff > 0 ? '+' : '') + diff));
     tiles.appendChild(goalTile);
 
-    var ratingTile = el('div', 'tile');
-    ratingTile.appendChild(el('p', 'tile-label', '평균 평점'));
-    ratingTile.appendChild(el('div', 'tile-value', fmt1(overall.averageRating)));
-    tiles.appendChild(ratingTile);
+    var avgGoalTile = el('div', 'tile');
+    avgGoalTile.appendChild(el('p', 'tile-label', '경기당 득점 - 실점'));
+    var avgGoalsFor = totalGames ? overall.tally.goalsFor / totalGames : 0;
+    var avgGoalsAgainst = totalGames ? overall.tally.goalsAgainst / totalGames : 0;
+    avgGoalTile.appendChild(el('div', 'tile-value', fmt1(avgGoalsFor) + ' : ' + fmt1(avgGoalsAgainst)));
+    tiles.appendChild(avgGoalTile);
 
     var possTile = el('div', 'tile');
     possTile.appendChild(el('p', 'tile-label', '평균 점유율'));
@@ -925,6 +1045,11 @@
     // goal time distribution
     var timeRows = overall.goalTimeDistribution.map(function (t) { return { label: t.periodLabel, value: t.count }; });
     verticalBarChart(document.getElementById('chart-goaltime'), timeRows);
+
+    // 플레이 성향 (공격/수비 성향 + 점유율 분포)
+    lastOverall = overall;
+    lastTotalGames = totalGames;
+    renderPlayStyle(overall, d.heatmap.points, totalGames);
 
     // heatmap (전체 슈팅 + xG값)
     lastPoints = d.heatmap.points;

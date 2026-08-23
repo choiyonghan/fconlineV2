@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -39,6 +39,24 @@
   <p id="load-status" class="card-caption" role="status" aria-live="polite" hidden></p>
 
   <section class="tiles" id="tiles" aria-label="종합 스탯"></section>
+
+  <div class="card" style="margin-bottom:14px;">
+    <p class="card-title">🎮 플레이 성향</p>
+    <p class="card-caption" id="playstyle-caption"></p>
+    <div class="playstyle-grid">
+      <div>
+        <p class="playstyle-heading">⚔️ 공격 성향</p>
+        <div class="stat-mini-grid" id="playstyle-attack"></div>
+      </div>
+      <div>
+        <p class="playstyle-heading">🛡️ 수비 성향</p>
+        <div class="stat-mini-grid" id="playstyle-defense"></div>
+      </div>
+    </div>
+    <p class="possession-heading">⚖️ 점유율 분포</p>
+    <div class="possession-bar" id="possession-bar"></div>
+    <div class="possession-legend" id="possession-legend"></div>
+  </div>
 
   <div class="grid-2">
     <div class="card">
@@ -85,7 +103,7 @@
 
   <div class="card" id="players-grid-card" style="margin-top:14px;">
     <p class="card-title">전체 선수 스탯</p>
-    <p class="card-caption">열 제목을 클릭하면 정렬됩니다. 공격력/수비력/종합은 그룹 내 1위를 100점으로 맞춘 합성 점수, 슛정확·패스·드리블·공중볼은 성공률입니다(시도 0건이면 "-").</p>
+    <p class="card-caption">열 제목을 클릭하면 정렬됩니다. 공격력/수비력/종합은 그룹 내 1위를 100점으로 맞춘 합성 점수, 슛정확·패스·드리블·공중볼은 성공률입니다.</p>
     <div class="table-scroll" id="table-allplayers"></div>
   </div>
 
@@ -101,6 +119,13 @@
     (전체 득실차는 상단 종합 스탯 참고). <strong>상대별 전적</strong> 행을 펼치면 그 순간 해당 상대와의 최근 경기를
     백엔드에서 불러옵니다.
   </footer>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" hidden>
+  <div class="loading-box">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loading-text">불러오는 중입니다…</p>
+  </div>
 </div>
 
 <div id="tooltip" role="tooltip"></div>

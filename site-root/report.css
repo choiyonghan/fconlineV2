@@ -122,32 +122,54 @@
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  /* select 대신 가로 스크롤 칩 버튼 — 유저/시즌처럼 선택지가 몇 개 안 될 때 눈에 바로 들어온다. */
+  /* select 대신 줄바꿈되는 칩 버튼 — 유저/시즌처럼 선택지가 몇 개 안 될 때 눈에 바로 들어온다.
+     가로 스크롤 대신 flex-wrap으로 여러 줄에 걸쳐 펼쳐진다. */
   .chip-row {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    max-width: min(420px, 60vw);
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: thin;
+    gap: 8px;
   }
   .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     flex: none;
-    font-family: var(--font-display);
-    font-size: 12px;
+    font-family: var(--font-body);
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.02em;
     color: var(--text-secondary);
-    background: var(--page-plane);
+    background: var(--surface-1);
     border: 1px solid var(--border);
     border-radius: 999px;
-    padding: 7px 14px;
+    padding: 6px 14px 6px 6px;
     white-space: nowrap;
     cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
   }
-  .chip[aria-pressed="true"] { background: var(--series-1); border-color: var(--series-1); color: #fff; }
-  .chip:hover:not([aria-pressed="true"]) { border-color: var(--text-muted); }
+  .chip--plain { padding: 7px 16px; }
+  .chip-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--gridline);
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    flex: none;
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--series-1);
+    border-color: var(--series-1);
+    color: #fff;
+    box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--series-1) 55%, transparent);
+  }
+  .chip[aria-pressed="true"] .chip-avatar { background: rgba(255, 255, 255, 0.25); color: #fff; }
+  .chip:hover:not([aria-pressed="true"]) { border-color: var(--text-muted); transform: translateY(-1px); }
   .chip:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
 
   .segmented {
@@ -216,6 +238,71 @@
   /* ---------- cards / grid ---------- */
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ---------- 플레이 성향 카드 ---------- */
+  .playstyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
+  @media (max-width: 640px) { .playstyle-grid { grid-template-columns: 1fr; } }
+  .playstyle-heading {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    margin: 0 0 10px;
+  }
+  .stat-mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .stat-mini {
+    background: var(--surface-1);
+    padding: 10px 12px;
+  }
+  .stat-mini-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin: 0 0 4px;
+  }
+  .stat-mini-value { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--text-primary); }
+  .stat-mini-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  .possession-heading {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
+    margin: 4px 0 10px;
+  }
+  .possession-bar {
+    display: flex;
+    width: 100%;
+    height: 14px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--gridline);
+  }
+  .possession-seg { height: 100%; min-width: 2px; }
+  .possession-seg.low { background: var(--series-2); }
+  .possession-seg.mid { background: var(--baseline); }
+  .possession-seg.high { background: var(--series-3); }
+  .possession-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .possession-legend-item { display: flex; align-items: center; gap: 6px; }
+  .possession-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 
   .card {
     background: var(--surface-1);
@@ -398,6 +485,65 @@
     z-index: 100;
   }
   .modal-overlay[hidden] { display: none; }
+
+  /* ---------- 선택 변경 시 로딩 모달 (배경은 블러 처리, 완전히 가리지 않는다) ---------- */
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    z-index: 110;
+  }
+  .loading-overlay[hidden] { display: none; }
+  .loading-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 26px 34px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.4);
+  }
+  .loading-box #loading-text {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 260px;
+    margin: 0;
+  }
+  .spinner {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 3px solid var(--gridline);
+    border-top-color: var(--series-1);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: 2.4s; }
+  }
+
+  /* "더보기" 클릭 시 버튼 안에 넣는 작은 인라인 스피너 */
+  .btn-spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    opacity: 0.6;
+    animation: spin 0.7s linear infinite;
+    margin-right: 6px;
+    vertical-align: -2px;
+  }
   .modal-dialog {
     background: var(--surface-1);
     border: 1px solid var(--border);
