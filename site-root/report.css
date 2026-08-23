@@ -240,7 +240,7 @@
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
 
   /* ---------- 플레이 성향 카드 ---------- */
-  /* 탭(공격/수비/점유율) 중 하나만 보여준다 — 스탯 표+차트 폭을 grid-2 카드들만큼 작게 고정. */
+  /* 탭(공격/수비/점유율) 중 하나만 보여준다. 카드 자체가 grid-2 안에 있어 폭은 자동으로 맞춰진다. */
   .playstyle-box { margin-top: 12px; }
   .stat-mini-grid {
     display: grid;
@@ -400,8 +400,6 @@
   svg.pitch { width: 100%; max-width: 520px; height: auto; }
 
   /* ---------- line chart (최근 경기 추이) ---------- */
-  /* 플레이 성향 카드가 grid-2 카드들과 달리 전체 폭이라, 차트도 그만큼 커지지 않게 최대폭을 잡는다
-     (선수 기여도 TOP7/득점 유형 분포 카드 정도의 체감 크기로). */
   svg.linechart { display: block; width: 100%; height: auto; overflow: visible; }
   .linechart-axis { stroke: var(--gridline); stroke-width: 1; }
   .linechart-axis-label { font-size: 9px; fill: var(--text-muted); font-family: var(--font-body); }
