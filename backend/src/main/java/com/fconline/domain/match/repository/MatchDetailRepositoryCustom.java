@@ -63,6 +63,13 @@ public interface MatchDetailRepositoryCustom {
     /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외. */
     List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly);
 
+    /**
+     * "실점 xG값"용 — 상대도 추적 대상 유저인 매치에 한해, 그 상대가 이 유저를 향해 쏜 슛 좌표
+     * 목록(상대 본인 관점으로 동기화된 shootEvents를 그대로 가져온다). 상대가 추적 대상이 아니면
+     * 그 매치는 결과에서 빠진다.
+     */
+    List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to);
+
     /** 어시스트→득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit);
 }

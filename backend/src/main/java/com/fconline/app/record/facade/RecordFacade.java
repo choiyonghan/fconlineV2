@@ -166,6 +166,27 @@ public class RecordFacade {
         return new ShotHeatmapResponse(ouid, pointResponses);
     }
 
+    /**
+     * "실점 xG값"(플레이 성향 · 수비 성향)용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표.
+     * 상대가 추적 대상이 아닌 매치는 결과에 포함되지 않는다(MatchDomainService 주석 참고).
+     */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        List<ShotPoint> points = matchDomainService.concededShotHeatmap(
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull());
+
+        List<ShotPointResponse> pointResponses = points.stream()
+                .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
+                        p.result() == ShootResult.GOAL))
+                .toList();
+
+        return new ShotHeatmapResponse(ouid, pointResponses);
+    }
+
     /** 어시스트 체인(화면: 누가 누구에게 어시스트해서 득점했는지). 상위 {@value #ASSIST_CHAIN_LIMIT}건. */
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId) {

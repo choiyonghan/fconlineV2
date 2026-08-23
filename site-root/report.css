@@ -364,6 +364,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* 선수 이름 아래 "득점 X · 도움 Y" 같은 보조 정보를 한 줄 더 보여줄 때 (barChart의 rows[].sub) */
+  .bar-cat.stacked { width: 120px; white-space: normal; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+  .bar-cat-sub { font-size: 10px; color: var(--text-muted); }
   .bar-track { flex: 1; position: relative; height: 20px; }
   .bar-fill {
     position: absolute; left: 0; top: 2px; height: 16px;
@@ -385,6 +388,13 @@
   /* ---------- pitch heatmap ---------- */
   .pitch-wrap { display: flex; justify-content: center; }
   svg.pitch { width: 100%; max-width: 520px; height: auto; }
+
+  /* ---------- line chart (최근 경기 추이) ---------- */
+  svg.linechart { width: 100%; height: auto; overflow: visible; }
+  .linechart-axis { stroke: var(--gridline); stroke-width: 1; }
+  .linechart-axis-label { font-size: 9px; fill: var(--text-muted); font-family: var(--font-body); }
+  .linechart-dot { cursor: pointer; }
+  .linechart-dot:hover, .linechart-dot:focus { outline: none; r: 4.5; }
   .pitch-line { fill: none; stroke: var(--gridline); stroke-width: 1; }
   .goal-dot { fill: var(--series-1); fill-opacity: 0.85; stroke: var(--surface-1); stroke-width: 1.5; cursor: pointer; }
   .goal-dot:hover, .goal-dot:focus { fill-opacity: 1; outline: none; }

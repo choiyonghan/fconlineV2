@@ -42,6 +42,16 @@ public class RecordController {
         return recordFacade.getShotHeatmap(ouid, matchType, seasonId, goalsOnly);
     }
 
+    /**
+     * "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표(상대가 추적 대상인 매치만 포함).
+     */
+    @GetMapping("/conceded-shot-heatmap")
+    public ShotHeatmapResponse getConcededShotHeatmap(@RequestParam String ouid,
+                                                        @RequestParam MatchType matchType,
+                                                        @RequestParam(required = false) Long seasonId) {
+        return recordFacade.getConcededShotHeatmap(ouid, matchType, seasonId);
+    }
+
     /** 어시스트 체인 상위 목록(누가 누구에게 어시스트해서 득점했는지). */
     @GetMapping("/assist-chains")
     public List<AssistChainResponse> getAssistChains(@RequestParam String ouid,

@@ -1,9 +1,11 @@
-# Docker 없이 빠르게 도는 컨텍스트 로드 스모크 테스트 전용 프로파일.
-# H2로 JPA 엔티티 매핑 자체의 구조적 유효성(애노테이션 오류, 연관관계 오류 등)만 검증한다.
-# Flyway 마이그레이션(Postgres 전용 문법 포함)의 실제 검증은 Testcontainers-Postgres로 별도 수행할 것.
+# Docker 없이 빠르게 도는 컨텍스트 로드/리포지토리 통합 테스트 전용 프로파일.
+# H2로 JPA 엔티티 매핑 구조 + (Postgres 전용 문법이 아닌) JPQL 쿼리 번역을 검증한다.
+# Flyway 마이그레이션(jsonb 등 Postgres 전용 문법 포함)의 실제 검증은 Testcontainers-Postgres로 별도 수행할 것.
+# INIT: application.yml의 hibernate.default_schema=fconline이 테스트 H2에도 그대로 적용되는데
+# H2는 스키마를 자동 생성하지 않아서 ddl-auto=create-drop 전에 스키마부터 만들어둬야 한다.
 spring:
   datasource:
-    url: jdbc:h2:mem:fconline_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:fconline_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;INIT=CREATE SCHEMA IF NOT EXISTS fconline
     username: sa
     password:
   jpa:

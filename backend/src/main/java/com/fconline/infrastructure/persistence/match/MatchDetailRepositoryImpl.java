@@ -326,6 +326,35 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .toList();
     }
 
+    /**
+     * "실점 xG값"(플레이 성향 · 수비 성향)용 — 우리 DB엔 상대가 나를 향해 쏜 슛 좌표가 직접 저장돼
+     * 있지 않다(각 참가자는 자기 자신의 shoot_detail만 동기화한다). 대신 상대도 추적 대상 유저라면,
+     * "그 상대 본인 관점"으로 동기화된 같은 매치 행이 DB에 이미 있고 그 행의 shootEvents가 곧
+     * "나에게 쏜 슛"이다 — match_id + opponent_ouid로 그 행을 찾아 join한다.
+     * 상대가 추적 대상이 아닌 매치는 결과에서 조용히 빠진다(추적 대상끼리만 커스텀매치를 돌리는
+     * 구조라 대부분 커버되지만, 100%는 아니다 — 프론트 캡션에 이 한계를 명시한다).
+     */
+    @Override
+    public List<ShotPoint> findConcededShotPoints(String ouid, MatchType matchType, Instant from, Instant to) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QMatchDetail opp = new QMatchDetail("concededOpponentDetail");
+        QShootEvent se = new QShootEvent("concededShootEvent");
+
+        return queryFactory
+                .select(se.x, se.y, se.shootType, se.result)
+                .from(md)
+                .join(md.match, m)
+                .join(opp).on(opp.match.eq(m).and(opp.ouid.eq(md.opponentOuid)))
+                .join(se).on(se.matchDetail.eq(opp))
+                .where(baseWhere(md, m, ouid, matchType, from, to)
+                        .and(se.x.isNotNull())
+                        .and(se.y.isNotNull()))
+                .fetch().stream()
+                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result)))
+                .toList();
+    }
+
     @Override
     public List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to,
                                                           int limit) {

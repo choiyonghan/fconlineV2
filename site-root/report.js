@@ -3,6 +3,21 @@
 
   var BASE_URL = 'https://fconlinev2-backend.onrender.com';
 
+  /**
+   * "욱식 점수"는 닉네임에 "욱"이 들어가는 두 유저(지린성에사는욱구, 욱냥0I)만의 재미 요소 규칙
+   * (승5/무3/패1)이다 — v1이 WOOK_NICKNAMES에 하드코딩했던 값과 동일. 백엔드 score_rules 테이블은
+   * 건드리지 않고(데이터 마이그레이션 없이) 여기서 노출할 때만 계산한다: 이 두 명의 리포트를 볼
+   * 때만 상대별 전적 전체를 이 공식으로, 다른 유저를 볼 땐(이 두 명이 상대로 나오더라도) 표준
+   * 승점(3/1/0)으로 계산해 보여준다 — 서버가 내려주는 dugsikScore(항상 3/1/0)는 쓰지 않는다.
+   */
+  var WOOK_OUIDS = ['1894adb89b4a7953381bdd5671ce7610', '7f3fabc284ffe4b6bedf702a307f0f2e'];
+  function isWookView() { return WOOK_OUIDS.indexOf(state.ouid) !== -1; }
+  function computeScore(tally) {
+    return isWookView()
+      ? (tally.win * 5) + (tally.draw * 3) + (tally.lose * 1)
+      : (tally.win * 3) + (tally.draw * 1);
+  }
+
   var state = { ouid: null, matchType: 'CUSTOM', seasonId: null };
   var playersGridSort = { col: 'overall', dir: 'desc' };
 
@@ -187,13 +202,20 @@
   }
 
   function barChart(container, rows, opts) {
-    // rows: [{label, value, color}]
+    // rows: [{label, value, color, sub?}] — sub가 있으면 라벨 아래에 작은 보조 정보를 한 줄 더 보여준다.
     container.replaceChildren();
     if (!rows.length) { container.appendChild(el('p', 'card-empty', '표시할 데이터가 없습니다.')); return; }
     var max = Math.max.apply(null, rows.map(function (r) { return r.value; }), 1);
     rows.forEach(function (r) {
       var row = el('div', 'bar-row');
-      row.appendChild(el('div', 'bar-cat', r.label));
+      if (r.sub) {
+        var cat = el('div', 'bar-cat stacked');
+        cat.appendChild(document.createTextNode(r.label));
+        cat.appendChild(el('span', 'bar-cat-sub', r.sub));
+        row.appendChild(cat);
+      } else {
+        row.appendChild(el('div', 'bar-cat', r.label));
+      }
       var track = el('div', 'bar-track');
       var fillPct = Math.max((r.value / max) * 100, r.value > 0 ? 2 : 0);
       var fill = el('div', 'bar-fill');
@@ -201,8 +223,13 @@
       fill.style.background = r.color;
       fill.tabIndex = 0;
       fill.setAttribute('role', 'img');
-      fill.setAttribute('aria-label', r.label + ' ' + r.value);
-      var showFn = function (evt) { showTip(evt, [r.label, (opts && opts.unit ? r.value + opts.unit : String(r.value))]); };
+      fill.setAttribute('aria-label', r.label + (r.sub ? ' (' + r.sub + ')' : '') + ' ' + r.value);
+      var showFn = function (evt) {
+        var lines = [r.label];
+        if (r.sub) lines.push(r.sub);
+        lines.push(opts && opts.unit ? r.value + opts.unit : String(r.value));
+        showTip(evt, lines);
+      };
       fill.addEventListener('pointerenter', showFn);
       fill.addEventListener('pointermove', moveTip);
       fill.addEventListener('pointerleave', hideTip);
@@ -247,6 +274,119 @@
     });
     container.appendChild(wrap);
   }
+
+  /**
+   * 최근 경기 추이용 꺾은선 그래프. seriesList: [{label, color, values:[...]}] — 전부 같은 길이,
+   * opts.labels[i]가 각 포인트의 x축 라벨(날짜 등). 단일/복수 시리즈 둘 다 지원(복수면 범례 표시).
+   */
+  function lineChart(container, seriesList, opts) {
+    container.replaceChildren();
+    var labels = (opts && opts.labels) || [];
+    var hasData = seriesList.some(function (s) { return s.values.length > 0; });
+    if (!hasData || !labels.length) {
+      container.appendChild(el('p', 'card-empty', '표시할 경기가 없습니다.'));
+      return;
+    }
+
+    var W = 480, H = 170, padL = 26, padR = 12, padT = 16, padB = 22;
+    var n = labels.length;
+    var allValues = [];
+    seriesList.forEach(function (s) { allValues = allValues.concat(s.values); });
+    var maxV = opts.yMax != null ? opts.yMax : Math.max.apply(null, allValues.concat([1]));
+    var minV = opts.yMin != null ? opts.yMin : Math.min(0, Math.min.apply(null, allValues));
+    if (maxV === minV) maxV = minV + 1;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+
+    function xAt(i) { return n <= 1 ? padL + innerW / 2 : padL + (innerW * i) / (n - 1); }
+    function yAt(v) { return padT + innerH - ((v - minV) / (maxV - minV)) * innerH; }
+
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('class', 'linechart');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', (opts.ariaLabel || '추이 그래프') + ', ' + n + '경기');
+
+    // 바닥선(y=minV) + 필요하면 0선
+    var baseline = document.createElementNS(svgNS, 'line');
+    baseline.setAttribute('x1', padL); baseline.setAttribute('x2', W - padR);
+    baseline.setAttribute('y1', yAt(minV)); baseline.setAttribute('y2', yAt(minV));
+    baseline.setAttribute('class', 'linechart-axis');
+    svg.appendChild(baseline);
+    if (opts.refLines) {
+      opts.refLines.forEach(function (rv) {
+        var rl = document.createElementNS(svgNS, 'line');
+        rl.setAttribute('x1', padL); rl.setAttribute('x2', W - padR);
+        rl.setAttribute('y1', yAt(rv)); rl.setAttribute('y2', yAt(rv));
+        rl.setAttribute('class', 'linechart-axis');
+        rl.setAttribute('stroke-dasharray', '3,3');
+        svg.appendChild(rl);
+      });
+    }
+
+    // x축 라벨 — 너무 촘촘하면 일부만(최대 6개)
+    var xLabelStep = Math.max(1, Math.ceil(n / 6));
+    labels.forEach(function (lab, i) {
+      if (i % xLabelStep !== 0 && i !== n - 1) return;
+      var t = document.createElementNS(svgNS, 'text');
+      t.setAttribute('x', xAt(i));
+      t.setAttribute('y', H - 6);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('class', 'linechart-axis-label');
+      t.textContent = lab;
+      svg.appendChild(t);
+    });
+
+    seriesList.forEach(function (s) {
+      var pts = s.values.map(function (v, i) { return xAt(i) + ',' + yAt(v); }).join(' ');
+      var poly = document.createElementNS(svgNS, 'polyline');
+      poly.setAttribute('points', pts);
+      poly.setAttribute('fill', 'none');
+      poly.setAttribute('stroke', s.color);
+      poly.setAttribute('stroke-width', '2');
+      poly.setAttribute('stroke-linejoin', 'round');
+      poly.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(poly);
+
+      s.values.forEach(function (v, i) {
+        var c = document.createElementNS(svgNS, 'circle');
+        c.setAttribute('cx', xAt(i));
+        c.setAttribute('cy', yAt(v));
+        c.setAttribute('r', '3');
+        c.setAttribute('fill', s.color);
+        c.setAttribute('class', 'linechart-dot');
+        c.tabIndex = 0;
+        var showFn = function (evt) {
+          showTip(evt, [labels[i], s.label + ': ' + v + (opts.unit || '')]);
+        };
+        c.addEventListener('pointerenter', showFn);
+        c.addEventListener('pointermove', moveTip);
+        c.addEventListener('pointerleave', hideTip);
+        c.addEventListener('focus', showFn);
+        c.addEventListener('blur', hideTip);
+        svg.appendChild(c);
+      });
+    });
+
+    container.appendChild(svg);
+
+    if (seriesList.length > 1) {
+      var legend = el('div', 'legend');
+      legend.style.marginTop = '8px';
+      legend.style.justifyContent = 'center';
+      seriesList.forEach(function (s) {
+        var item = el('div', 'legend-item');
+        var sw = el('span', 'legend-swatch');
+        sw.style.background = s.color;
+        sw.style.borderRadius = '50%';
+        item.appendChild(sw);
+        item.appendChild(document.createTextNode(s.label));
+        legend.appendChild(item);
+      });
+      container.appendChild(legend);
+    }
+  }
+
   var RESULT_KO = { GOAL: '골', ON_TARGET: '온타겟', OFF_TARGET: '오프타겟' };
 
   function pitchHeatmap(container, points) {
@@ -458,11 +598,15 @@
   function opponentsTable(container, opponents) {
     container.replaceChildren();
     if (!opponents.length) { container.appendChild(el('p', 'card-empty', '상대 전적이 없습니다.')); return; }
-    var sorted = opponents.slice().sort(function (a, b) { return b.dugsikScore - a.dugsikScore; });
+    var sorted = opponents.slice().sort(function (a, b) { return computeScore(b.tally) - computeScore(a.tally); });
+    var scoreLabel = isWookView() ? '욱식 점수' : '승점';
+    document.getElementById('opponents-caption').textContent = isWookView()
+      ? '욱식 점수(승5·무3·패1) 높은 순 · 행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다'
+      : '승점(승3·무1·패0) 높은 순 · 행을 클릭하면 그 상대와의 최근 경기가 펼쳐집니다';
     var table = document.createElement('table');
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
-    ['', '상대', '전적 (승-무-패)', '현재 기록', '욱식 점수'].forEach(function (h, i) {
+    ['', '상대', '전적 (승-무-패)', '현재 기록', scoreLabel].forEach(function (h, i) {
       htr.appendChild(el('th', i === 4 ? 'num' : '', h));
     });
     thead.appendChild(htr);
@@ -486,7 +630,7 @@
       var streakTd = document.createElement('td');
       streakBadges(streakTd, o.streak);
       tr.appendChild(streakTd);
-      tr.appendChild(el('td', 'num', fmt(o.dugsikScore)));
+      tr.appendChild(el('td', 'num', fmt(computeScore(o.tally))));
 
       var expandTr = document.createElement('tr');
       expandTr.className = 'opp-expand';
@@ -620,6 +764,7 @@
       recentMatchesState.hasMore = (result.number + 1) * result.size < result.totalElements;
       recentMatchesState.page = result.number + 1;
       recentMoreBtn.hidden = !recentMatchesState.hasMore;
+      if (reset) renderTrendCharts(result.content);
     }).catch(function () {
       recentMatchesState.loading = false;
       recentMoreBtn.disabled = false;
@@ -635,6 +780,33 @@
   }
 
   recentMoreBtn.addEventListener('click', function () { loadRecentMatches(false); });
+
+  /** 최근 경기 추이(득점/실점, 점유율) 꺾은선 그래프 — 최근 경기 목록의 첫 페이지를 그대로 재사용한다. */
+  function renderTrendCharts(matches) {
+    var goalsContainer = document.getElementById('chart-trend-goals');
+    var possContainer = document.getElementById('chart-trend-possession');
+    document.getElementById('trend-goals-caption').textContent =
+      matches.length ? '최근 ' + matches.length + '경기를 오래된 순으로 나열' : '표시할 경기가 없습니다.';
+
+    // API는 최신순으로 내려주므로 그래프는 왼쪽(과거)->오른쪽(최신) 순서가 되게 뒤집는다.
+    var chronological = matches.slice().reverse();
+    var labels = chronological.map(function (m) {
+      var d = new Date(m.matchDate);
+      return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+    });
+
+    lineChart(goalsContainer, [
+      { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
+      { label: '실점', color: 'var(--series-2)', values: chronological.map(function (m) { return m.goalsAgainst; }) }
+    ], { labels: labels, unit: '골', yMin: 0, ariaLabel: '득점 실점 추이' });
+
+    lineChart(possContainer, [
+      {
+        label: '점유율', color: 'var(--series-3)',
+        values: chronological.map(function (m) { return m.possession != null ? m.possession : 50; })
+      }
+    ], { labels: labels, unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
+  }
 
   /**
    * 백엔드는 raw 합계만 주고, 비율/100점 만점 점수는 여기서 계산한다 — "1등이 100점"이 되려면
@@ -782,6 +954,8 @@
   var lastPoints = null;
   var lastOverall = null;
   var lastTotalGames = 0;
+  var lastConcededPoints = null;
+  var lastConcededSampleGames = 0;
 
   var BOX = { xMin: 343 / 400, yMin: 75 / 260, yMax: 185 / 260 };
   var SIX = { xMin: 376 / 400, yMin: 104 / 260, yMax: 156 / 260 };
@@ -841,7 +1015,7 @@
     zoneAggregate.rateMap = {};
     agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
     if (lastPoints) updateXgTile(lastPoints);
-    if (lastOverall) renderPlayStyle(lastOverall, lastPoints, lastTotalGames);
+    if (lastOverall) renderPlayStyle(lastOverall, lastPoints, lastTotalGames, lastConcededPoints, lastConcededSampleGames);
   }
 
   function updateXgTile(points) {
@@ -878,7 +1052,17 @@
     return total > 0 ? Math.round((count / total) * 100) : 0;
   }
 
-  function renderPlayStyle(overall, points, totalGames) {
+  function expectedGoalsOf(points) {
+    if (!zoneAggregate) return 0;
+    var sum = 0;
+    points.forEach(function (p) {
+      var r = zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+      if (r != null) sum += r;
+    });
+    return sum;
+  }
+
+  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames) {
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
     var bar = document.getElementById('possession-bar');
@@ -897,26 +1081,28 @@
 
     // 공격 성향
     var actualGoals = points.filter(function (p) { return p.goal; }).length;
-    var expectedGoals = 0;
-    points.forEach(function (p) {
-      var r = zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null;
-      if (r != null) expectedGoals += r;
-    });
+    var expectedGoals = expectedGoalsOf(points);
+    concededPoints = concededPoints || [];
+    concededSampleGames = concededSampleGames || 0;
     var onTarget = points.filter(function (p) { return p.result !== 'OFF_TARGET'; }).length;
     var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
 
-    statMini(attackContainer, '평균 xG값', zoneAggregate ? fmt1(expectedGoals / totalGames) : '계산 중…', '경기당');
+    statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점');
+    statMini(attackContainer, '평균 득점 xG값', zoneAggregate ? fmt1(expectedGoals / totalGames) : '계산 중…', '경기당 기대 득점');
     statMini(attackContainer, '결정력',
       zoneAggregate && expectedGoals > 0 ? Math.round(actualGoals / expectedGoals * 100) + '%' : '-',
       '실제 득점 ÷ xG값');
     statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
 
-    // 수비 성향
-    var avgConceded = overall.tally.goalsAgainst / totalGames;
-    statMini(defenseContainer, '평균 실점', fmt1(avgConceded), '경기당');
+    // 수비 성향 — "평균 실점 xG값"은 상대도 추적 대상 유저인 매치만 반영된다(footer 안내 참고).
+    var concededExpectedGoals = expectedGoalsOf(concededPoints);
+    statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점');
+    statMini(defenseContainer, '평균 실점 xG값',
+      zoneAggregate && concededSampleGames ? fmt1(concededExpectedGoals / concededSampleGames) : '-',
+      concededSampleGames ? concededSampleGames + '경기(상대도 추적 대상인 경기만)' : '상대 추적 데이터 없음');
     statMini(defenseContainer, '클린시트', fmt(overall.cleanSheets) + '경기', pctOf(overall.cleanSheets, totalGames) + '%');
-    statMini(defenseContainer, '다실점 경기', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
+    statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
 
     // 점유율 분포 — 55% 이상 / 45% 이하 / 그 사이(균형)
@@ -960,11 +1146,15 @@
       apiGet('/api/v1/opponents', qs),
       apiGet('/api/v1/records/players', qs),
       apiGet('/api/v1/records/assist-chains', qs),
-      apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, goalsOnly: false })
+      apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, goalsOnly: false }),
+      apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; })
     ]).then(function (r) {
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
       setStatus(null);
-      renderAll(user, { overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3], heatmap: r[4] });
+      renderAll(user, {
+        overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3],
+        heatmap: r[4], concededHeatmap: r[5]
+      });
     }).catch(function (err) {
       if (seq !== loadSeq) return;
       setStatus('데이터를 불러오지 못했습니다. 새로고침해서 다시 시도해 주세요. (' + err.message + ')', true);
@@ -1029,10 +1219,17 @@
     var enrichedPlayers = enrichPlayers(d.allPlayers);
 
     // top players — TOP 7 (전체 목록은 아래 그리드에서 더보기)
+    // 선수마다 가장 두드러지는 지표를 보조 라벨로 보여준다: 세이브가 가장 높으면(골키퍼 프로필)
+    // 선방만, 그 외(득점/도움이 두드러지는 필드 플레이어)는 득점·도움을 함께 보여준다.
     var top7Rows = enrichedPlayers.slice()
       .sort(function (a, b) { return b.overall - a.overall; })
       .slice(0, 7)
-      .map(function (p) { return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)' }; });
+      .map(function (p) {
+        var sub = (p.saves > p.goals && p.saves > p.assists && p.saves > 0)
+          ? '선방 ' + fmt(p.saves)
+          : '득점 ' + fmt(p.goals) + ' · 도움 ' + fmt(p.assists);
+        return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)', sub: sub };
+      });
     barChart(document.getElementById('chart-players'), top7Rows, { unit: '점' });
 
     // goal type distribution
@@ -1047,9 +1244,21 @@
     verticalBarChart(document.getElementById('chart-goaltime'), timeRows);
 
     // 플레이 성향 (공격/수비 성향 + 점유율 분포)
+    // "평균 실점 xG값"의 표본 경기 수 — conceded-shot-heatmap엔 매치 식별자가 없어서(점 좌표만),
+    // 상대 목록에서 "상대도 추적 대상 유저"인 상대들의 경기 수를 합산해 대신 구한다(백엔드 쿼리가
+    // 상대의 자기 동기화 행을 찾는 조건과 사실상 같은 모집단).
+    var trackedOuidSet = {};
+    allUsers.forEach(function (u) { trackedOuidSet[u.ouid] = true; });
+    var concededSampleGames = d.opponents.reduce(function (sum, o) {
+      if (!trackedOuidSet[o.opponentOuid]) return sum;
+      return sum + o.tally.win + o.tally.draw + o.tally.lose;
+    }, 0);
+
     lastOverall = overall;
     lastTotalGames = totalGames;
-    renderPlayStyle(overall, d.heatmap.points, totalGames);
+    lastConcededPoints = d.concededHeatmap.points;
+    lastConcededSampleGames = concededSampleGames;
+    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames);
 
     // heatmap (전체 슈팅 + xG값)
     lastPoints = d.heatmap.points;

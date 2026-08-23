@@ -114,6 +114,11 @@ public class MatchDomainService {
         return matchDetailRepository.findShotPoints(ouid, matchType, from, to, goalsOnly);
     }
 
+    /** "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표 목록(상대가 추적 대상인 매치만). */
+    public List<ShotPoint> concededShotHeatmap(String ouid, MatchType matchType, Instant from, Instant to) {
+        return matchDetailRepository.findConcededShotPoints(ouid, matchType, from, to);
+    }
+
     /** 어시스트 선수 -> 득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     public List<AssistChainCount> assistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
         return matchDetailRepository.aggregateAssistChains(ouid, matchType, from, to, limit);
