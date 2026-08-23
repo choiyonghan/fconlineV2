@@ -56,8 +56,9 @@ public class RecordController {
     @GetMapping("/assist-chains")
     public List<AssistChainResponse> getAssistChains(@RequestParam String ouid,
                                                        @RequestParam MatchType matchType,
-                                                       @RequestParam(required = false) Long seasonId) {
-        return recordFacade.getAssistChains(ouid, matchType, seasonId);
+                                                       @RequestParam(required = false) Long seasonId,
+                                                       @RequestParam(required = false) Integer limit) {
+        return recordFacade.getAssistChains(ouid, matchType, seasonId, limit);
     }
 
     /** 정렬 가능한 "전체 선수" 그리드, 최다 세이브 등 top-3 밖 통계용 — 사실상 전체 목록. */

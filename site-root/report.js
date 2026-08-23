@@ -596,6 +596,46 @@
     container.appendChild(table);
   }
 
+  /**
+   * chains(방향별 어시스트→득점 조합)를 사람 쌍(순서 무관) 기준으로 합산해 TOP5를 만든다.
+   * 예: 루카쿠→반페르시 10골 + 반페르시→루카쿠 5골 → "루카쿠 · 반페르시" 조합 15골.
+   */
+  function topAssistDuos(chains, limit) {
+    var byPair = {};
+    chains.forEach(function (c) {
+      var key = [c.assisterSpId, c.scorerSpId].sort().join('|');
+      if (!byPair[key]) {
+        byPair[key] = { nameA: c.assisterName, nameB: c.scorerName, goals: 0 };
+      }
+      byPair[key].goals += c.goals;
+    });
+    return Object.keys(byPair).map(function (key) { return byPair[key]; })
+      .sort(function (a, b) { return b.goals - a.goals; })
+      .slice(0, limit);
+  }
+
+  function assistDuoTable(container, duos) {
+    container.replaceChildren();
+    if (!duos.length) { container.appendChild(el('p', 'card-empty', '기록된 어시스트 조합이 없습니다.')); return; }
+    var table = document.createElement('table');
+    var thead = document.createElement('thead');
+    var htr = document.createElement('tr');
+    ['조합', '합산 골 수'].forEach(function (h, i) {
+      htr.appendChild(el('th', i === 1 ? 'num' : '', h));
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    duos.forEach(function (d) {
+      var tr = document.createElement('tr');
+      tr.appendChild(el('td', 'name-cell', d.nameA + ' · ' + d.nameB));
+      tr.appendChild(el('td', 'num', fmt(d.goals)));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+  }
+
   function streakBadges(container, streak) {
     var wrap = el('div', 'streak-badges');
     if (streak.curWin > 0) wrap.appendChild(el('span', 'streak-badge win', streak.curWin + '연승'));
@@ -1297,7 +1337,9 @@
       apiGet('/api/v1/records/overall', qs),
       apiGet('/api/v1/opponents', qs),
       apiGet('/api/v1/records/players', qs),
-      apiGet('/api/v1/records/assist-chains', qs),
+      // limit을 넉넉하게(100) 요청 — "합쳐서 TOP5"(양방향 조합 합산)를 정확히 계산하려면
+      // 방향별 상위 몇 건만으론 부족할 수 있다(한쪽 방향이 밀려나면 합산이 과소해짐).
+      apiGet('/api/v1/records/assist-chains', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, limit: 100 }),
       apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, goalsOnly: false }),
       apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; }),
       apiGet('/api/v1/records/recent-matches', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: TREND_SAMPLE_SIZE })
@@ -1423,6 +1465,8 @@
 
     // 환상의 콤비 (어시스트 체인) — 상위 5건만
     assistTable(document.getElementById('table-assists'), d.assistChains.slice(0, 5));
+    // 양방향 조합 합산 TOP5 (예: A→B + B→A를 한 조합으로 합산)
+    assistDuoTable(document.getElementById('table-assist-duos'), topAssistDuos(d.assistChains, 5));
 
     // opponents (행 클릭 시 해당 상대 최근 경기를 그때 불러와 펼침)
     opponentsTable(document.getElementById('table-opponents'), d.opponents);

@@ -44,6 +44,13 @@ public class RecordFacade {
 
     private static final int TOP_PLAYER_LIMIT = 3;
     private static final int ASSIST_CHAIN_LIMIT = 10;
+    /**
+     * 프론트가 "환상의 콤비" 화면에서 양방향 조합(A→B + B→A)을 합산한 TOP5를 정확히 계산하려면
+     * 방향별 상위 10건만으론 부족할 수 있어(한쪽 방향이 10위 밖으로 밀려나면 합산이 과소해짐)
+     * 더 넓은 범위를 요청할 수 있게 한 상한. 인사이트 스냅샷 등 기존 호출부는 이 파라미터를
+     * 안 쓰므로 기존 동작(ASSIST_CHAIN_LIMIT=10)에 영향 없다.
+     */
+    private static final int ASSIST_CHAIN_MAX_LIMIT = 200;
     /** "전체 선수" 그리드/최다 세이브 등에 쓰는 사실상 무제한 한도. */
     private static final int ALL_PLAYERS_LIMIT = 1000;
 
@@ -190,12 +197,26 @@ public class RecordFacade {
     /** 어시스트 체인(화면: 누가 누구에게 어시스트해서 득점했는지). 상위 {@value #ASSIST_CHAIN_LIMIT}건. */
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId) {
+        return getAssistChains(ouid, matchType, seasonId, null);
+    }
+
+    /**
+     * limit이 null이면 기존 기본값({@value #ASSIST_CHAIN_LIMIT}건)을 쓴다.
+     * limit을 직접 지정하면 1~{@value #ASSIST_CHAIN_MAX_LIMIT} 범위로 clamp한다 — "환상의 콤비"
+     * 화면이 양방향 조합 합산 TOP5를 정확히 계산하려고 더 넓은 범위를 요청할 때 쓴다.
+     */
+    @Transactional(readOnly = true)
+    public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId, Integer limit) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
+        int effectiveLimit = limit == null
+                ? ASSIST_CHAIN_LIMIT
+                : Math.max(1, Math.min(limit, ASSIST_CHAIN_MAX_LIMIT));
+
         Season season = seasonRangeResolver.resolve(seasonId);
         List<AssistChainCount> chains = matchDomainService.assistChains(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), ASSIST_CHAIN_LIMIT);
+                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), effectiveLimit);
 
         Map<String, String> playerNames = playerNamesOfChains(chains);
 
