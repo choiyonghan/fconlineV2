@@ -91,6 +91,18 @@
     });
   }
 
+  function apiPost(path, body) {
+    var url = new URL(path, BASE_URL);
+    return fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      if (!res.ok) throw new Error('API 요청 실패 (HTTP ' + res.status + ') ' + path);
+      return res.json();
+    });
+  }
+
   // ---------------- static chrome ----------------
   var userChipRow = document.getElementById('user-select');
   var seasonChipRow = document.getElementById('season-select');
@@ -176,6 +188,47 @@
       if (btn.getAttribute('aria-pressed') === 'true') return;
       playstyleTabButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
       Object.keys(playstylePanels).forEach(function (key) { playstylePanels[key].hidden = key !== tab; });
+    });
+  });
+
+  // AI에게 물어보기 — 현재 선택된 유저/매치타입/시즌 기준으로 백엔드 AI 인사이트 API를 호출한다.
+  var aiAskForm = document.getElementById('ai-ask-form');
+  var aiQuestionInput = document.getElementById('ai-question');
+  var aiAskBtn = document.getElementById('ai-ask-btn');
+  var aiAnswerBox = document.getElementById('ai-answer-box');
+  var aiAnswerText = document.getElementById('ai-answer-text');
+
+  function setAiAsking(asking) {
+    aiAskBtn.disabled = asking;
+    aiAskBtn.textContent = asking ? '답변을 기다리는 중…' : '질문하기';
+  }
+
+  function showAiAnswer(text, isError) {
+    aiAnswerBox.classList.toggle('error', !!isError);
+    aiAnswerText.textContent = text;
+    aiAnswerBox.hidden = false;
+  }
+
+  aiAskForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var question = aiQuestionInput.value.trim();
+    if (!question) return;
+    if (question.length > 500) {
+      showAiAnswer('질문은 500자 이내로 입력해 주세요.', true);
+      return;
+    }
+    setAiAsking(true);
+    apiPost('/api/v1/insights/ask', {
+      ouid: state.ouid,
+      matchType: state.matchType,
+      seasonId: state.seasonId,
+      question: question
+    }).then(function (res) {
+      showAiAnswer(res.answer || '답변을 받지 못했습니다.', false);
+    }).catch(function () {
+      showAiAnswer('AI 답변을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.', true);
+    }).finally(function () {
+      setAiAsking(false);
     });
   });
 

@@ -116,6 +116,19 @@
     <div class="table-scroll" id="table-allplayers"></div>
   </div>
 
+  <div class="card" style="margin-top:14px;">
+    <p class="card-title">🤖 AI에게 물어보기</p>
+    <p class="card-caption">지금 선택한 유저·매치타입·시즌 기준으로 데이터를 근거로 답해드려요.</p>
+    <form class="ai-ask-row" id="ai-ask-form">
+      <textarea id="ai-question" class="ai-question-input" maxlength="500" rows="2"
+        placeholder="예: 최근 폼이 어때? 어떤 상대를 조심해야 해?"></textarea>
+      <button type="submit" class="ai-ask-btn" id="ai-ask-btn">질문하기</button>
+    </form>
+    <div class="ai-answer-box" id="ai-answer-box" hidden>
+      <p class="ai-answer-text" id="ai-answer-text"></p>
+    </div>
+  </div>
+
   <footer class="note">
     <strong>실시간 데이터.</strong> 이 페이지는 스냅샷이 아니라 백엔드 API(<code>fconlinev2-backend.onrender.com</code>)를
     매번 직접 호출합니다 — 새로고침하면 최신 동기화 데이터를 그대로 보여줍니다. 백엔드가 무료 티어라 한동안
