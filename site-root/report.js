@@ -1159,7 +1159,8 @@
     lineChart(possChart, [
       {
         label: '점유율', color: 'var(--series-3)',
-        values: chronological.map(function (m) { return m.possession != null ? m.possession : 50; })
+        // possession=0%는 실제 값이 아니라 결측치로 본다(0%로 뛴 경기는 없다) — 50%(중립)로 보정.
+        values: chronological.map(function (m) { return (m.possession != null && m.possession > 0) ? m.possession : 50; })
       }
     ], { labels: chronological.map(dateLabel), unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
   }
