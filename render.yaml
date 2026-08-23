@@ -6,6 +6,12 @@ services:
     dockerContext: .
     plan: free
     healthCheckPath: /actuator/health
+    # insight-snapshot.yml이 매일 data/에 스냅샷 JSON을 커밋한다 — 백엔드는 그 파일을
+    # raw.githubusercontent.com에서 읽기만 하므로(GithubInsightSnapshotClient), 이 커밋만으로는
+    # 재배포가 필요 없다. 불필요한 매일 재배포를 막기 위해 빌드 트리거에서 제외한다.
+    buildFilter:
+      ignoredPaths:
+        - data/**
     envVars:
       # sync: false 항목은 Render 대시보드에서 배포 후 직접 값을 입력해야 한다
       # (이 파일은 git에 커밋되므로 실제 비밀번호/키를 여기에 적으면 안 된다).

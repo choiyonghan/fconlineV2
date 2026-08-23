@@ -1,6 +1,7 @@
 package com.fconline.infrastructure.config;
 
 import com.fconline.infrastructure.gemini.GeminiApiProperties;
+import com.fconline.infrastructure.insight.GithubInsightSnapshotProperties;
 import com.fconline.infrastructure.nexon.NexonApiProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,14 @@ public class RestClientConfig {
         return RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    /** insight-snapshot.yml이 커밋해둔 data/insight-snapshots/*.json을 읽는 전용 클라이언트. */
+    @Bean
+    public RestClient insightSnapshotRestClient(GithubInsightSnapshotProperties properties) {
+        return RestClient.builder()
+                .baseUrl(properties.rawBaseUrl())
                 .build();
     }
 }

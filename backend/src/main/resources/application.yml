@@ -69,6 +69,12 @@ sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}
   match-fetch-limit: ${SYNC_MATCH_FETCH_LIMIT:100}
 
+insight:
+  snapshot:
+    # 매일 아침 insight-snapshot.yml이 data/insight-snapshots/에 커밋해둔 JSON을 여기서 읽는다
+    # (DB 테이블 없이 리포지토리 자체를 캐시 저장소로 사용 — InsightFacade 참고).
+    raw-base-url: ${INSIGHT_SNAPSHOT_RAW_BASE_URL:https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/insight-snapshots}
+
 springdoc:
   api-docs:
     path: /v3/api-docs

@@ -1,0 +1,56 @@
+name: Build Insight Snapshot
+
+# AI 질문(insights/ask)이 매번 종합 전적/선수단 기여도/어시스트 체인/최근 경기/상대별 전적을
+# 전부 재조회하면 DB 부하가 쌓인다. 하루 한 번 이 배치가 그 데이터를 미리 요약해
+# data/insight-snapshots/*.json으로 커밋해두고, 백엔드(InsightFacade)는 그 파일을
+# raw.githubusercontent.com에서 읽기만 한다 — DB 테이블을 새로 만들지 않고 리포지토리
+# 자체를 캐시 저장소로 쓴다. sync.yml의 KST 09:15 매치 동기화가 끝난 직후 최신 매치 기준으로
+# 스냅샷을 뜨도록 09:30에 맞춘다.
+on:
+  schedule:
+    - cron: '30 0 * * *' # KST 09:30
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insight-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build backend jar
+        run: ./gradlew :backend:bootJar --console=plain
+
+      - name: Run insight snapshot batch (DB에서 읽기만 함, 쓰기는 로컬 JSON 파일)
+        env:
+          SPRING_PROFILES_ACTIVE: insight-snapshot
+          SUPABASE_JDBC_URL: ${{ secrets.SUPABASE_JDBC_URL }}
+          SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          java -jar backend/build/libs/*.jar --spring.profiles.active=insight-snapshot
+
+      - name: Commit and push snapshot files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/insight-snapshots
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 생략"
+          else
+            git commit -m "chore: 인사이트 스냅샷 갱신 $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
