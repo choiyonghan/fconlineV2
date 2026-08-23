@@ -240,6 +240,9 @@
   @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
 
   /* ---------- 플레이 성향 카드 ---------- */
+  /* 공격/수비 성향을 나란히 2열로 — 스탯 표와 그 안의 차트가 같은 폭으로 grid-2 카드들만큼 작아진다. */
+  .playstyle-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 16px; }
+  @media (max-width: 760px) { .playstyle-grid { grid-template-columns: 1fr; } }
   .playstyle-heading {
     font-family: var(--font-display);
     font-size: 13px;
