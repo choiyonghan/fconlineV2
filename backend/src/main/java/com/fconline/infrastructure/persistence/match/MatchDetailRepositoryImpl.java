@@ -3,11 +3,11 @@ package com.fconline.infrastructure.persistence.match;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
-import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.QMatch;
 import com.fconline.domain.match.QMatchDetail;
@@ -255,20 +255,19 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
-    public Page<MatchDetail> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
-                                                    Instant from, Instant to, Pageable pageable) {
+    public Page<RecentMatchRaw> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
+                                                        Instant from, Instant to, Pageable pageable) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
 
         BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to).and(md.opponentOuid.eq(opponentOuid));
 
-        JPAQuery<MatchDetail> contentQuery = queryFactory
-                .selectFrom(md)
-                .join(md.match, m).fetchJoin()
-                .where(where)
-                .orderBy(m.matchDate.desc())
+        List<RecentMatchRaw> content = recentMatchQuery(md, m, where)
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize());
+                .limit(pageable.getPageSize())
+                .fetch().stream()
+                .map(MatchDetailRepositoryImpl::toRecentMatchRaw)
+                .toList();
 
         long total = nzl(queryFactory
                 .select(md.count())
@@ -277,24 +276,23 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .where(where)
                 .fetchOne());
 
-        return new PageImpl<>(contentQuery.fetch(), pageable, total);
+        return new PageImpl<>(content, pageable, total);
     }
 
     @Override
-    public Page<MatchDetail> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to,
-                                               Pageable pageable) {
+    public Page<RecentMatchRaw> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to,
+                                                  Pageable pageable) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
 
         BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to);
 
-        JPAQuery<MatchDetail> contentQuery = queryFactory
-                .selectFrom(md)
-                .join(md.match, m).fetchJoin()
-                .where(where)
-                .orderBy(m.matchDate.desc())
+        List<RecentMatchRaw> content = recentMatchQuery(md, m, where)
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize());
+                .limit(pageable.getPageSize())
+                .fetch().stream()
+                .map(MatchDetailRepositoryImpl::toRecentMatchRaw)
+                .toList();
 
         long total = nzl(queryFactory
                 .select(md.count())
@@ -303,7 +301,50 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .where(where)
                 .fetchOne());
 
-        return new PageImpl<>(contentQuery.fetch(), pageable, total);
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    /**
+     * "최근 경기" 계열 목록 조회 공통 SELECT. MatchDetail 전체(특히 shoot_detail/player_squad/
+     * raw_participant jsonb 원본 3종, 참가자당 수 KB~수십 KB)를 끌어오지 않고 목록 화면에 실제로
+     * 쓰이는 스칼라 컬럼만 선택한다 — size=1000짜리 "표본 전체" 호출(플레이 성향 추이 차트)에서
+     * 특히 효과가 크다.
+     */
+    private JPAQuery<Tuple> recentMatchQuery(QMatchDetail md, QMatch m, BooleanBuilder where) {
+        return queryFactory
+                .select(m.matchId, m.matchDate, md.opponentNickname, md.result,
+                        md.stats.goalsFor, md.stats.goalsAgainst, md.stats.averageRating, md.stats.possession,
+                        md.stats.shootTotal, md.stats.effectiveShoot, md.stats.passTry, md.stats.passSuccess,
+                        md.stats.tackleTry, md.stats.tackleSuccess, md.stats.foul, md.stats.yellowCards,
+                        md.stats.redCards)
+                .from(md)
+                .join(md.match, m)
+                .where(where)
+                .orderBy(m.matchDate.desc());
+    }
+
+    private static RecentMatchRaw toRecentMatchRaw(Tuple row) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        return new RecentMatchRaw(
+                row.get(m.matchId),
+                row.get(m.matchDate),
+                row.get(md.opponentNickname),
+                row.get(md.result),
+                row.get(md.stats.goalsFor),
+                row.get(md.stats.goalsAgainst),
+                row.get(md.stats.averageRating),
+                row.get(md.stats.possession),
+                row.get(md.stats.shootTotal),
+                row.get(md.stats.effectiveShoot),
+                row.get(md.stats.passTry),
+                row.get(md.stats.passSuccess),
+                row.get(md.stats.tackleTry),
+                row.get(md.stats.tackleSuccess),
+                row.get(md.stats.foul),
+                row.get(md.stats.yellowCards),
+                row.get(md.stats.redCards)
+        );
     }
 
     @Override

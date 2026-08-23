@@ -1,6 +1,5 @@
 package com.fconline.domain.match.repository;
 
-import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
@@ -9,6 +8,7 @@ import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
+import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.match.vo.ShotPoint;
 import com.fconline.domain.match.vo.TopPlayerStat;
 import java.time.Instant;
@@ -53,12 +53,19 @@ public interface MatchDetailRepositoryCustom {
     List<MatchResult> findChronologicalResults(String ouid, String opponentOuid, MatchType matchType,
                                                 Instant from, Instant to);
 
-    /** 특정 상대와의 개별 경기 목록 (페이지네이션). */
-    Page<MatchDetail> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
-                                             Instant from, Instant to, Pageable pageable);
+    /**
+     * 특정 상대와의 개별 경기 목록 (페이지네이션). 목록 화면은 shoot_detail/player_squad/
+     * raw_participant jsonb 원본을 쓰지 않으므로, MatchDetail 전체 엔티티가 아니라
+     * 필요한 스칼라 컬럼만 뽑는 경량 프로젝션(RecentMatchRaw)으로 반환한다.
+     */
+    Page<RecentMatchRaw> findByOuidAndOpponent(String ouid, String opponentOuid, MatchType matchType,
+                                                Instant from, Instant to, Pageable pageable);
 
-    /** 상대 무관, 이 유저의 전체 최근 경기 목록 — 매치 날짜 내림차순 (페이지네이션). */
-    Page<MatchDetail> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to, Pageable pageable);
+    /**
+     * 상대 무관, 이 유저의 전체 최근 경기 목록 — 매치 날짜 내림차순 (페이지네이션).
+     * findByOuidAndOpponent와 마찬가지로 경량 프로젝션(RecentMatchRaw)을 쓴다.
+     */
+    Page<RecentMatchRaw> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to, Pageable pageable);
 
     /** 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외. */
     List<ShotPoint> findShotPoints(String ouid, MatchType matchType, Instant from, Instant to, boolean goalsOnly);

@@ -5,12 +5,12 @@ import com.fconline.app.common.dto.MatchTallyResponse;
 import com.fconline.app.common.dto.StreakBadgeResponse;
 import com.fconline.app.opponent.dto.OpponentMatchResponse;
 import com.fconline.app.opponent.dto.OpponentSummaryResponse;
-import com.fconline.domain.match.MatchDetail;
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
 import com.fconline.domain.match.vo.MatchType;
+import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.score.service.ScoreCalculationService;
 import com.fconline.domain.season.Season;
 import com.fconline.domain.streak.OpponentStreak;
@@ -86,31 +86,30 @@ public class OpponentFacade {
                                                             Long seasonId, Pageable pageable) {
         Season season = seasonRangeResolver.resolve(seasonId);
 
-        Page<MatchDetail> page = matchDetailRepository.findByOuidAndOpponent(
+        Page<RecentMatchRaw> page = matchDetailRepository.findByOuidAndOpponent(
                 ouid, opponentOuid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), pageable);
 
         return page.map(this::toMatchResponse);
     }
 
-    private OpponentMatchResponse toMatchResponse(MatchDetail detail) {
-        var stats = detail.getStats();
+    private OpponentMatchResponse toMatchResponse(RecentMatchRaw raw) {
         return new OpponentMatchResponse(
-                detail.getMatch().getMatchId(),
-                detail.getMatch().getMatchDate(),
-                detail.getResult().label(),
-                nz(stats.getGoalsFor()),
-                nz(stats.getGoalsAgainst()),
-                stats.getAverageRating(),
-                stats.getPossession(),
-                stats.getShootTotal(),
-                stats.getEffectiveShoot(),
-                stats.getPassTry(),
-                stats.getPassSuccess(),
-                stats.getTackleTry(),
-                stats.getTackleSuccess(),
-                stats.getFoul(),
-                stats.getYellowCards(),
-                stats.getRedCards()
+                raw.matchId(),
+                raw.matchDate(),
+                raw.result().label(),
+                nz(raw.goalsFor()),
+                nz(raw.goalsAgainst()),
+                raw.averageRating(),
+                raw.possession(),
+                raw.shootTotal(),
+                raw.effectiveShoot(),
+                raw.passTry(),
+                raw.passSuccess(),
+                raw.tackleTry(),
+                raw.tackleSuccess(),
+                raw.foul(),
+                raw.yellowCards(),
+                raw.redCards()
         );
     }
 
