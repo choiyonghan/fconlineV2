@@ -253,7 +253,7 @@
   }
   .stat-mini-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 1px;
     background: var(--border);
     border: 1px solid var(--border);
@@ -282,6 +282,8 @@
     color: var(--text-primary);
     margin: 4px 0 10px;
   }
+  /* 공격/수비 성향 표(playstyle-box)와 같은 폭으로 맞춘다. */
+  .possession-box { max-width: 560px; margin: 0 auto; }
   .card {
     background: var(--surface-1);
     border: 1px solid var(--border);

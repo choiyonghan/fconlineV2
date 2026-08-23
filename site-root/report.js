@@ -291,7 +291,7 @@
       return;
     }
 
-    var W = 480, H = 170, padL = 26, padR = 12, padT = 16, padB = 22;
+    var W = 480, H = 170, padL = 30, padR = 12, padT = 16, padB = 22;
     var n = labels.length;
     var allValues = [];
     seriesList.forEach(function (s) { allValues = allValues.concat(s.values); });
@@ -310,12 +310,26 @@
     svg.setAttribute('role', 'img');
     svg.setAttribute('aria-label', (opts.ariaLabel || '추이 그래프') + ', ' + n + '경기');
 
-    // 바닥선(y=minV) + 필요하면 0선
-    var baseline = document.createElementNS(svgNS, 'line');
-    baseline.setAttribute('x1', padL); baseline.setAttribute('x2', W - padR);
-    baseline.setAttribute('y1', yAt(minV)); baseline.setAttribute('y2', yAt(minV));
-    baseline.setAttribute('class', 'linechart-axis');
-    svg.appendChild(baseline);
+    // y축 — 눈금 4단계(최솟값~최댓값)를 가로 그리드선 + 왼쪽 숫자 라벨로 표시.
+    var Y_TICKS = 4;
+    for (var t = 0; t <= Y_TICKS; t++) {
+      var tickValue = minV + (maxV - minV) * (t / Y_TICKS);
+      var tickY = yAt(tickValue);
+      var gridLine = document.createElementNS(svgNS, 'line');
+      gridLine.setAttribute('x1', padL); gridLine.setAttribute('x2', W - padR);
+      gridLine.setAttribute('y1', tickY); gridLine.setAttribute('y2', tickY);
+      gridLine.setAttribute('class', 'linechart-axis');
+      gridLine.setAttribute('opacity', t === 0 ? '1' : '0.4');
+      svg.appendChild(gridLine);
+
+      var tickLabel = document.createElementNS(svgNS, 'text');
+      tickLabel.setAttribute('x', padL - 5);
+      tickLabel.setAttribute('y', tickY + 3);
+      tickLabel.setAttribute('text-anchor', 'end');
+      tickLabel.setAttribute('class', 'linechart-axis-label');
+      tickLabel.textContent = String(Math.round(tickValue));
+      svg.appendChild(tickLabel);
+    }
     if (opts.refLines) {
       opts.refLines.forEach(function (rv) {
         var rl = document.createElementNS(svgNS, 'line');
@@ -1093,7 +1107,7 @@
       return;
     }
     document.getElementById('playstyle-caption').textContent =
-      totalGames + '경기 표본 기준 · 다실점 경기는 3실점 이상, 클린시트는 무실점 경기';
+      totalGames + '경기 표본 기준';
 
     matches = matches || [];
     concededPoints = concededPoints || [];
@@ -1125,8 +1139,13 @@
 
     // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
     // API는 최신순으로 내려주므로 왼쪽(과거)->오른쪽(최신)이 되도록 뒤집는다.
+    // x축은 날짜 대신 "몇 번째 매치인지"(1, 2, 3, ...) — 각 차트 자기 데이터 기준으로 센다.
     var chronological = matches.slice().reverse();
-    function dateLabel(m) { return new Date(m.matchDate).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }); }
+    function matchIndexLabels(n) {
+      var labels = [];
+      for (var i = 1; i <= n; i++) labels.push(String(i));
+      return labels;
+    }
 
     // 매치별 xG값 — shot-heatmap 포인트를 matchId로 묶어서 계산한다(그룹 안 되면 zoneAggregate가
     // 아직 준비 안 된 것 — 이 함수는 그때도 다시 불려서 자연히 채워진다).
@@ -1134,7 +1153,7 @@
     lineChart(attackChart, [
       { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
       { label: 'xG값', color: 'var(--series-2)', values: chronological.map(function (m) { return round1(xgByMatch[m.matchId] || 0); }) }
-    ], { labels: chronological.map(dateLabel), unit: '골', yMin: 0, ariaLabel: '경기별 득점 대 xG값 추이' });
+    ], { labels: matchIndexLabels(chronological.length), unit: '골', yMin: 0, ariaLabel: '경기별 득점 대 xG값 추이' });
 
     // "실점" 라인은 상대도 추적 대상이라 xG값을 복원할 수 있는 경기만 골라 같은 x축에 맞춘다
     // (그래야 실점 선과 실점 xG값 선이 같은 경기끼리 비교된다).
@@ -1148,7 +1167,7 @@
     lineChart(defenseChart, [
       { label: '실점', color: 'var(--series-2)', values: defenseMatches.map(function (m) { return m.goalsAgainst; }) },
       { label: '실점 xG값', color: 'var(--series-3)', values: defenseMatches.map(function (m) { return round1(concededXgByMatch[m.matchId] || 0); }) }
-    ], { labels: defenseMatches.map(dateLabel), unit: '골', yMin: 0, ariaLabel: '경기별 실점 대 실점 xG값 추이' });
+    ], { labels: matchIndexLabels(defenseMatches.length), unit: '골', yMin: 0, ariaLabel: '경기별 실점 대 실점 xG값 추이' });
 
     // 점유율 — 표본 전체 추이 라인. 55%↑/45%↓ 버킷 카운트는 캡션으로 같이 보여준다.
     var high = overall.highPossessionGames || 0;
@@ -1162,7 +1181,7 @@
         // possession=0%는 실제 값이 아니라 결측치로 본다(0%로 뛴 경기는 없다) — 50%(중립)로 보정.
         values: chronological.map(function (m) { return (m.possession != null && m.possession > 0) ? m.possession : 50; })
       }
-    ], { labels: chronological.map(dateLabel), unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
+    ], { labels: matchIndexLabels(chronological.length), unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
   }
 
   // ---------------- 선택 변경 시 데이터 로딩 ----------------
