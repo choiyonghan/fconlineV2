@@ -18,6 +18,10 @@ Thumbs.db
 .env.*
 *.local.yml
 
+# Claude Code local-machine state (개인 설정/락파일 — 공유용 아님, public 저장소라 특히 주의)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
 # Logs
 *.log
 

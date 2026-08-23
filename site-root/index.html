@@ -40,6 +40,19 @@
 
   <section class="tiles" id="tiles" aria-label="종합 스탯"></section>
 
+  <div class="card" style="margin-bottom:14px;">
+    <p class="card-title">🤖 AI에게 물어보기</p>
+    <p class="card-caption">지금 선택한 유저·매치타입·시즌 기준으로 데이터를 근거로 답해드려요.</p>
+    <form class="ai-ask-row" id="ai-ask-form">
+      <textarea id="ai-question" class="ai-question-input" maxlength="500" rows="2"
+        placeholder="예: 최근 폼이 어때? 어떤 상대를 조심해야 해?"></textarea>
+      <button type="submit" class="ai-ask-btn" id="ai-ask-btn">질문하기</button>
+    </form>
+    <div class="ai-answer-box" id="ai-answer-box" hidden>
+      <p class="ai-answer-text" id="ai-answer-text"></p>
+    </div>
+  </div>
+
   <div class="grid-2">
     <div class="card">
       <p class="card-title">선수 기여도 TOP 7</p>
@@ -64,45 +77,30 @@
     </div>
   </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <p class="card-title">🎮 플레이 성향</p>
-      <p class="card-caption" id="playstyle-caption"></p>
+  <div class="card" style="margin-bottom:14px;">
+    <p class="card-title">🎮 플레이 성향</p>
+    <p class="card-caption" id="playstyle-caption"></p>
 
-      <div class="segmented" id="playstyle-tabs" role="group" aria-label="플레이 성향 탭">
-        <button type="button" data-tab="attack" aria-pressed="true">⚔️ 공격 성향</button>
-        <button type="button" data-tab="defense" aria-pressed="false">🛡️ 수비 성향</button>
-        <button type="button" data-tab="possession" aria-pressed="false">⚖️ 점유율</button>
-      </div>
-
-      <div class="playstyle-box" id="playstyle-panel-attack">
-        <div class="stat-mini-grid" id="playstyle-attack"></div>
-        <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
-        <div id="chart-playstyle-attack"></div>
-      </div>
-      <div class="playstyle-box" id="playstyle-panel-defense" hidden>
-        <div class="stat-mini-grid" id="playstyle-defense"></div>
-        <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
-        <div id="chart-playstyle-defense"></div>
-      </div>
-      <div class="playstyle-box" id="playstyle-panel-possession" hidden>
-        <div class="stat-mini-grid" id="playstyle-possession"></div>
-        <p class="card-caption" style="margin-top:10px;">경기별 점유율 추이(표본 전체)</p>
-        <div id="chart-playstyle-possession"></div>
-      </div>
+    <div class="segmented" id="playstyle-tabs" role="group" aria-label="플레이 성향 탭">
+      <button type="button" data-tab="attack" aria-pressed="true">⚔️ 공격 성향</button>
+      <button type="button" data-tab="defense" aria-pressed="false">🛡️ 수비 성향</button>
+      <button type="button" data-tab="possession" aria-pressed="false">⚖️ 점유율</button>
     </div>
 
-    <div class="card">
-      <p class="card-title">🤖 AI에게 물어보기</p>
-      <p class="card-caption">지금 선택한 유저·매치타입·시즌 기준으로 데이터를 근거로 답해드려요.</p>
-      <form class="ai-ask-row" id="ai-ask-form">
-        <textarea id="ai-question" class="ai-question-input" maxlength="500" rows="2"
-          placeholder="예: 최근 폼이 어때? 어떤 상대를 조심해야 해?"></textarea>
-        <button type="submit" class="ai-ask-btn" id="ai-ask-btn">질문하기</button>
-      </form>
-      <div class="ai-answer-box" id="ai-answer-box" hidden>
-        <p class="ai-answer-text" id="ai-answer-text"></p>
-      </div>
+    <div class="playstyle-box" id="playstyle-panel-attack">
+      <div class="stat-mini-grid" id="playstyle-attack"></div>
+      <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
+      <div id="chart-playstyle-attack"></div>
+    </div>
+    <div class="playstyle-box" id="playstyle-panel-defense" hidden>
+      <div class="stat-mini-grid" id="playstyle-defense"></div>
+      <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
+      <div id="chart-playstyle-defense"></div>
+    </div>
+    <div class="playstyle-box" id="playstyle-panel-possession" hidden>
+      <div class="stat-mini-grid" id="playstyle-possession"></div>
+      <p class="card-caption" style="margin-top:10px;">경기별 점유율 추이(표본 전체)</p>
+      <div id="chart-playstyle-possession"></div>
     </div>
   </div>
 
