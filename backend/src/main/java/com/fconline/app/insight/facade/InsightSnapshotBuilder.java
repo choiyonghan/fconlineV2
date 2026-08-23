@@ -95,7 +95,12 @@ public class InsightSnapshotBuilder {
                 .append(", 옐로카드 ").append(overall.yellowCards())
                 .append(", 레드카드 ").append(overall.redCards()).append("\n");
         sb.append("클린시트 ").append(overall.cleanSheets())
-                .append("경기, 다실점(3실점 이상) ").append(overall.multiConcededGames()).append("경기\n\n");
+                .append("경기, 다실점(3실점 이상) ").append(overall.multiConcededGames()).append("경기, ")
+                .append("고점유(55%↑) ").append(overall.highPossessionGames()).append("경기, ")
+                .append("저점유(45%↓) ").append(overall.lowPossessionGames()).append("경기\n\n");
+
+        sb.append("팀 전체 공격 지표(선수단 합산 — 플레이 성향 판단용):\n");
+        sb.append(teamStyleLine(allPlayers)).append("\n\n");
 
         sb.append("선수단 전체 기여도(").append(allPlayers.size()).append("명, 기여도 높은 순):\n");
         allPlayers.stream()
@@ -204,6 +209,33 @@ public class InsightSnapshotBuilder {
             return s.curWinless() + "경기 무승";
         }
         return "특이사항 없음";
+    }
+
+    /**
+     * 선수단 전체 슈팅/패스/드리블/공중볼 시도-성공을 합산해 정확도(%)를 낸다 — 개별 선수
+     * 스탯만으로는 안 보이는 팀 전체 플레이 성향(예: 드리블 위주 vs 패스 위주)을 위한 지표.
+     */
+    private String teamStyleLine(List<TopPlayerResponse> allPlayers) {
+        long shootTotal = 0, effectiveShoot = 0, passTry = 0, passSuccess = 0;
+        long dribbleTry = 0, dribbleSuccess = 0, aerialTry = 0, aerialSuccess = 0;
+        for (TopPlayerResponse p : allPlayers) {
+            shootTotal += p.shootTotal();
+            effectiveShoot += p.effectiveShoot();
+            passTry += p.passTry();
+            passSuccess += p.passSuccess();
+            dribbleTry += p.dribbleTry();
+            dribbleSuccess += p.dribbleSuccess();
+            aerialTry += p.aerialTry();
+            aerialSuccess += p.aerialSuccess();
+        }
+        return "- 슈팅 정확도: " + percent(effectiveShoot, shootTotal) + " (" + effectiveShoot + "/" + shootTotal + ")\n"
+                + "- 패스 성공률: " + percent(passSuccess, passTry) + " (" + passSuccess + "/" + passTry + ")\n"
+                + "- 드리블 성공률: " + percent(dribbleSuccess, dribbleTry) + " (" + dribbleSuccess + "/" + dribbleTry + ")\n"
+                + "- 공중볼 경합 승률: " + percent(aerialSuccess, aerialTry) + " (" + aerialSuccess + "/" + aerialTry + ")";
+    }
+
+    private static String percent(long success, long total) {
+        return total == 0 ? "-" : String.format("%.0f%%", success * 100.0 / total);
     }
 
     /** 닉네임에 매핑된 실명이 있으면 "닉네임(실명)"으로, 없으면 닉네임 그대로. */
