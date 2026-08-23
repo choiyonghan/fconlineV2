@@ -473,6 +473,11 @@
   tbody td.name-cell { color: var(--text-primary); font-weight: 600; font-variant-numeric: normal; }
   tbody tr:hover td { background: var(--page-plane); }
 
+  /* 선수 카드 등급/시즌 배지 — TOP7 차트, 환상의 콤비, 전체 선수 스탯 등 선수 이름이 나오는 곳 공용 */
+  .player-name-badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+  .player-season-icon { flex: none; width: 16px; height: 16px; object-fit: contain; border-radius: 3px; }
+  .bar-cat .player-name-badge, .bar-cat-stacked .player-name-badge { vertical-align: text-bottom; }
+
   .chip {
     display: inline-block;
     font-family: var(--font-display);

@@ -77,6 +77,36 @@
     return e;
   }
 
+  // ---------------- 선수 카드 등급/시즌 배지 (report-seasons.js의 SEASON_META 사용) ----------------
+  // spId(9자리) 앞부분(= Math.floor(spId / 1000000))이 seasonId와 정확히 일치한다(검증 내용은
+  // report-seasons.js 주석 참고). DB/백엔드 변경 없이 spId만으로 카드 등급 아이콘을 붙인다.
+  function seasonMetaOfSpId(spId) {
+    var n = Number(spId);
+    if (!n || typeof SEASON_META === 'undefined') return null;
+    var meta = SEASON_META[Math.floor(n / 1000000)];
+    return meta ? { name: meta[0], img: meta[1] } : null;
+  }
+
+  /** 선수 이름 앞에 카드 등급/시즌 아이콘을 붙인 <span>을 반환한다(매칭 실패 시 이름만). */
+  function playerNameBadge(spId, name) {
+    var wrap = el('span', 'player-name-badge');
+    var meta = seasonMetaOfSpId(spId);
+    if (meta) {
+      var icon = document.createElement('img');
+      icon.className = 'player-season-icon';
+      icon.src = meta.img;
+      icon.alt = meta.name;
+      icon.title = meta.name;
+      icon.loading = 'lazy';
+      icon.width = 16;
+      icon.height = 16;
+      icon.addEventListener('error', function () { icon.style.display = 'none'; });
+      wrap.appendChild(icon);
+    }
+    wrap.appendChild(document.createTextNode(name));
+    return wrap;
+  }
+
   // ---------------- 아주 가벼운 마크다운 → 안전한 HTML 변환 (AI 답변 렌더링용) ----------------
   // AI(Gemini) 답변은 굵게/목록 같은 마크다운 서식이 섞여 오는데, 지금까지 textContent로만
   // 꽂아 넣어서 **별표**가 그대로 문자로 보이고 스타일이 하나도 안 먹혔다. 원문은 먼저
@@ -360,7 +390,8 @@
   }
 
   function barChart(container, rows, opts) {
-    // rows: [{label, value, color, sub?}] — sub가 있으면 라벨 아래에 작은 보조 정보를 한 줄 더 보여준다.
+    // rows: [{label, value, color, sub?, spId?}] — sub가 있으면 라벨 아래에 작은 보조 정보를
+    // 한 줄 더 보여준다. spId가 있으면 라벨 앞에 카드 등급/시즌 아이콘을 붙인다.
     container.replaceChildren();
     if (!rows.length) { container.appendChild(el('p', 'card-empty', '표시할 데이터가 없습니다.')); return; }
     var max = Math.max.apply(null, rows.map(function (r) { return r.value; }), 1);
@@ -368,11 +399,13 @@
       var row = el('div', 'bar-row');
       if (r.sub) {
         var cat = el('div', 'bar-cat stacked');
-        cat.appendChild(document.createTextNode(r.label));
+        cat.appendChild(r.spId ? playerNameBadge(r.spId, r.label) : document.createTextNode(r.label));
         cat.appendChild(el('span', 'bar-cat-sub', r.sub));
         row.appendChild(cat);
       } else {
-        row.appendChild(el('div', 'bar-cat', r.label));
+        var catPlain = el('div', 'bar-cat');
+        catPlain.appendChild(r.spId ? playerNameBadge(r.spId, r.label) : document.createTextNode(r.label));
+        row.appendChild(catPlain);
       }
       var track = el('div', 'bar-track');
       var fillPct = Math.max((r.value / max) * 100, r.value > 0 ? 2 : 0);
@@ -660,9 +693,13 @@
     var tbody = document.createElement('tbody');
     chains.forEach(function (c) {
       var tr = document.createElement('tr');
-      tr.appendChild(el('td', 'name-cell', c.assisterName));
+      var assisterTd = el('td', 'name-cell');
+      assisterTd.appendChild(playerNameBadge(c.assisterSpId, c.assisterName));
+      tr.appendChild(assisterTd);
       tr.appendChild(el('td', '', '→'));
-      tr.appendChild(el('td', 'name-cell', c.scorerName));
+      var scorerTd = el('td', 'name-cell');
+      scorerTd.appendChild(playerNameBadge(c.scorerSpId, c.scorerName));
+      tr.appendChild(scorerTd);
       tr.appendChild(el('td', 'num', fmt(c.goals)));
       tbody.appendChild(tr);
     });
@@ -679,7 +716,7 @@
     chains.forEach(function (c) {
       var key = [c.assisterSpId, c.scorerSpId].sort().join('|');
       if (!byPair[key]) {
-        byPair[key] = { nameA: c.assisterName, nameB: c.scorerName, goals: 0 };
+        byPair[key] = { nameA: c.assisterName, spIdA: c.assisterSpId, nameB: c.scorerName, spIdB: c.scorerSpId, goals: 0 };
       }
       byPair[key].goals += c.goals;
     });
@@ -702,7 +739,11 @@
     var tbody = document.createElement('tbody');
     duos.forEach(function (d) {
       var tr = document.createElement('tr');
-      tr.appendChild(el('td', 'name-cell', d.nameA + ' · ' + d.nameB));
+      var duoTd = el('td', 'name-cell');
+      duoTd.appendChild(playerNameBadge(d.spIdA, d.nameA));
+      duoTd.appendChild(document.createTextNode(' · '));
+      duoTd.appendChild(playerNameBadge(d.spIdB, d.nameB));
+      tr.appendChild(duoTd);
       tr.appendChild(el('td', 'num', fmt(d.goals)));
       tbody.appendChild(tr);
     });
@@ -1124,7 +1165,9 @@
     var tbody = document.createElement('tbody');
     sorted.forEach(function (p) {
       var tr = document.createElement('tr');
-      tr.appendChild(el('td', 'name-cell', p.playerName));
+      var nameTd = el('td', 'name-cell');
+      nameTd.appendChild(playerNameBadge(p.spId, p.playerName));
+      tr.appendChild(nameTd);
       tr.appendChild(el('td', 'num', fmt(p.appearances)));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.attackRating))));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.defenseRating))));
@@ -1494,7 +1537,7 @@
       .sort(function (a, b) { return b.overall - a.overall; })
       .slice(0, 7)
       .map(function (p) {
-        return { label: p.playerName, value: Math.round(p.overall), color: 'var(--series-1)', sub: playerRoleSub(p) };
+        return { label: p.playerName, spId: p.spId, value: Math.round(p.overall), color: 'var(--series-1)', sub: playerRoleSub(p) };
       });
     barChart(document.getElementById('chart-players'), top7Rows, { unit: '점' });
 
