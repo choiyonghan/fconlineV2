@@ -51,7 +51,7 @@ jobs:
           rm -rf site
           mkdir -p site/app
           cp -r apps/web/build/. site/app/
-          cp site-root/index.html site/index.html
+          cp -r site-root/. site/
           cp apps/web/static/favicon.svg site/favicon.svg
 
       - uses: actions/configure-pages@v5
