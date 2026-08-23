@@ -41,15 +41,18 @@ public class InsightFacade {
     private final SeasonRangeResolver seasonRangeResolver;
     private final GithubInsightSnapshotClient githubInsightSnapshotClient;
     private final InsightSnapshotBuilder insightSnapshotBuilder;
+    private final TrackedUserAliasResolver aliasResolver;
     private final GeminiApiClient geminiApiClient;
 
     public InsightFacade(SeasonRangeResolver seasonRangeResolver,
                           GithubInsightSnapshotClient githubInsightSnapshotClient,
                           InsightSnapshotBuilder insightSnapshotBuilder,
+                          TrackedUserAliasResolver aliasResolver,
                           GeminiApiClient geminiApiClient) {
         this.seasonRangeResolver = seasonRangeResolver;
         this.githubInsightSnapshotClient = githubInsightSnapshotClient;
         this.insightSnapshotBuilder = insightSnapshotBuilder;
+        this.aliasResolver = aliasResolver;
         this.geminiApiClient = geminiApiClient;
     }
 
@@ -75,14 +78,14 @@ public class InsightFacade {
     }
 
     /**
-     * 질문 문장 안에 등장하는 상대 닉네임을 찾아 그 상대와의 경기별 상세 기록을 덧붙인다.
-     * 닉네임이 서로의 부분 문자열인 경우(예: "욱냥" vs "욱냥0I") 짧은 쪽이 먼저 오탐하지
-     * 않도록 긴 닉네임부터 검사한다.
+     * 질문 문장 안에 등장하는 상대(닉네임 또는 그 실명, TrackedUserAliasResolver 참고)를 찾아
+     * 그 상대와의 경기별 상세 기록을 덧붙인다. 닉네임이 서로의 부분 문자열인 경우(예: "욱냥" vs
+     * "욱냥0I") 짧은 쪽이 먼저 오탐하지 않도록 긴 닉네임부터 검사한다.
      */
     private String appendMentionedOpponent(InsightSnapshotContent content, String question) {
         Optional<Map.Entry<String, String>> mentioned = content.opponentDetailByNickname().entrySet().stream()
                 .sorted(Comparator.comparingInt((Map.Entry<String, String> e) -> e.getKey().length()).reversed())
-                .filter(e -> question.contains(e.getKey()))
+                .filter(e -> aliasResolver.mentions(question, e.getKey()))
                 .findFirst();
 
         if (mentioned.isEmpty()) {

@@ -40,6 +40,10 @@ jobs:
           SUPABASE_JDBC_URL: ${{ secrets.SUPABASE_JDBC_URL }}
           SUPABASE_DB_USER: ${{ secrets.SUPABASE_DB_USER }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # "닉네임:실명" 콤마 구분 목록 — 저장소 Settings → Secrets and variables → Actions에
+          # 직접 등록해야 한다(실명이라 git에는 절대 커밋하지 않음). 스냅샷 JSON에 구워지므로
+          # Render 환경변수와 별개로 여기도 꼭 설정해야 한다.
+          TRACKED_USER_REAL_NAMES: ${{ secrets.TRACKED_USER_REAL_NAMES }}
         run: |
           java -jar backend/build/libs/*.jar --spring.profiles.active=insight-snapshot
 

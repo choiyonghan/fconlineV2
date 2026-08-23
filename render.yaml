@@ -36,6 +36,10 @@ services:
       # 자연어 질문 분석(/api/v1/insights/ask)용 — Google AI Studio 무료 티어 키.
       - key: GEMINI_API_KEY
         sync: false
+      # "닉네임:실명" 콤마 구분 목록(예: 서울쥐:김상기,욱냥0I:전승욱) — 실명은 public 저장소에
+      # 커밋하면 안 되므로 반드시 Render 대시보드에서 직접 입력한다.
+      - key: TRACKED_USER_REAL_NAMES
+        sync: false
       # GitHub Pages 프론트(apps/web)만 브라우저에서 이 백엔드를 호출할 수 있게 허용한다.
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://choiyonghan.github.io

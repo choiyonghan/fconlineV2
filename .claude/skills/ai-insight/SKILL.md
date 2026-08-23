@@ -54,6 +54,22 @@ InsightFacade.ask() (요청마다, 실시간)
 전체 경기를 반영한다 — 캡은 "경기별 개별 로그"에만 걸린다. 늘리면 파일 용량 +
 Gemini 프롬프트 토큰(비용)이 커진다.
 
+## 실명 별칭(TrackedUserAliasResolver)
+
+질문이 게임 닉네임("서울쥐") 대신 실명("김상기")으로 들어와도 같은 사람을 알아보게
+하려고, `tracked-user.real-names`(= `TRACKED_USER_REAL_NAMES` 환경변수, "닉네임:실명"
+콤마 구분)로 별칭을 주입한다. **실명은 이 리포지토리가 public이라 절대 git에 커밋하지
+않는다** — 값은 두 군데에 각각 따로 등록해야 실제로 동작한다:
+
+1. **GitHub Actions repo secret** `TRACKED_USER_REAL_NAMES` — `insight-snapshot.yml`이
+   스냅샷 JSON을 만들 때 씀(`InsightSnapshotBuilder.withAlias`가 요약 텍스트에
+   "닉네임(실명)"으로 구워 넣음). 이게 없으면 스냅샷엔 실명이 안 들어감.
+2. **Render 환경변수** `TRACKED_USER_REAL_NAMES` — 스냅샷이 없어 즉석 조립(폴백)할 때 씀.
+
+`InsightFacade.appendMentionedOpponent`도 `TrackedUserAliasResolver.mentions()`로
+닉네임/실명 둘 다 매칭한다 — 질문에 실명이 있으면 그 상대의 상세 기록도 정상적으로
+덧붙는다.
+
 ## 자주 하는 작업
 
 - **스냅샷 수동 트리거**: GitHub 저장소 → Actions → "Build Insight Snapshot" →

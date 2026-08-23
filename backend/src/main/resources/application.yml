@@ -69,6 +69,12 @@ sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}
   match-fetch-limit: ${SYNC_MATCH_FETCH_LIMIT:100}
 
+tracked-user:
+  # "닉네임:실명" 콤마 구분 목록 — AI 질문이 실명으로 들어와도 같은 사람인 걸 알아보게 한다
+  # (TrackedUserAliasResolver). 이 저장소는 public이라 실명을 git에 커밋하지 않는다 —
+  # 로컬 기본값은 항상 비워두고, 프로덕션은 Render 환경변수(TRACKED_USER_REAL_NAMES)로만 채운다.
+  real-names: ${TRACKED_USER_REAL_NAMES:}
+
 insight:
   snapshot:
     # 매일 아침 insight-snapshot.yml이 data/insight-snapshots/에 커밋해둔 JSON을 여기서 읽는다

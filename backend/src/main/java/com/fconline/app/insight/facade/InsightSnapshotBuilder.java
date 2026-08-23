@@ -46,10 +46,13 @@ public class InsightSnapshotBuilder {
 
     private final RecordFacade recordFacade;
     private final OpponentFacade opponentFacade;
+    private final TrackedUserAliasResolver aliasResolver;
 
-    public InsightSnapshotBuilder(RecordFacade recordFacade, OpponentFacade opponentFacade) {
+    public InsightSnapshotBuilder(RecordFacade recordFacade, OpponentFacade opponentFacade,
+                                   TrackedUserAliasResolver aliasResolver) {
         this.recordFacade = recordFacade;
         this.opponentFacade = opponentFacade;
+        this.aliasResolver = aliasResolver;
     }
 
     @Transactional(readOnly = true)
@@ -81,7 +84,7 @@ public class InsightSnapshotBuilder {
                                      List<RecentMatchResponse> recentMatches) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("[선수: ").append(overall.nickname()).append("]\n");
+        sb.append("[선수: ").append(withAlias(overall.nickname())).append("]\n");
         sb.append("전적: ").append(overall.tally().win()).append("승 ")
                 .append(overall.tally().draw()).append("무 ")
                 .append(overall.tally().lose()).append("패 (득점 ").append(overall.tally().goalsFor())
@@ -152,7 +155,7 @@ public class InsightSnapshotBuilder {
         sb.append("상대별 전적 (욱식 점수 높은 순):\n");
         opponents.stream()
                 .sorted((a, b) -> Integer.compare(b.dugsikScore(), a.dugsikScore()))
-                .forEach(o -> sb.append("- ").append(o.opponentNickname()).append(": ")
+                .forEach(o -> sb.append("- ").append(withAlias(o.opponentNickname())).append(": ")
                         .append(o.tally().win()).append("승 ")
                         .append(o.tally().draw()).append("무 ")
                         .append(o.tally().lose()).append("패, 욱식점수 ").append(o.dugsikScore())
@@ -166,7 +169,7 @@ public class InsightSnapshotBuilder {
 
     private String buildOpponentDetailText(OpponentSummaryResponse o, List<OpponentMatchResponse> matches) {
         StringBuilder sb = new StringBuilder();
-        sb.append("[상대: ").append(o.opponentNickname()).append("] 경기별 상세 기록(최신 ")
+        sb.append("[상대: ").append(withAlias(o.opponentNickname())).append("] 경기별 상세 기록(최신 ")
                 .append(matches.size()).append("건):\n");
         for (OpponentMatchResponse m : matches) {
             sb.append("- ").append(MATCH_DATE_FORMAT.format(m.matchDate()))
@@ -201,6 +204,12 @@ public class InsightSnapshotBuilder {
             return s.curWinless() + "경기 무승";
         }
         return "특이사항 없음";
+    }
+
+    /** 닉네임에 매핑된 실명이 있으면 "닉네임(실명)"으로, 없으면 닉네임 그대로. */
+    private String withAlias(String nickname) {
+        String realName = aliasResolver.realNameOf(nickname);
+        return realName == null ? nickname : nickname + "(" + realName + ")";
     }
 
     private static String formatRating(Double rating) {
