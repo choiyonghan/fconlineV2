@@ -365,7 +365,9 @@
   svg.pitch { width: 100%; max-width: 520px; height: auto; }
 
   /* ---------- line chart (최근 경기 추이) ---------- */
-  svg.linechart { width: 100%; height: auto; overflow: visible; }
+  /* 플레이 성향 카드가 grid-2 카드들과 달리 전체 폭이라, 차트도 그만큼 커지지 않게 최대폭을 잡는다
+     (선수 기여도 TOP7/득점 유형 분포 카드 정도의 체감 크기로). */
+  svg.linechart { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; overflow: visible; }
   .linechart-axis { stroke: var(--gridline); stroke-width: 1; }
   .linechart-axis-label { font-size: 9px; fill: var(--text-muted); font-family: var(--font-body); }
   .linechart-dot { cursor: pointer; }
