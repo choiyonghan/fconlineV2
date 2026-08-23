@@ -1,6 +1,5 @@
 package com.fconline.infrastructure.config;
 
-import com.fconline.infrastructure.chat.SupabaseChatStorageProperties;
 import com.fconline.infrastructure.gemini.GeminiApiProperties;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotProperties;
 import com.fconline.infrastructure.nexon.NexonApiProperties;
@@ -44,14 +43,6 @@ public class RestClientConfig {
     public RestClient insightSnapshotRestClient(GithubInsightSnapshotProperties properties) {
         return RestClient.builder()
                 .baseUrl(properties.rawBaseUrl())
-                .build();
-    }
-
-    /** 카카오톡 대화 로그가 저장된 Supabase Storage(private 버킷) 전용 클라이언트. */
-    @Bean
-    public RestClient supabaseStorageRestClient(SupabaseChatStorageProperties properties) {
-        return RestClient.builder()
-                .baseUrl(properties.url() == null ? "" : properties.url())
                 .build();
     }
 }

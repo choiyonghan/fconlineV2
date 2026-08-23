@@ -82,21 +82,6 @@ Gemini 프롬프트 토큰(비용)이 커진다.
 `TrackedUserAliasResolver.mentions()`가 둘 다 걸려서 두 계정 스냅샷이 모두
 붙는다 — 의도된 동작(어느 쪽인지 애매하면 둘 다 보여주는 게 안전).
 
-## 카카오톡 대화 분석 (같은 입력창, 다른 갈래)
-
-같은 `/api/v1/insights/ask` 입력창을 카톡 단톡방 분석에도 재사용한다.
-`InsightFacade.isFcQuestion()`이 `FC_KEYWORDS`에 걸리거나 추적 유저(닉네임/실명)가
-언급되면 기존 FC Online 흐름으로, 아니면 `askAboutChat()`으로 갈라진다.
-
-- 대화 원문은 **Supabase Storage의 private 버킷**에서 읽는다(`KakaoChatArchiveClient`,
-  `supabase.storage.*` 프로퍼티) — DB에도 git에도 원문을 두지 않는다. `SUPABASE_SERVICE_ROLE_KEY`
-  가 Render 환경변수로 없으면 "카톡 로그가 아직 연결 안 됐다"고 정직하게 안내하고 끝낸다
-  (Gemini 호출 자체를 안 함).
-- 대화가 길면 `MAX_CHAT_LINES`(4000줄)만큼 **최신 쪽만** 잘라서 프롬프트에 넣는다 — 토큰
-  비용 통제용. 늘리면 옛날 대화까지 보지만 비용도 커진다.
-- FC/카톡 판별은 키워드 기반 휴리스틱이라 완벽하지 않다 — 실명/닉네임이 FC 얘기 없이
-  등장하면(예: "오늘 최용한이 밥사래") FC 쪽으로 잘못 갈릴 수 있음.
-
 ## 자주 하는 작업
 
 - **스냅샷 수동 트리거**: GitHub 저장소 → Actions → "Build Insight Snapshot" →
