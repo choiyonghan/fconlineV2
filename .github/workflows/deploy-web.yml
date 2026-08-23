@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/web/**'
+      - 'site-root/**'
       - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
@@ -39,13 +40,25 @@ jobs:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
           # GitHub 프로젝트 페이지는 username.github.io/${{ github.event.repository.name }}/
           # 서브패스에서 서빙된다 — svelte.config.js가 이 값을 kit.paths.base로 읽는다.
-          BASE_PATH: /${{ github.event.repository.name }}
+          # 사이트 루트(/)는 정적 매치 리포트(site-root/index.html)가 차지하므로, SvelteKit 대시보드는
+          # 그 밑의 /app 서브패스에서 서빙된다(아래 "Compose Pages site" 단계 참고).
+          BASE_PATH: /${{ github.event.repository.name }}/app
+
+      - name: Compose Pages site (매치 리포트 = /, SvelteKit 대시보드 = /app/)
+        working-directory: .
+        run: |
+          set -e
+          rm -rf site
+          mkdir -p site/app
+          cp -r apps/web/build/. site/app/
+          cp site-root/index.html site/index.html
+          cp apps/web/static/favicon.svg site/favicon.svg
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/web/build
+          path: site
 
   deploy:
     needs: build
