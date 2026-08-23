@@ -8,12 +8,15 @@ import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
+import com.fconline.infrastructure.chat.KakaoChatArchiveClient;
 import com.fconline.infrastructure.gemini.GeminiApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -30,14 +33,28 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * 질문이 "현재 선택된 유저" 말고 다른 추적 유저(닉네임 또는 실명)를 함께 언급하면, 그 유저
  * 자신의 스냅샷도 따로 불러와 붙여준다 — 그래야 "A랑 B 중 누가 잘해?" 같은, 현재 선택된
- * 유저 관점이 아닌 제3자 간 비교 질문에도 각자의 실제 데이터로 답할 수 있다(그전엔 현재
- * 선택된 유저 기준 상대 전적만 있어서, 관계없는 두 유저를 비교하려면 공통 상대를 거쳐 추론하는
- * 식으로 답이 새곤 했다).
+ * 유저 관점이 아닌 제3자 간 비교 질문에도 각자의 실제 데이터로 답할 수 있다.
+ *
+ * 같은 입력창을 카카오톡 대화 분석에도 재사용한다 — 질문이 FC Online 전적/선수 관련이
+ * 아니면(FC_KEYWORDS도 없고 추적 유저 언급도 없으면) Supabase Storage의 private 버킷에
+ * 있는 카카오톡 대화 로그(KakaoChatArchiveClient)를 근거로 답한다. 대화 원문은 이 저장소가
+ * public이라 절대 git에 두지 않는다.
  */
 @Component
 public class InsightFacade {
 
     private static final Logger log = LoggerFactory.getLogger(InsightFacade.class);
+
+    /** 이 중 하나라도 있거나 추적 유저가 언급되면 FC Online 질문으로 본다 — 아니면 카톡 대화 질문. */
+    private static final Set<String> FC_KEYWORDS = Set.of(
+            "전적", "승률", "승리", "패배", "골", "어시스트", "평점", "점유율", "슈팅", "패스",
+            "태클", "인터셉트", "블록", "드리블", "공중볼", "클린시트", "다실점", "플레이스타일",
+            "상대전적", "매치", "시즌", "경기", "욱식점수", "파울", "옐로카드", "레드카드",
+            "선수단", "포지션", "축구", "이겨", "이길", "잘해", "잘함", "못해"
+    );
+
+    /** 카카오톡 대화 로그를 프롬프트에 넣을 때 앞부분을 자르고 남기는 최대 줄 수(최신 대화 위주). */
+    private static final int MAX_CHAT_LINES = 4000;
 
     private static final String SYSTEM_INSTRUCTION = """
             당신은 FC Online(축구 게임) 전적 데이터를 분석해주는, 눈치 없이 웃긴 축구 해설가
@@ -58,11 +75,19 @@ public class InsightFacade {
             땐 "- " 목록을 쓰고, HTML 태그는 절대 쓰지 마세요(마크다운만 렌더링됩니다).
             """;
 
+    private static final String CHAT_SYSTEM_INSTRUCTION = """
+            당신은 친구들 단톡방 카카오톡 대화 로그를 분석해주는, 유쾌하고 위트있는 도우미입니다.
+            아래 제공된 대화 로그만 근거로 답변하고, 로그에 없는 내용은 추측하지 말고 모른다고
+            솔직히 답하세요. 존댓말은 유지하되 말투는 캐주얼하고 재미있게 하세요. 서식은 가벼운
+            마크다운만 쓰세요: 강조할 부분은 **굵게**, 목록은 "- "로, HTML 태그는 쓰지 마세요.
+            """;
+
     private final SeasonRangeResolver seasonRangeResolver;
     private final GithubInsightSnapshotClient githubInsightSnapshotClient;
     private final InsightSnapshotBuilder insightSnapshotBuilder;
     private final TrackedUserAliasResolver aliasResolver;
     private final UserFacade userFacade;
+    private final KakaoChatArchiveClient kakaoChatArchiveClient;
     private final GeminiApiClient geminiApiClient;
 
     public InsightFacade(SeasonRangeResolver seasonRangeResolver,
@@ -70,17 +95,37 @@ public class InsightFacade {
                           InsightSnapshotBuilder insightSnapshotBuilder,
                           TrackedUserAliasResolver aliasResolver,
                           UserFacade userFacade,
+                          KakaoChatArchiveClient kakaoChatArchiveClient,
                           GeminiApiClient geminiApiClient) {
         this.seasonRangeResolver = seasonRangeResolver;
         this.githubInsightSnapshotClient = githubInsightSnapshotClient;
         this.insightSnapshotBuilder = insightSnapshotBuilder;
         this.aliasResolver = aliasResolver;
         this.userFacade = userFacade;
+        this.kakaoChatArchiveClient = kakaoChatArchiveClient;
         this.geminiApiClient = geminiApiClient;
     }
 
     @Transactional(readOnly = true)
     public AskResponse ask(AskRequest request) {
+        String question = request.question();
+        List<TrackedUserResponse> allUsers = userFacade.listTrackedUsers();
+
+        if (isFcQuestion(question, allUsers)) {
+            return askAboutFc(request, allUsers);
+        }
+        return askAboutChat(question);
+    }
+
+    /** FC_KEYWORDS가 있거나 추적 유저(닉네임/실명)가 언급되면 FC Online 질문으로 본다. */
+    private boolean isFcQuestion(String question, List<TrackedUserResponse> allUsers) {
+        if (FC_KEYWORDS.stream().anyMatch(question::contains)) {
+            return true;
+        }
+        return allUsers.stream().anyMatch(u -> aliasResolver.mentions(question, u.nickname()));
+    }
+
+    private AskResponse askAboutFc(AskRequest request, List<TrackedUserResponse> allUsers) {
         String ouid = request.ouid();
         MatchType matchType = request.matchType();
         String question = request.question();
@@ -89,7 +134,7 @@ public class InsightFacade {
         InsightSnapshotContent primary = loadContent(ouid, matchType, season.getId());
         StringBuilder dataSummary = new StringBuilder(appendMentionedOpponent(primary, question));
 
-        List<TrackedUserResponse> otherMentioned = userFacade.listTrackedUsers().stream()
+        List<TrackedUserResponse> otherMentioned = allUsers.stream()
                 .filter(u -> !u.ouid().equals(ouid))
                 .filter(u -> aliasResolver.mentions(question, u.nickname()))
                 .toList();
@@ -101,9 +146,30 @@ public class InsightFacade {
         }
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
-
         String answer = geminiApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
         return new AskResponse(answer);
+    }
+
+    private AskResponse askAboutChat(String question) {
+        Optional<String> chatLog = kakaoChatArchiveClient.fetchChatLog();
+        if (chatLog.isEmpty()) {
+            return new AskResponse("아직 카카오톡 대화 로그가 연결되지 않았어요. Supabase Storage에 대화 파일부터 올려주세요!");
+        }
+
+        String userPrompt = "[카카오톡 대화 로그(최신 " + MAX_CHAT_LINES + "줄 이내)]\n"
+                + tailLines(chatLog.get(), MAX_CHAT_LINES)
+                + "\n\n[질문]\n" + question;
+        String answer = geminiApiClient.ask(CHAT_SYSTEM_INSTRUCTION, userPrompt);
+        return new AskResponse(answer);
+    }
+
+    /** 대화 로그가 길면 최근 대화가 더 중요하므로 뒤쪽 maxLines줄만 남긴다. */
+    private static String tailLines(String text, int maxLines) {
+        String[] lines = text.split("\n");
+        if (lines.length <= maxLines) {
+            return text;
+        }
+        return String.join("\n", Arrays.asList(lines).subList(lines.length - maxLines, lines.length));
     }
 
     /** 스냅샷 파일을 읽고, 없으면(첫 실행 등) 즉석 조립으로 폴백한다. */

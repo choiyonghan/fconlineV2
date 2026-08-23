@@ -40,6 +40,10 @@ services:
       # 커밋하면 안 되므로 반드시 Render 대시보드에서 직접 입력한다.
       - key: TRACKED_USER_REAL_NAMES
         sync: false
+      # 카카오톡 대화 로그(private Supabase Storage 버킷) 접근용 — service_role 키는
+      # RLS를 우회하는 강한 권한이라 반드시 Render 대시보드에서 직접 입력한다.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       # GitHub Pages 프론트(apps/web)만 브라우저에서 이 백엔드를 호출할 수 있게 허용한다.
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://choiyonghan.github.io

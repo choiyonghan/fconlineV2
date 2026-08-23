@@ -75,6 +75,16 @@ tracked-user:
   # 로컬 기본값은 항상 비워두고, 프로덕션은 Render 환경변수(TRACKED_USER_REAL_NAMES)로만 채운다.
   real-names: ${TRACKED_USER_REAL_NAMES:}
 
+supabase:
+  storage:
+    # 카카오톡 대화 로그(.txt)가 저장된 private 버킷. service-role-key는 RLS를 우회하는
+    # 강한 권한이라 절대 커밋하지 않는다 — 로컬 기본값은 항상 비워두고, 프로덕션은
+    # Render 환경변수(SUPABASE_SERVICE_ROLE_KEY)로만 채운다.
+    url: ${SUPABASE_URL:https://jwqhpdtizrpyohlrqfgu.supabase.co}
+    service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:}
+    bucket: ${SUPABASE_CHAT_BUCKET:chat-archive}
+    object-path: ${SUPABASE_CHAT_OBJECT_PATH:kakao-chat.txt}
+
 insight:
   snapshot:
     # 매일 아침 insight-snapshot.yml이 data/insight-snapshots/에 커밋해둔 JSON을 여기서 읽는다
