@@ -871,12 +871,38 @@
     return distance + ' ' + side;
   }
 
+  /**
+   * "18존" 개념(가로 3등분: 수비 진영/미드필드/공격 진영 × 세로 6채널) 기반 구역 판정.
+   * 어시스트가 어디서 출발했는지처럼 "깊이 + 채널" 조합이 의미 있는 경우에 쓴다(골 근처
+   * 슛 자체의 정밀 위치는 describeZone의 거리 구간이 더 적합해 그대로 둔다).
+   * 세로 채널도 describeZone과 같은 이유로 실제 왼쪽/오른쪽을 확정하지 않고 A/B로만 구분한다.
+   * number는 1~18(third*6+channel+1) — 표준 18존 표기와 같은 번호 체계를 쓰되, 공격 진영의
+   * 비균등 세분화(Zone 14 골든스퀘어 등)까지는 재현하지 않은 균등 3×6 격자다.
+   */
+  var ZONE18_THIRDS = ['수비 진영', '미드필드', '공격 진영'];
+  var ZONE18_CHANNELS = ['측면 A', '하프스페이스 A', '중앙 A', '중앙 B', '하프스페이스 B', '측면 B'];
+  function zone18(x, y) {
+    if (x == null || y == null) return null;
+    var thirdIdx = x < 1 / 3 ? 0 : (x < 2 / 3 ? 1 : 2);
+    var channelIdx = Math.min(5, Math.max(0, Math.floor(y * 6)));
+    return {
+      number: thirdIdx * 6 + channelIdx + 1,
+      third: ZONE18_THIRDS[thirdIdx],
+      channel: ZONE18_CHANNELS[channelIdx]
+    };
+  }
+  /** 어시스트 출발 지점을 18존 라벨 문장으로("공격 진영 하프스페이스 A(Zone 14)"). */
+  function describeAssistZone18(x, y) {
+    var z = zone18(x, y);
+    return z ? z.third + ' ' + z.channel + '(Zone ' + z.number + ')' : null;
+  }
+
   /** 풋볼매니저 스타일 텍스트 해설 한 줄 — 클릭한 슛 1건을 자연어 문장으로 조립한다. */
   function buildShotCommentary(shot) {
     var minute = absoluteMinuteOf(shot.goalTimeMinutes, shot.period);
     var sentence = minute != null ? minute + "' " : '';
     if (shot.assist && shot.assistPlayerName) {
-      var assistZone = describeZone(shot.assistX, shot.assistY);
+      var assistZone = describeAssistZone18(shot.assistX, shot.assistY);
       sentence += (assistZone ? assistZone + '에서 올라온 ' : '') + shot.assistPlayerName + '의 패스를 받은 ';
     }
     var zone = describeZone(shot.x, shot.y);
@@ -1029,27 +1055,35 @@
       return ma - mb;
     });
 
-    // 피치를 먼저 만들어 컨트롤러를 얻어둔다(DOM에는 타임라인 다음에 붙여서 화면 순서는
-    // 유지한다) — 득점 타임라인 행을 클릭했을 때 아래 슈팅 위치에서 그 골만 활성화하기 위함.
+    // 피치를 먼저 만들어 컨트롤러를 얻어둔다 — 득점 타임라인 행을 클릭했을 때 슈팅 위치에서
+    // 그 골만 활성화하기 위함. 두 칸(타임라인/피치)은 modal-shots-body가 넓은 화면에선 좌우로,
+    // 좁은 화면(모바일)에선 위아래로(타임라인 먼저) 배치한다 — DOM 순서는 항상 타임라인이 먼저다.
     var pitchWrap = el('div', 'pitch-wrap');
     var pitchController = renderInteractiveMatchPitch(pitchWrap, myShots, concededShots);
 
+    var body = el('div', 'modal-shots-body');
+
+    var timelineCol = el('div', 'modal-shots-col');
     if (timeline.length) {
-      container.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인 (클릭하면 아래 슈팅 위치에서 활성화)'));
+      timelineCol.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
+      timelineCol.appendChild(el('p', 'card-caption', '클릭하면 슈팅 위치에서 그 골만 활성화됩니다.'));
       var tl = el('div', 'goal-timeline');
       timeline.forEach(function (g) {
         goalTimelineRow(tl, g, function () { pitchController.selectGoal(g); });
       });
-      container.appendChild(tl);
+      timelineCol.appendChild(tl);
     }
+    body.appendChild(timelineCol);
 
-    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
-    pitchTitle.style.marginTop = timeline.length ? '14px' : '0';
-    container.appendChild(pitchTitle);
+    var pitchCol = el('div', 'modal-shots-col');
+    pitchCol.appendChild(el('p', 'card-title', '🎯 슈팅 위치'));
     if (concededShots.length) {
-      container.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
+      pitchCol.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
     }
-    container.appendChild(pitchWrap);
+    pitchCol.appendChild(pitchWrap);
+    body.appendChild(pitchCol);
+
+    container.appendChild(body);
   }
 
   var modalRequestSeq = 0;

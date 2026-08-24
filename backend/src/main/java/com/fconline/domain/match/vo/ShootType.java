@@ -11,20 +11,23 @@ package com.fconline.domain.match.vo;
  * Nexon 공식 문서(shootDetail[].type)로 코드 1~12 전체 매핑을 확정했다:
  * 1 normal, 2 finesse, 3 header, 4 lob, 5 flare, 6 low, 7 volley,
  * 8 free-kick, 9 penalty, 10 knuckle, 11 bicycle, 12 super.
+ *
+ * 라벨은 유저 커뮤니티에서 실제로 부르는 조작키/약칭 스타일을 따른다(2026-08 변경,
+ * 기존 "피네스 슛"/"낮은 슛"/"페널티킥" 등 사전식 표기 대신).
  */
 public enum ShootType {
-    NORMAL("일반 슛"),
-    FINESSE("피네스 슛"),
-    HEADING("헤딩 슛"),
-    LOBBING("로빙 슛"),
-    FLARE("플레어 슛"),
-    LOW("낮은 슛"),
-    VOLLEY("발리 슛"),
+    NORMAL("일반"),
+    FINESSE("ZD"),
+    HEADING("헤더"),
+    LOBBING("칩샷"),
+    FLARE("플레어샷"),
+    LOW("DD"),
+    VOLLEY("발리"),
     FREE_KICK("프리킥"),
-    PENALTY_KICK("페널티킥"),
-    KNUCKLE("무회전 슛"),
+    PENALTY_KICK("PK"),
+    KNUCKLE("무회전"),
     BICYCLE_KICK("바이시클킥"),
-    POWER("파워 샷"),
+    POWER("파워샷"),
     UNKNOWN("기타");
 
     private final String label;
