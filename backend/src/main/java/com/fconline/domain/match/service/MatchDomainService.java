@@ -153,6 +153,16 @@ public class MatchDomainService {
     }
 
     /**
+     * 특정 상대와의 매치들에서 나온 골 이벤트 원시값(누구 골인지 + 시각) — AI 인사이트 스냅샷이
+     * "선제골 요약"뿐 아니라 매치별 골 타임라인 원문까지 그대로 요약해 넣을 때 쓴다(질문마다
+     * 새 집계 API를 만들지 않고, Gemini가 원시 타임라인을 보고 직접 분석할 수 있게 하기 위함).
+     */
+    public List<MatchGoalEvent> goalEventsVsOpponent(String ouid, MatchType matchType, Instant from, Instant to,
+                                                       String opponentOuid) {
+        return matchDetailRepository.findGoalEventsVsOpponent(ouid, matchType, from, to, opponentOuid);
+    }
+
+    /**
      * 특정 상대와의 매치별 "선제골"(누가 먼저 넣었는지) — AI 인사이트 스냅샷의 선제골 분석용.
      * 매치별로 골 이벤트를 절대 분(period 오프셋 반영)으로 환산해 가장 이른 골의 주체를 고른다.
      * 무득점으로 끝난 매치는 결과에 안 나온다(고를 골이 없으므로).
@@ -163,9 +173,9 @@ public class MatchDomainService {
 
         Map<String, MatchGoalEvent> earliestByMatch = new LinkedHashMap<>();
         for (MatchGoalEvent event : events) {
-            int absoluteMinute = nz(event.minute()) + periodOffset(event.period());
+            int absoluteMinute = absoluteMinute(event.minute(), event.period());
             MatchGoalEvent current = earliestByMatch.get(event.matchId());
-            if (current == null || absoluteMinute < (nz(current.minute()) + periodOffset(current.period()))) {
+            if (current == null || absoluteMinute < absoluteMinute(current.minute(), current.period())) {
                 earliestByMatch.put(event.matchId(), event);
             }
         }
@@ -173,6 +183,11 @@ public class MatchDomainService {
         return earliestByMatch.entrySet().stream()
                 .map(e -> new FirstGoalResult(e.getKey(), e.getValue().mine()))
                 .toList();
+    }
+
+    /** minute(period 시작 기준 경과분) + period를 "경기 시작 기준 누적 분"으로 환산한다. */
+    public int absoluteMinute(Integer minute, Integer period) {
+        return nz(minute) + periodOffset(period);
     }
 
     private static int nz(Integer value) {

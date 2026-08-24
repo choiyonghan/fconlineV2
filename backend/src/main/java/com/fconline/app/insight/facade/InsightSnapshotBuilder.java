@@ -13,7 +13,7 @@ import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.domain.match.service.MatchDomainService;
-import com.fconline.domain.match.vo.FirstGoalResult;
+import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
 import java.time.ZoneId;
@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -84,9 +85,9 @@ public class InsightSnapshotBuilder {
                     .listOpponentMatches(ouid, o.opponentOuid(), matchType, seasonId,
                             PageRequest.of(0, OPPONENT_MATCH_LIMIT))
                     .getContent();
-            List<FirstGoalResult> firstGoals = matchDomainService.firstGoalScorers(
+            List<MatchGoalEvent> goalEvents = matchDomainService.goalEventsVsOpponent(
                     ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), o.opponentOuid());
-            opponentDetailByNickname.put(o.opponentNickname(), buildOpponentDetailText(o, matches, firstGoals));
+            opponentDetailByNickname.put(o.opponentNickname(), buildOpponentDetailText(o, matches, goalEvents));
         }
 
         return new InsightSnapshotContent(summaryText, opponentDetailByNickname);
@@ -186,7 +187,7 @@ public class InsightSnapshotBuilder {
     }
 
     private String buildOpponentDetailText(OpponentSummaryResponse o, List<OpponentMatchResponse> matches,
-                                            List<FirstGoalResult> firstGoals) {
+                                            List<MatchGoalEvent> goalEvents) {
         StringBuilder sb = new StringBuilder();
         sb.append("[상대: ").append(withAlias(o.opponentNickname())).append("] 경기별 상세 기록(최신 ")
                 .append(matches.size()).append("건):\n");
@@ -206,7 +207,19 @@ public class InsightSnapshotBuilder {
             sb.append("- (데이터 없음)\n");
         }
 
-        String firstGoalSummary = buildFirstGoalSummary(o, matches, firstGoals);
+        // 위 경기별 상세 기록과 같은 표본(matchId)으로만 좁힌다 — 그래야 "선제골 요약"의 승/무/패
+        // 합계가 위 목록과 어긋나지 않고, 텍스트 크기도 억제된다.
+        Set<String> matchIdsInScope = matches.stream().map(OpponentMatchResponse::matchId).collect(Collectors.toSet());
+        Map<String, List<MatchGoalEvent>> eventsByMatch = goalEvents.stream()
+                .filter(e -> matchIdsInScope.contains(e.matchId()))
+                .collect(Collectors.groupingBy(MatchGoalEvent::matchId));
+
+        String timelineText = buildGoalTimelineText(matches, eventsByMatch);
+        if (timelineText != null) {
+            sb.append("\n").append(timelineText);
+        }
+
+        String firstGoalSummary = buildFirstGoalSummary(o, matches, eventsByMatch);
         if (firstGoalSummary != null) {
             sb.append("\n").append(firstGoalSummary);
         }
@@ -214,15 +227,37 @@ public class InsightSnapshotBuilder {
     }
 
     /**
-     * "누가 선제골을 더 많이 넣고, 그때 결과는 어땠는지" — 위 경기별 상세 기록(최신
-     * OPPONENT_MATCH_LIMIT건)과 같은 범위로 좁혀서(그래야 "표본 N건"과 승/무/패 합계가 서로
-     * 어긋나지 않는다) 집계한다. 두 참가자 다 추적 대상이어야 그 매치의 골 타임라인을 완전히
-     * 복원할 수 있으므로, firstGoals에 아예 안 잡힌(무득점이거나 양쪽 다 추적 안 되는) 매치는
-     * 자연히 표본에서 빠진다.
+     * 매치별 골 타임라인 원문(누가 몇 분에 넣었는지) — "선제골 요약"처럼 미리 집계해둔 지표뿐
+     * 아니라, 아직 전용 집계 로직이 없는 질문(예: "후반에 골을 더 많이 넣는 편이야?", "역전골이
+     * 몇 번 있었어?")도 Gemini가 원시 타임라인을 직접 보고 스스로 분석할 수 있게 한다. 두 참가자
+     * 다 추적 대상이어야 그 매치의 타임라인을 완전히 복원할 수 있어, 그런 매치만 나온다.
+     */
+    private String buildGoalTimelineText(List<OpponentMatchResponse> matches,
+                                          Map<String, List<MatchGoalEvent>> eventsByMatch) {
+        if (eventsByMatch.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("골 타임라인(경기별, \"나\"=이 유저 관점 골 · \"상대\"=그 상대 관점 골, 분은 경기 시작 기준 누적):\n");
+        matches.stream()
+                .filter(m -> eventsByMatch.containsKey(m.matchId()))
+                .forEach(m -> {
+                    String line = eventsByMatch.get(m.matchId()).stream()
+                            .sorted(Comparator.comparingInt(e -> matchDomainService.absoluteMinute(e.minute(), e.period())))
+                            .map(e -> (e.mine() ? "나 " : "상대 ") + matchDomainService.absoluteMinute(e.minute(), e.period()) + "'")
+                            .collect(Collectors.joining(", "));
+                    sb.append("- ").append(MATCH_DATE_FORMAT.format(m.matchDate())).append(": ").append(line).append("\n");
+                });
+        return sb.toString();
+    }
+
+    /**
+     * "누가 선제골을 더 많이 넣고, 그때 결과는 어땠는지" — 매치별로 가장 이른 골의 주체를 골라
+     * 위 골 타임라인과 같은 표본으로 집계한다(무득점 경기는 고를 골이 없어 자연히 빠짐).
      */
     private String buildFirstGoalSummary(OpponentSummaryResponse o, List<OpponentMatchResponse> matches,
-                                          List<FirstGoalResult> firstGoals) {
-        if (firstGoals.isEmpty()) {
+                                          Map<String, List<MatchGoalEvent>> eventsByMatch) {
+        if (eventsByMatch.isEmpty()) {
             return null;
         }
         Map<String, String> resultByMatchId = matches.stream()
@@ -232,12 +267,18 @@ public class InsightSnapshotBuilder {
         int myFirstWin = 0, myFirstDraw = 0, myFirstLose = 0;
         int oppFirstWin = 0, oppFirstDraw = 0, oppFirstLose = 0;
 
-        for (FirstGoalResult fg : firstGoals) {
-            String result = resultByMatchId.get(fg.matchId());
-            if (result == null) {
-                continue; // 위에서 보여준 "최신 N건" 범위 밖 매치는 승/무/패 합계 어긋남 방지를 위해 제외
+        for (Map.Entry<String, List<MatchGoalEvent>> entry : eventsByMatch.entrySet()) {
+            MatchGoalEvent first = entry.getValue().stream()
+                    .min(Comparator.comparingInt(e -> matchDomainService.absoluteMinute(e.minute(), e.period())))
+                    .orElse(null);
+            if (first == null) {
+                continue;
             }
-            if (fg.mine()) {
+            String result = resultByMatchId.get(entry.getKey());
+            if (result == null) {
+                continue;
+            }
+            if (first.mine()) {
                 myFirst++;
                 if ("승".equals(result)) myFirstWin++;
                 else if ("무".equals(result)) myFirstDraw++;
@@ -256,8 +297,8 @@ public class InsightSnapshotBuilder {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(withAlias(o.opponentNickname())).append("와의 선제골 분석(위 경기별 상세 기록과 같은 표본 ")
-                .append(total).append("건 — 양쪽 다 골 타임라인 복원 가능한 매치만, 무득점 경기는 표본에서 제외):\n");
+        sb.append(withAlias(o.opponentNickname())).append("와의 선제골 분석(위 골 타임라인과 같은 표본 ")
+                .append(total).append("건):\n");
         sb.append("- 내가 선제골: ").append(myFirst).append("회 (그때 결과 ")
                 .append(myFirstWin).append("승 ").append(myFirstDraw).append("무 ").append(myFirstLose).append("패)\n");
         sb.append("- 상대가 선제골: ").append(oppFirst).append("회 (그때 결과 ")
