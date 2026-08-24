@@ -12,6 +12,8 @@ import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.app.record.facade.RecordFacade;
+import com.fconline.app.user.dto.TrackedUserResponse;
+import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchType;
@@ -55,14 +57,16 @@ public class InsightSnapshotBuilder {
     private final TrackedUserAliasResolver aliasResolver;
     private final SeasonRangeResolver seasonRangeResolver;
     private final MatchDomainService matchDomainService;
+    private final UserFacade userFacade;
 
     public InsightSnapshotBuilder(RecordFacade recordFacade, OpponentFacade opponentFacade,
                                    TrackedUserAliasResolver aliasResolver, SeasonRangeResolver seasonRangeResolver,
-                                   MatchDomainService matchDomainService) {
+                                   MatchDomainService matchDomainService, UserFacade userFacade) {
         this.recordFacade = recordFacade;
         this.opponentFacade = opponentFacade;
         this.aliasResolver = aliasResolver;
         this.seasonRangeResolver = seasonRangeResolver;
+        this.userFacade = userFacade;
         this.matchDomainService = matchDomainService;
     }
 
@@ -76,7 +80,13 @@ public class InsightSnapshotBuilder {
                 .getRecentMatches(ouid, matchType, seasonId, PageRequest.of(0, RECENT_MATCH_LIMIT))
                 .getContent();
 
-        String summaryText = buildSummaryText(overall, opponents, allPlayers, assistChains, recentMatches);
+        // 전체 유저 랭킹은 "현재 선택된 유저"와 무관하게 등록된 유저 전원의 자기 자신 종합
+        // 전적(각자 전체 상대 합산)을 나란히 비교한 것 — 없으면 Gemini가 "전체 유저 기준으로
+        // 순위 매겨줘" 질문에도 현재 유저의 상대별 전적(그 유저 한 명 기준 상성)만 근거로 답해서
+        // 다른 유저끼리의 직접 비교가 아닌 엉뚱한 랭킹을 내놓는 문제가 있었다.
+        String allUsersRankingText = buildAllUsersRankingText(matchType, seasonId);
+
+        String summaryText = allUsersRankingText + "\n" + buildSummaryText(overall, opponents, allPlayers, assistChains, recentMatches);
 
         Season season = seasonRangeResolver.resolve(seasonId);
         Map<String, String> opponentDetailByNickname = new LinkedHashMap<>();
@@ -91,6 +101,48 @@ public class InsightSnapshotBuilder {
         }
 
         return new InsightSnapshotContent(summaryText, opponentDetailByNickname);
+    }
+
+    /**
+     * 등록된 유저 전원의 "자기 자신 종합 전적"(각자 전체 상대 합산 — 특정 상대 기준 상성이
+     * 아니라 진짜 전체 실력 지표)을 승률 높은 순으로 나열한다. "누가 제일 잘해?" 같은 전체
+     * 유저 비교 질문은 이 섹션을 근거로 답해야 정확하다(현재 선택된 유저의 상대별 전적만으로는
+     * 다른 유저끼리의 직접 비교가 안 됨).
+     */
+    private String buildAllUsersRankingText(MatchType matchType, Long seasonId) {
+        List<TrackedUserResponse> allUsers = userFacade.listTrackedUsers();
+        record UserRanking(String nickname, OverallRecordResponse record, double winRate) {
+        }
+        List<UserRanking> rankings = allUsers.stream()
+                .map(u -> {
+                    OverallRecordResponse r = recordFacade.getOverallRecord(u.ouid(), matchType, seasonId);
+                    int total = r.tally().win() + r.tally().draw() + r.tally().lose();
+                    double winRate = total == 0 ? 0.0 : r.tally().win() * 100.0 / total;
+                    return new UserRanking(u.nickname(), r, winRate);
+                })
+                .sorted(Comparator.comparingDouble(UserRanking::winRate).reversed())
+                .toList();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("전체 유저 종합 전적 순위(등록된 유저 전원, 각자 전체 상대 합산 기준 — 승률 높은 순, ")
+                .append(matchType).append("):\n");
+        int rank = 1;
+        for (UserRanking ur : rankings) {
+            int total = ur.record().tally().win() + ur.record().tally().draw() + ur.record().tally().lose();
+            long diff = ur.record().tally().goalsFor() - ur.record().tally().goalsAgainst();
+            sb.append(rank++).append(". ").append(withAlias(ur.nickname()))
+                    .append(": ").append(total).append("전 ")
+                    .append(ur.record().tally().win()).append("승 ")
+                    .append(ur.record().tally().draw()).append("무 ")
+                    .append(ur.record().tally().lose()).append("패 (승률 ")
+                    .append(String.format("%.1f", ur.winRate())).append("%), ")
+                    .append("득실 ").append(diff >= 0 ? "+" : "").append(diff)
+                    .append(", 평균 평점 ").append(String.format("%.2f", ur.record().averageRating())).append("\n");
+        }
+        if (rankings.isEmpty()) {
+            sb.append("- (등록된 유저 없음)\n");
+        }
+        return sb.toString();
     }
 
     private String buildSummaryText(OverallRecordResponse overall, List<OpponentSummaryResponse> opponents,
