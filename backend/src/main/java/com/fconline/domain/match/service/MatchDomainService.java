@@ -135,6 +135,11 @@ public class MatchDomainService {
         return matchDetailRepository.findShotsByMatch(ouid, matchType, matchId);
     }
 
+    /** 매치 상세 모달의 "실점 상세"용 — 상대가 추적 대상이어야 채워진다(아니면 빈 목록). */
+    public List<MatchShotDetail> concededShotsByMatch(String ouid, MatchType matchType, String matchId) {
+        return matchDetailRepository.findConcededShotsByMatch(ouid, matchType, matchId);
+    }
+
     /** 어시스트 선수 -> 득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     public List<AssistChainCount> assistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit) {
         return matchDetailRepository.aggregateAssistChains(ouid, matchType, from, to, limit);

@@ -99,6 +99,13 @@ public interface MatchDetailRepositoryCustom {
      */
     List<MatchShotDetail> findShotsByMatch(String ouid, MatchType matchType, String matchId);
 
+    /**
+     * 매치 상세 모달의 "실점 상세"용 — 특정 매치 1건에서 상대가 이 유저를 향해 쏜 슛 이벤트
+     * 전체. findConcededShotPoints와 같은 원리(상대도 추적 대상이어야 그 상대 본인 관점 행을
+     * 찾을 수 있음)를 매치 1건으로 좁힌 버전이다. 상대가 추적 대상이 아니면 빈 목록.
+     */
+    List<MatchShotDetail> findConcededShotsByMatch(String ouid, MatchType matchType, String matchId);
+
     /** 어시스트→득점 선수 조합별 골 수, 내림차순 상위 limit건. */
     List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to, int limit);
 

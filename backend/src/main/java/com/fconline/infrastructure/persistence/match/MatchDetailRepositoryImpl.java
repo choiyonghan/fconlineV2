@@ -470,6 +470,43 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
+    public List<MatchShotDetail> findConcededShotsByMatch(String ouid, MatchType matchType, String matchId) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+
+        // 1) 이 유저의 이 매치 행에서 상대 ouid를 찾는다.
+        String opponentOuid = queryFactory
+                .select(md.opponentOuid)
+                .from(md)
+                .join(md.match, m)
+                .where(md.ouid.eq(ouid).and(m.matchType.eq(matchType)).and(m.matchId.eq(matchId)))
+                .fetchFirst();
+        if (opponentOuid == null) {
+            return List.of();
+        }
+
+        // 2) 상대 본인 관점 행(ouid=상대, 같은 matchId)의 슛을 가져온다 — 그 상대가 추적 대상이
+        // 아니면(자기 경기를 동기화한 적 없으면) 결과가 그냥 빈 목록이 된다.
+        QMatchDetail opp = new QMatchDetail("concededByMatchOpponentDetail");
+        QMatch oppMatch = new QMatch("concededByMatchOpponentMatch");
+        QShootEvent se = new QShootEvent("concededByMatchShootEvent");
+
+        return queryFactory
+                .select(se.spId, se.x, se.y, se.shootType, se.result, se.goalTimeMinutes, se.period,
+                        se.assist, se.assistSpId)
+                .from(se)
+                .join(se.matchDetail, opp)
+                .join(opp.match, oppMatch)
+                .where(opp.ouid.eq(opponentOuid).and(oppMatch.matchType.eq(matchType)).and(oppMatch.matchId.eq(matchId)))
+                .orderBy(se.goalTimeMinutes.asc().nullsLast())
+                .fetch().stream()
+                .map(row -> new MatchShotDetail(
+                        row.get(se.spId), row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
+                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId)))
+                .toList();
+    }
+
+    @Override
     public List<AssistChainCount> aggregateAssistChains(String ouid, MatchType matchType, Instant from, Instant to,
                                                           int limit) {
         QMatchDetail md = QMatchDetail.matchDetail;

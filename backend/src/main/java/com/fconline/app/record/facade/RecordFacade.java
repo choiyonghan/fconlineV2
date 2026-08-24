@@ -6,6 +6,7 @@ import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
 import com.fconline.app.record.dto.MatchShotResponse;
+import com.fconline.app.record.dto.MatchShotsResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -228,20 +229,27 @@ public class RecordFacade {
      * 골이면 시각과 어시스트 여부까지). 선수 이름은 spId/assistSpId를 모아 한 번에 조회해 붙인다.
      */
     @Transactional(readOnly = true)
-    public List<MatchShotResponse> getMatchShots(String ouid, MatchType matchType, String matchId) {
+    public MatchShotsResponse getMatchShots(String ouid, MatchType matchType, String matchId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
-        List<MatchShotDetail> shots = matchDomainService.shotsByMatch(ouid, matchType, matchId);
+        List<MatchShotDetail> myShots = matchDomainService.shotsByMatch(ouid, matchType, matchId);
+        List<MatchShotDetail> concededShots = matchDomainService.concededShotsByMatch(ouid, matchType, matchId);
 
         Set<String> spIds = new HashSet<>();
-        shots.forEach(s -> {
+        Stream.concat(myShots.stream(), concededShots.stream()).forEach(s -> {
             spIds.add(s.spId());
             if (s.assistSpId() != null) spIds.add(s.assistSpId());
         });
         Map<String, String> playerNames = playerMetaRepository.findBySpIdIn(List.copyOf(spIds)).stream()
                 .collect(Collectors.toMap(PlayerMeta::getSpId, PlayerMeta::getSpName, (a, b) -> a));
 
+        return new MatchShotsResponse(
+                toMatchShotResponses(myShots, playerNames),
+                toMatchShotResponses(concededShots, playerNames));
+    }
+
+    private List<MatchShotResponse> toMatchShotResponses(List<MatchShotDetail> shots, Map<String, String> playerNames) {
         return shots.stream()
                 .map(s -> new MatchShotResponse(
                         s.spId(), playerNames.getOrDefault(s.spId(), s.spId()),

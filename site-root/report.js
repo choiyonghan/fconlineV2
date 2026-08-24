@@ -667,10 +667,10 @@
       c.setAttribute('r', isGoal ? 5 : 3);
       c.setAttribute('class', isGoal ? 'goal-dot' : 'miss-dot');
       c.tabIndex = 0;
-      var xgPct = p.xg != null ? Math.round(p.xg * 100) + '%' : null;
+      var xgLabel = p.xg != null ? round1(p.xg) + '골' : null;
       var showFn = function (evt) {
         var lines = [p.shootType + ' · ' + (RESULT_KO[p.result] || p.result)];
-        if (xgPct) lines.push('이 구역 xG값 ' + xgPct);
+        if (xgLabel) lines.push('이 구역 xG값 ' + xgLabel);
         showTip(evt, lines);
       };
       c.addEventListener('pointerenter', showFn);
@@ -794,43 +794,57 @@
     return box;
   }
 
-  /** 매치 상세 모달의 "⚽ 득점 상세" + "🎯 슈팅 위치" 섹션 — 슛 이벤트 목록을 받아 렌더링한다. */
-  function renderModalShots(container, shots) {
+  function xgOfShot(p) {
+    if (!zoneAggregate || p.x == null || p.y == null) return null;
+    return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+  }
+
+  /** 득점/실점 상세 리스트 한 줄 — 골 넣은(당한) 선수, 시각, 유형, 어시스트, 이 구역 xG값(0~1). */
+  function goalDetailRow(container, g) {
+    var row = el('div', 'top3-row');
+    row.appendChild(playerNameBadge(g.spId, g.playerName));
+    var minute = absoluteMinuteOf(g.goalTimeMinutes, g.period);
+    var xg = xgOfShot(g);
+    var detailParts = [];
+    if (minute != null) detailParts.push((PERIOD_KO[g.period] || '') + ' ' + minute + '분');
+    detailParts.push(g.shootType);
+    detailParts.push(g.assist && g.assistPlayerName ? '어시스트: ' + g.assistPlayerName : '어시스트 없음');
+    if (xg != null) detailParts.push('이 구역 xG ' + round1(xg) + '골');
+    row.appendChild(el('span', 'top3-stat', detailParts.join(' · ')));
+    container.appendChild(row);
+  }
+
+  /**
+   * 매치 상세 모달의 "⚽ 득점 상세" / "🥅 실점 상세" + "🎯 슈팅 위치" 섹션.
+   * concededShots가 비어 있으면(상대가 추적 대상이 아니면) 실점 상세는 조용히 생략한다.
+   */
+  function renderModalShots(container, myShots, concededShots) {
     container.replaceChildren();
-    if (!shots.length) {
+    if (!myShots.length && !concededShots.length) {
       container.appendChild(el('p', 'card-empty', '기록된 슈팅이 없습니다.'));
       return;
     }
 
-    function xgOf(p) {
-      if (!zoneAggregate) return null;
-      return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
-    }
-
-    var goals = shots.filter(function (s) { return s.isGoal; });
-    if (goals.length) {
+    var myGoals = myShots.filter(function (s) { return s.isGoal; });
+    if (myGoals.length) {
       container.appendChild(el('p', 'card-title', '⚽ 득점 상세'));
-      goals.forEach(function (g) {
-        var row = el('div', 'top3-row');
-        row.appendChild(playerNameBadge(g.spId, g.playerName));
-        var minute = absoluteMinuteOf(g.goalTimeMinutes, g.period);
-        var xg = xgOf(g);
-        var detailParts = [];
-        if (minute != null) detailParts.push((PERIOD_KO[g.period] || '') + ' ' + minute + '분');
-        detailParts.push(g.shootType);
-        detailParts.push(g.assist && g.assistPlayerName ? '어시스트: ' + g.assistPlayerName : '어시스트 없음');
-        if (xg != null) detailParts.push('이 구역 xG ' + Math.round(xg * 100) + '%');
-        row.appendChild(el('span', 'top3-stat', detailParts.join(' · ')));
-        container.appendChild(row);
-      });
+      myGoals.forEach(function (g) { goalDetailRow(container, g); });
     }
 
-    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
-    pitchTitle.style.marginTop = goals.length ? '14px' : '0';
+    var concededGoals = concededShots.filter(function (s) { return s.isGoal; });
+    if (concededGoals.length) {
+      var concededTitle = el('p', 'card-title', '🥅 실점 상세');
+      concededTitle.style.marginTop = myGoals.length ? '14px' : '0';
+      container.appendChild(concededTitle);
+      concededGoals.forEach(function (g) { goalDetailRow(container, g); });
+    }
+
+    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치 (내가 쏜 슛)');
+    pitchTitle.style.marginTop = (myGoals.length || concededGoals.length) ? '14px' : '0';
     container.appendChild(pitchTitle);
     var pitchWrap = el('div', 'pitch-wrap');
-    var pitchPoints = shots.map(function (s) {
-      return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOf(s) };
+    var pitchPoints = myShots.map(function (s) {
+      return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s) };
     }).filter(function (p) { return p.x != null && p.y != null; });
     pitchHeatmap(pitchWrap, pitchPoints);
     container.appendChild(pitchWrap);
@@ -866,20 +880,32 @@
     grid.appendChild(statBlock('파울', m.foul != null ? fmt(m.foul) : '-'));
     grid.appendChild(statBlock('옐로카드', m.yellowCards != null ? fmt(m.yellowCards) : '-'));
     grid.appendChild(statBlock('레드카드', m.redCards != null ? fmt(m.redCards) : '-'));
+    var xgForBlock = statBlock('득점 xG값', '계산 중…');
+    var xgAgainstBlock = statBlock('실점 xG값', '계산 중…');
+    grid.appendChild(xgForBlock);
+    grid.appendChild(xgAgainstBlock);
     modalBody.appendChild(grid);
 
-    // ⚽ 득점 상세(누가 골, 누가 어시, xG값) + 🎯 슈팅 위치 — 매치 1건의 슛 이벤트를 그때 불러온다.
+    // ⚽ 득점 상세 / 🥅 실점 상세(누가 골, 누가 어시, xG값) + 🎯 슈팅 위치 — 매치 1건의 슛 이벤트를
+    // 그때 불러온다. concededShots는 상대도 추적 대상이어야 채워진다(아니면 조용히 생략).
     var shotSection = el('div', 'modal-shots-section');
     shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오는 중…'));
     modalBody.appendChild(shotSection);
 
     apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
-      .then(function (shots) {
+      .then(function (result) {
         if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
-        renderModalShots(shotSection, shots);
+        var xgFor = expectedGoalsOf(result.myShots);
+        var xgAgainst = expectedGoalsOf(result.concededShots);
+        xgForBlock.querySelector('.modal-stat-value').textContent = zoneAggregate ? round1(xgFor) + '골' : '-';
+        xgAgainstBlock.querySelector('.modal-stat-value').textContent =
+          zoneAggregate ? (result.concededShots.length ? round1(xgAgainst) + '골' : '-') : '-';
+        renderModalShots(shotSection, result.myShots, result.concededShots);
       })
       .catch(function () {
         if (seq !== modalRequestSeq) return;
+        xgForBlock.querySelector('.modal-stat-value').textContent = '-';
+        xgAgainstBlock.querySelector('.modal-stat-value').textContent = '-';
         shotSection.replaceChildren();
         shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오지 못했습니다.'));
       });
@@ -1059,28 +1085,27 @@
               });
               inner.appendChild(top3Wrap);
 
-              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기 · 행을 클릭하면 상세 정보가 열립니다');
+              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기 · 클릭하면 상세 정보가 열립니다');
               matchCaption.style.marginTop = '14px';
               inner.appendChild(matchCaption);
-              var mScroll = el('div', 'table-scroll');
-              var mtable = document.createElement('table');
-              var mthead = document.createElement('thead');
-              var mhtr = document.createElement('tr');
-              ['결과', '스코어', '점유율', '슈팅', '패스 성공', '태클 성공'].forEach(function (h, i) {
-                mhtr.appendChild(el('th', i >= 1 ? 'num' : '', h));
-              });
-              mthead.appendChild(mhtr);
-              mtable.appendChild(mthead);
-              var mtbody = document.createElement('tbody');
+              // 결과+스코어만 가로로 나열 — 점유율/슈팅/패스/태클 등 나머지는 클릭했을 때 뜨는
+              // 매치 상세 모달에서 본다(표로 늘어놓지 않는다).
+              var chipRow = el('div', 'match-chip-row');
               matches.forEach(function (m) {
                 var withName = {};
                 for (var k in m) withName[k] = m[k];
                 withName.opponentNickname = o.opponentNickname;
-                mtbody.appendChild(buildMatchRow(withName, false));
+                var chip = el('div', 'match-chip chip result-' + m.result,
+                  m.result + ' (' + m.goalsFor + ':' + m.goalsAgainst + ')');
+                chip.tabIndex = 0;
+                chip.setAttribute('role', 'button');
+                chip.setAttribute('aria-label', 'vs ' + o.opponentNickname + ' 경기 상세 보기');
+                var openFn = function () { openMatchModal(withName); };
+                chip.addEventListener('click', openFn);
+                chip.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFn(); } });
+                chipRow.appendChild(chip);
               });
-              mtable.appendChild(mtbody);
-              mScroll.appendChild(mtable);
-              inner.appendChild(mScroll);
+              inner.appendChild(chipRow);
             })
             .catch(function () {
               loaded = false;

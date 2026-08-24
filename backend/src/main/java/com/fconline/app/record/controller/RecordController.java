@@ -2,7 +2,7 @@ package com.fconline.app.record.controller;
 
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
-import com.fconline.app.record.dto.MatchShotResponse;
+import com.fconline.app.record.dto.MatchShotsResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -61,12 +61,13 @@ public class RecordController {
     }
 
     /**
-     * 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트 전체(누가 골, 누가 어시, 어디서 쐈는지 등).
+     * 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트(내가 쏜 슛=득점 상세, 상대가 쏜 슛=실점 상세).
+     * concededShots는 상대도 추적 대상이어야 채워진다(아니면 빈 목록).
      */
     @GetMapping("/match-shots")
-    public List<MatchShotResponse> getMatchShots(@RequestParam String ouid,
-                                                  @RequestParam MatchType matchType,
-                                                  @RequestParam String matchId) {
+    public MatchShotsResponse getMatchShots(@RequestParam String ouid,
+                                             @RequestParam MatchType matchType,
+                                             @RequestParam String matchId) {
         return recordFacade.getMatchShots(ouid, matchType, matchId);
     }
 

@@ -525,6 +525,22 @@
   .chip.result-무 { background: color-mix(in srgb, var(--status-warning) 20%, transparent); color: var(--status-warning-text); }
   .chip.result-패 { background: color-mix(in srgb, var(--status-critical) 16%, transparent); color: var(--status-critical); }
 
+  /* 상대별 전적 펼침의 "결과(스코어)" 가로 스크롤 칩 — 클릭하면 매치 상세 모달이 열린다 */
+  .match-chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .match-chip {
+    flex: none;
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .match-chip:hover { filter: brightness(1.1); }
+  .match-chip:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
+
   .streak-badges { display: flex; gap: 4px; flex-wrap: wrap; }
   .streak-badge {
     font-size: 10.5px; font-weight: 600;
