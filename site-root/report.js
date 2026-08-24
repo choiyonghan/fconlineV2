@@ -1618,8 +1618,8 @@
     statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점');
     statMini(attackContainer, '평균 득점 xG값', zoneAggregate ? fmt1(expectedGoals / totalGames) : '계산 중…', '경기당 기대 득점');
     statMini(attackContainer, '결정력',
-      zoneAggregate && expectedGoals > 0 ? Math.round(actualGoals / expectedGoals * 100) + '%' : '-',
-      '실제 득점 ÷ xG값');
+      zoneAggregate ? (actualGoals - expectedGoals >= 0 ? '+' : '') + fmt1(actualGoals - expectedGoals) : '-',
+      '실제 득점 − xG값 (양수면 기대 이상)');
     statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
     statMini(attackContainer, '경기당 슈팅', fmt1(points.length / totalGames), '표본 전체 평균');
@@ -1635,8 +1635,10 @@
     statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
     statMini(defenseContainer, '상대 결정력',
-      zoneAggregate && concededExpectedGoals > 0 ? Math.round(concededActualGoals / concededExpectedGoals * 100) + '%' : '-',
-      '상대 실제 득점 ÷ 실점 xG값');
+      zoneAggregate && concededSampleGames
+        ? (concededActualGoals - concededExpectedGoals >= 0 ? '+' : '') + fmt1(concededActualGoals - concededExpectedGoals)
+        : '-',
+      '상대 실제 득점 − 실점 xG값 (양수면 상대가 기대 이상)');
 
     // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
     // API는 최신순으로 내려주므로 왼쪽(과거)->오른쪽(최신)이 되도록 뒤집는다.
