@@ -497,7 +497,7 @@
   }
 
   /* ---------- 상대별 전적 펼침 — 이 상대전 평균/TOP3 ---------- */
-  .opp-summary-grid { margin-bottom: 14px; }
+  .opp-summary-grid { margin-top: 12px; margin-bottom: 14px; }
   .opp-top3-wrap { display: flex; flex-direction: column; gap: 12px; }
   .top3-list { display: flex; flex-direction: column; gap: 6px; }
   .top3-row {

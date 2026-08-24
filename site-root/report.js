@@ -1051,6 +1051,27 @@
                 return;
               }
 
+              // 결과+스코어를 가장 먼저 가로로 나열 — 점유율/슈팅/패스/태클 등 나머지는
+              // 클릭했을 때 뜨는 매치 상세 모달에서 본다(표로 늘어놓지 않는다).
+              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(matches.length) + '경기 · 클릭하면 상세 정보가 열립니다');
+              inner.appendChild(matchCaption);
+              var chipRow = el('div', 'match-chip-row');
+              matches.forEach(function (m) {
+                var withName = {};
+                for (var k in m) withName[k] = m[k];
+                withName.opponentNickname = o.opponentNickname;
+                var chip = el('div', 'match-chip chip result-' + m.result,
+                  m.result + ' (' + m.goalsFor + ':' + m.goalsAgainst + ')');
+                chip.tabIndex = 0;
+                chip.setAttribute('role', 'button');
+                chip.setAttribute('aria-label', 'vs ' + o.opponentNickname + ' 경기 상세 보기');
+                var openFn = function () { openMatchModal(withName); };
+                chip.addEventListener('click', openFn);
+                chip.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFn(); } });
+                chipRow.appendChild(chip);
+              });
+              inner.appendChild(chipRow);
+
               // 평균 득실점 / xG값 / 유효슈팅 비율 — 이 상대와의 전체 경기 기준.
               var n = matches.length;
               var sum = function (key) { return matches.reduce(function (s, m) { return s + (m[key] || 0); }, 0); };
@@ -1084,28 +1105,6 @@
                 top3Wrap.appendChild(section);
               });
               inner.appendChild(top3Wrap);
-
-              var matchCaption = el('p', 'card-caption', '전체 ' + fmt(n) + '경기 · 클릭하면 상세 정보가 열립니다');
-              matchCaption.style.marginTop = '14px';
-              inner.appendChild(matchCaption);
-              // 결과+스코어만 가로로 나열 — 점유율/슈팅/패스/태클 등 나머지는 클릭했을 때 뜨는
-              // 매치 상세 모달에서 본다(표로 늘어놓지 않는다).
-              var chipRow = el('div', 'match-chip-row');
-              matches.forEach(function (m) {
-                var withName = {};
-                for (var k in m) withName[k] = m[k];
-                withName.opponentNickname = o.opponentNickname;
-                var chip = el('div', 'match-chip chip result-' + m.result,
-                  m.result + ' (' + m.goalsFor + ':' + m.goalsAgainst + ')');
-                chip.tabIndex = 0;
-                chip.setAttribute('role', 'button');
-                chip.setAttribute('aria-label', 'vs ' + o.opponentNickname + ' 경기 상세 보기');
-                var openFn = function () { openMatchModal(withName); };
-                chip.addEventListener('click', openFn);
-                chip.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFn(); } });
-                chipRow.appendChild(chip);
-              });
-              inner.appendChild(chipRow);
             })
             .catch(function () {
               loaded = false;
