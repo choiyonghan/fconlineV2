@@ -1402,7 +1402,7 @@
   // 구역 경계는 위 pitchHeatmap이 그리는 박스/6야드 박스 사각형과 동일한 비율을 그대로 재사용한다 —
   // 즉 화면에 그려지는 박스 안에 찍힌 점은 실제로도 "박스 안" 구역으로 집계된다. 정식 xG 모델이 아닌
   // 근사치이며, 원본 세션이 썼던 정확한 경계값과 100% 동일하다는 보장은 없다(둘 다 근사치라는 점은 같다).
-  var ZONE_CACHE_KEY = 'matchreport-zonecache-v1';
+  var ZONE_CACHE_KEY = 'matchreport-zonecache-v2'; // v2: 구역을 더 세밀하게(정밀도 개선) 바꾸며 캐시도 무효화
   var zoneAggregate = null; // { table:[{zone,shots,goals,rate}], sampleSize, rateMap:{zone:rate} }
   var lastPoints = null;
   var lastOverall = null;
@@ -1413,8 +1413,41 @@
 
   var BOX = { xMin: 343 / 400, yMin: 75 / 260, yMax: 185 / 260 };
   var SIX = { xMin: 376 / 400, yMin: 104 / 260, yMax: 156 / 260 };
+  // 표본이 이 미만인 세밀 구역은 값이 튀기 쉬워(예: 1슈팅 1골 = 100%) 아래 coarseZoneKey의
+  // 넓은 구역 전환율로 대체한다 — "우리 데이터 기반"은 유지하면서 정밀도만 올리는 절충안.
+  var FINE_ZONE_MIN_SAMPLE = 8;
+
+  /**
+   * 정밀 구역 — 거리 8단계(기존 5단계보다 촘촘하게, 특히 박스 안쪽을 세분화) × 중앙에서
+   * 얼마나 벗어났는지 3단계(중앙/중앙 인접/측면). 실제 슈팅 표본이 골대 근처에 몰려 있어(약
+   * 2,000건대 표본 중 다수가 박스 안) 이 구간을 더 세밀하게 나눠도 표본이 충분하다.
+   * 표본이 부족한 구역은 loadZoneAggregate에서 coarseZoneKey 전환율로 대체된다.
+   */
+  var FINE_DISTANCE_BANDS = [
+    { min: 0.96, label: '골키퍼 코앞' },
+    { min: 0.92, label: '6야드 부근' },
+    { min: 0.875, label: '페널티스팟 부근' },
+    { min: 0.80, label: '박스 안(먼 쪽)' },
+    { min: 0.70, label: '박스 바로 앞' },
+    { min: 0.60, label: '중거리(가까운 쪽)' },
+    { min: 0.45, label: '중거리(먼 쪽)' },
+    { min: -1, label: '장거리' }
+  ];
 
   function zoneKey(x, y) {
+    var distanceLabel = FINE_DISTANCE_BANDS[FINE_DISTANCE_BANDS.length - 1].label;
+    for (var i = 0; i < FINE_DISTANCE_BANDS.length; i++) {
+      if (x >= FINE_DISTANCE_BANDS[i].min) { distanceLabel = FINE_DISTANCE_BANDS[i].label; break; }
+    }
+    var boxCenter = (BOX.yMin + BOX.yMax) / 2;
+    var boxHalfWidth = (BOX.yMax - BOX.yMin) / 2;
+    var offCenter = Math.abs(y - boxCenter) / boxHalfWidth; // 0=정중앙, 1=박스 폭 경계, 그 이상=박스 밖
+    var lateralLabel = offCenter <= 0.5 ? '중앙' : (offCenter <= 1.3 ? '중앙 인접' : '측면');
+    return distanceLabel + ' · ' + lateralLabel;
+  }
+
+  /** 기존(v1) 5단계 × 2단계 구역 — 정밀 구역의 표본이 부족할 때 폴백 전환율로 쓴다. */
+  function coarseZoneKey(x, y) {
     var isCenter = y >= BOX.yMin && y <= BOX.yMax;
     var band;
     if (x >= SIX.xMin) band = '초근접(6야드 부근)';
@@ -1443,20 +1476,34 @@
       });
     });
     return Promise.all(requests).then(function (results) {
-      var counts = {};
+      var fineCounts = {};
+      var coarseCounts = {};
       var total = 0;
       results.forEach(function (points) {
         points.forEach(function (p) {
-          var key = zoneKey(p.x, p.y);
-          if (!counts[key]) counts[key] = { zone: key, shots: 0, goals: 0 };
-          counts[key].shots += 1;
-          if (p.goal) counts[key].goals += 1;
+          var fk = zoneKey(p.x, p.y);
+          var ck = coarseZoneKey(p.x, p.y);
+          if (!fineCounts[fk]) fineCounts[fk] = { zone: fk, shots: 0, goals: 0, coarseZone: ck };
+          fineCounts[fk].shots += 1;
+          if (p.goal) fineCounts[fk].goals += 1;
+
+          if (!coarseCounts[ck]) coarseCounts[ck] = { shots: 0, goals: 0 };
+          coarseCounts[ck].shots += 1;
+          if (p.goal) coarseCounts[ck].goals += 1;
+
           total += 1;
         });
       });
-      var table = Object.keys(counts).map(function (k) {
-        var c = counts[k];
-        return { zone: c.zone, shots: c.shots, goals: c.goals, rate: c.shots ? c.goals / c.shots : 0 };
+      var table = Object.keys(fineCounts).map(function (k) {
+        var c = fineCounts[k];
+        var rate;
+        if (c.shots >= FINE_ZONE_MIN_SAMPLE) {
+          rate = c.goals / c.shots;
+        } else {
+          var coarse = coarseCounts[c.coarseZone];
+          rate = coarse && coarse.shots ? coarse.goals / coarse.shots : (c.shots ? c.goals / c.shots : 0);
+        }
+        return { zone: c.zone, shots: c.shots, goals: c.goals, rate: rate };
       }).sort(function (a, b) { return b.shots - a.shots; });
       var agg = { table: table, sampleSize: total };
       try { sessionStorage.setItem(ZONE_CACHE_KEY, JSON.stringify(agg)); } catch (e) { /* ignore */ }
