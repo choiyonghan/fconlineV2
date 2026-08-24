@@ -394,8 +394,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* 선수 이름 아래 "득점 X · 도움 Y" 같은 보조 정보를 한 줄 더 보여줄 때 (barChart의 rows[].sub) */
-  .bar-cat.stacked { width: 120px; white-space: normal; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+  /* 선수 이름 아래 "득점 X · 도움 Y" 같은 보조 정보를 한 줄 더 보여줄 때 (barChart의 rows[].sub).
+     이름 줄은 시즌 아이콘+이름+강화 배지가 다 붙어서 120px로는 두 줄로 줄바꿈됐다 — 폭을 넓히고
+     이름 줄 자체는 한 줄로 고정한다(그래프 트랙은 flex:1이라 자동으로 그만큼 줄어든다). */
+  .bar-cat.stacked { width: 150px; white-space: normal; display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+  .bar-cat.stacked .player-name-badge { white-space: nowrap; overflow: hidden; max-width: 100%; }
   .bar-cat-sub { font-size: 10px; color: var(--text-muted); }
   .bar-track { flex: 1; position: relative; height: 20px; }
   .bar-fill {
@@ -454,6 +457,9 @@
   /* ---------- tables ---------- */
   .table-scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+  /* 환상의 콤비 표(4~2열)는 컬럼이 적어 560px 최소폭이 필요 없다 — grid-2 절반 폭 카드
+     안에서 불필요하게 가로 스크롤이 생기지 않도록 최소폭 제약을 없앤다. */
+  #table-assists table, #table-assist-duos table { min-width: 0; }
   thead th {
     font-family: var(--font-display);
     font-size: 10.5px;
@@ -677,7 +683,33 @@
   }
   .modal-shots-section { margin-top: 14px; }
   .modal-shots-section .card-title { margin-top: 0; margin-bottom: 8px; }
-  .modal-shots-section .top3-row { margin-bottom: 6px; }
+
+  /* ⏱️ 득점 타임라인 — 내 득점/실점을 시간 순으로 한 줄씩, 왼쪽 색 테두리로 구분 */
+  .goal-timeline { display: flex; flex-direction: column; gap: 8px; }
+  .goal-timeline-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--page-plane);
+    border-left: 3px solid var(--series-1);
+  }
+  .goal-timeline-row.conceded { border-left-color: var(--status-critical); }
+  .goal-timeline-minute {
+    flex: none;
+    width: 30px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .goal-timeline-body { flex: 1; min-width: 0; }
+  .goal-timeline-head { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: var(--text-primary); }
+  .goal-timeline-icon { flex: none; font-size: 13px; }
+  .goal-timeline-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
 
   /* ---------- expandable opponent row ---------- */
   tr.opp-row { cursor: pointer; }

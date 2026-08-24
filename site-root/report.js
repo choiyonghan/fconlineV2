@@ -809,24 +809,31 @@
     return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
   }
 
-  /** 득점/실점 상세 리스트 한 줄 — 골 넣은(당한) 선수, 시각, 유형, 어시스트, 이 구역 xG값(0~1). */
-  function goalDetailRow(container, g) {
-    var row = el('div', 'top3-row');
-    row.appendChild(playerNameBadge(g.spId, g.playerName));
+  /** 득점 타임라인 한 줄 — 분, 내 골/상대 골 구분, 선수, 유형, 어시스트, 이 구역 xG값(0~1). */
+  function goalTimelineRow(container, g) {
+    var row = el('div', 'goal-timeline-row ' + (g.mine ? 'mine' : 'conceded'));
     var minute = absoluteMinuteOf(g.goalTimeMinutes, g.period);
+    row.appendChild(el('div', 'goal-timeline-minute', minute != null ? minute + "'" : '-'));
+    var body = el('div', 'goal-timeline-body');
+    var head = el('div', 'goal-timeline-head');
+    head.appendChild(el('span', 'goal-timeline-icon', g.mine ? '⚽' : '🥅'));
+    head.appendChild(playerNameBadge(g.spId, g.playerName));
+    body.appendChild(head);
     var xg = xgOfShot(g);
     var detailParts = [];
-    if (minute != null) detailParts.push((PERIOD_KO[g.period] || '') + ' ' + minute + '분');
+    if (g.period != null && PERIOD_KO[g.period]) detailParts.push(PERIOD_KO[g.period]);
     detailParts.push(g.shootType);
     detailParts.push(g.assist && g.assistPlayerName ? '어시스트: ' + g.assistPlayerName : '어시스트 없음');
     if (xg != null) detailParts.push('이 구역 xG ' + round1(xg) + '골');
-    row.appendChild(el('span', 'top3-stat', detailParts.join(' · ')));
+    body.appendChild(el('div', 'goal-timeline-meta', detailParts.join(' · ')));
+    row.appendChild(body);
     container.appendChild(row);
   }
 
   /**
-   * 매치 상세 모달의 "⚽ 득점 상세" / "🥅 실점 상세" + "🎯 슈팅 위치" 섹션.
-   * concededShots가 비어 있으면(상대가 추적 대상이 아니면) 실점 상세는 조용히 생략한다.
+   * 매치 상세 모달의 "⏱️ 득점 타임라인"(내 득점 + 실점을 한 줄로 합쳐 실제 시간 순으로 정렬)
+   * + "🎯 슈팅 위치" 섹션. concededShots가 비어 있으면(상대가 추적 대상이 아니면) 실점은
+   * 조용히 빠지고 내 득점만 나온다.
    */
   function renderModalShots(container, myShots, concededShots) {
     container.replaceChildren();
@@ -835,22 +842,30 @@
       return;
     }
 
-    var myGoals = myShots.filter(function (s) { return s.isGoal; });
-    if (myGoals.length) {
-      container.appendChild(el('p', 'card-title', '⚽ 득점 상세'));
-      myGoals.forEach(function (g) { goalDetailRow(container, g); });
-    }
+    var myGoals = myShots.filter(function (s) { return s.isGoal; }).map(function (g) {
+      var copy = {}; for (var k in g) copy[k] = g[k]; copy.mine = true; return copy;
+    });
+    var concededGoals = concededShots.filter(function (s) { return s.isGoal; }).map(function (g) {
+      var copy = {}; for (var k in g) copy[k] = g[k]; copy.mine = false; return copy;
+    });
+    var timeline = myGoals.concat(concededGoals).sort(function (a, b) {
+      var ma = absoluteMinuteOf(a.goalTimeMinutes, a.period);
+      var mb = absoluteMinuteOf(b.goalTimeMinutes, b.period);
+      if (ma == null && mb == null) return 0;
+      if (ma == null) return 1;
+      if (mb == null) return -1;
+      return ma - mb;
+    });
 
-    var concededGoals = concededShots.filter(function (s) { return s.isGoal; });
-    if (concededGoals.length) {
-      var concededTitle = el('p', 'card-title', '🥅 실점 상세');
-      concededTitle.style.marginTop = myGoals.length ? '14px' : '0';
-      container.appendChild(concededTitle);
-      concededGoals.forEach(function (g) { goalDetailRow(container, g); });
+    if (timeline.length) {
+      container.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
+      var tl = el('div', 'goal-timeline');
+      timeline.forEach(function (g) { goalTimelineRow(tl, g); });
+      container.appendChild(tl);
     }
 
     var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
-    pitchTitle.style.marginTop = (myGoals.length || concededGoals.length) ? '14px' : '0';
+    pitchTitle.style.marginTop = timeline.length ? '14px' : '0';
     container.appendChild(pitchTitle);
     if (concededShots.length) {
       container.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
@@ -1454,9 +1469,38 @@
     zoneAggregate.rateMap = {};
     agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
     if (lastPoints) updateXgTile(lastPoints);
+    if (lastPoints) renderShotPitch(lastPoints, lastConcededPoints || []);
     if (lastOverall) {
       renderPlayStyle(lastOverall, lastPoints, lastTotalGames, lastConcededPoints, lastConcededSampleGames, lastMatches);
     }
+  }
+
+  /**
+   * "슈팅 위치 & 실제 xG값" 카드 — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
+   * 180도 반전(x,y 모두 1-값)해서 좌측(내 골대 방향)에 함께 그린다. zoneAggregate가 늦게
+   * 로드되면 applyZoneAggregate에서 다시 불러 xG 툴팁을 채운다.
+   */
+  function renderShotPitch(points, concededPoints) {
+    var actualGoalsNow = points.filter(function (p) { return p.goal; }).length;
+    var concededGoalsNow = concededPoints.filter(function (p) { return p.goal; }).length;
+    document.getElementById('heatmap-caption').textContent =
+      '내 슈팅 ' + points.length + '건 중 득점 ' + actualGoalsNow + '건(우측, 상대 골대 방향) · ' +
+      '실점 슈팅 ' + concededPoints.length + '건 중 실점 ' + concededGoalsNow + '건(좌측, 내 골대 방향)';
+    var shotsForPitch = points.map(function (p) {
+      var withXg = {};
+      for (var k in p) withXg[k] = p[k];
+      withXg.xg = zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null;
+      withXg.mine = true;
+      return withXg;
+    }).concat(concededPoints.map(function (p) {
+      return {
+        x: p.x != null ? 1 - p.x : null, y: p.y != null ? 1 - p.y : null,
+        goal: p.goal, shootType: p.shootType, result: p.result,
+        xg: zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null,
+        mine: false
+      };
+    })).filter(function (p) { return p.x != null && p.y != null; });
+    pitchHeatmap(document.getElementById('chart-heatmap'), shotsForPitch);
   }
 
   function updateXgTile(points) {
@@ -1777,18 +1821,10 @@
     lastMatches = d.matches;
     renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches);
 
-    // heatmap (전체 슈팅 + xG값)
+    // heatmap (전체 슈팅 + xG값) — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
+    // 180도 반전해서 좌측(내 골대 방향)에 함께 표시한다(매치 상세 모달과 동일한 방식).
     lastPoints = d.heatmap.points;
-    var actualGoalsNow = d.heatmap.points.filter(function (p) { return p.goal; }).length;
-    document.getElementById('heatmap-caption').textContent =
-      '슈팅 ' + d.heatmap.points.length + '건 중 득점 ' + actualGoalsNow + '건 · 좌측이 자책골 방향, 우측이 상대 골대 방향';
-    var shotsForPitch = d.heatmap.points.map(function (p) {
-      var withXg = {};
-      for (var k in p) withXg[k] = p[k];
-      withXg.xg = zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null;
-      return withXg;
-    });
-    pitchHeatmap(document.getElementById('chart-heatmap'), shotsForPitch);
+    renderShotPitch(d.heatmap.points, d.concededHeatmap.points);
     updateXgTile(d.heatmap.points);
 
     // 환상의 콤비 (어시스트 체인) — 상위 5건만
