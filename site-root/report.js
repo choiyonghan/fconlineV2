@@ -839,13 +839,25 @@
       concededGoals.forEach(function (g) { goalDetailRow(container, g); });
     }
 
-    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치 (내가 쏜 슛)');
+    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
     pitchTitle.style.marginTop = (myGoals.length || concededGoals.length) ? '14px' : '0';
     container.appendChild(pitchTitle);
+    if (concededShots.length) {
+      container.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
+    }
     var pitchWrap = el('div', 'pitch-wrap');
+    // 상대가 쏜 슛(내가 실점 위기를 겪은 위치)은 상대 본인 관점 좌표라 그대로 쓰면 내 슛과 같은
+    // 방향(우측)에 겹쳐 그려진다 — 180도 반전(x,y 모두 1-값)해서 피치 왼쪽(내 골대 방향)에
+    // 나오게 한다. xG값은 반전 전 원래 좌표의 구역으로 계산해야 정확하다(zoneAggregate는 방향
+    // 무관 "골대까지 거리" 기준 구역표라 반전 여부와 무관하게 원래 좌표를 써야 함).
     var pitchPoints = myShots.map(function (s) {
       return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s) };
-    }).filter(function (p) { return p.x != null && p.y != null; });
+    }).concat(concededShots.map(function (s) {
+      return {
+        x: s.x != null ? 1 - s.x : null, y: s.y != null ? 1 - s.y : null,
+        goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s)
+      };
+    })).filter(function (p) { return p.x != null && p.y != null; });
     pitchHeatmap(pitchWrap, pitchPoints);
     container.appendChild(pitchWrap);
   }
