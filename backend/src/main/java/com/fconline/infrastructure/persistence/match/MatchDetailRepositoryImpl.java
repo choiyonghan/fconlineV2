@@ -457,7 +457,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
         return queryFactory
                 .select(se.spId, se.x, se.y, se.shootType, se.result, se.goalTimeMinutes, se.period,
-                        se.assist, se.assistSpId)
+                        se.assist, se.assistSpId, se.assistX, se.assistY, se.hitPost, se.inPenalty)
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
@@ -466,7 +466,8 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .fetch().stream()
                 .map(row -> new MatchShotDetail(
                         row.get(se.spId), row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
-                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId)))
+                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId),
+                        row.get(se.assistX), row.get(se.assistY), row.get(se.hitPost), row.get(se.inPenalty)))
                 .toList();
     }
 
@@ -494,7 +495,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
         return queryFactory
                 .select(se.spId, se.x, se.y, se.shootType, se.result, se.goalTimeMinutes, se.period,
-                        se.assist, se.assistSpId)
+                        se.assist, se.assistSpId, se.assistX, se.assistY, se.hitPost, se.inPenalty)
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
@@ -503,7 +504,8 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .fetch().stream()
                 .map(row -> new MatchShotDetail(
                         row.get(se.spId), row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
-                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId)))
+                        row.get(se.goalTimeMinutes), row.get(se.period), row.get(se.assist), row.get(se.assistSpId),
+                        row.get(se.assistX), row.get(se.assistY), row.get(se.hitPost), row.get(se.inPenalty)))
                 .toList();
     }
 

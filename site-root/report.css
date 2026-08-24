@@ -436,6 +436,28 @@
   .miss-dot { fill: var(--gridline); fill-opacity: 0.7; stroke: var(--text-muted); stroke-width: 0.75; cursor: pointer; }
   .miss-dot:hover, .miss-dot:focus { fill-opacity: 1; outline: none; }
 
+  /* 매치 상세 모달의 인터랙티브 슈팅 위치(클릭 → 어시스트 선 + 텍스트 해설) */
+  .shot-dot-selected { stroke: var(--series-2); stroke-width: 2.5; }
+  .assist-line {
+    stroke: var(--series-2);
+    stroke-width: 1.5;
+    stroke-dasharray: 4, 3;
+    fill: none;
+    marker-end: url(#assist-arrowhead);
+  }
+  .match-pitch-commentary {
+    margin-top: 10px;
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--series-2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    min-height: 1.6em;
+  }
+
   /* ---------- tooltip ---------- */
   #tooltip {
     position: fixed;

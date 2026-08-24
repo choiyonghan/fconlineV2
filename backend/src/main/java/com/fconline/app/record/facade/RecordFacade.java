@@ -257,7 +257,8 @@ public class RecordFacade {
                         s.result() == ShootResult.GOAL,
                         s.goalTimeMinutes(), s.period(),
                         Boolean.TRUE.equals(s.assist()), s.assistSpId(),
-                        s.assistSpId() != null ? playerNames.getOrDefault(s.assistSpId(), s.assistSpId()) : null))
+                        s.assistSpId() != null ? playerNames.getOrDefault(s.assistSpId(), s.assistSpId()) : null,
+                        s.assistX(), s.assistY(), s.hitPost(), s.inPenalty()))
                 .toList();
     }
 
