@@ -436,15 +436,21 @@
   .miss-dot { fill: var(--gridline); fill-opacity: 0.7; stroke: var(--text-muted); stroke-width: 0.75; cursor: pointer; }
   .miss-dot:hover, .miss-dot:focus { fill-opacity: 1; outline: none; }
 
-  /* 매치 상세 모달의 인터랙티브 슈팅 위치(클릭 → 어시스트 선 + 텍스트 해설) */
-  .shot-dot-selected { stroke: var(--series-2); stroke-width: 2.5; }
+  /* 매치 상세 모달의 인터랙티브 슈팅 위치 — 어시스트 화살표는 전부 미리 그려두고, 슛 점이나
+     득점 타임라인 행을 클릭하면 그 슛만 활성화(active)하고 나머지는 흐리게(dim) 만든다. */
   .assist-line {
     stroke: var(--series-2);
     stroke-width: 1.5;
+    stroke-opacity: 0.6;
     stroke-dasharray: 4, 3;
     fill: none;
     marker-end: url(#assist-arrowhead);
+    transition: stroke-opacity 0.15s, stroke-width 0.15s;
   }
+  .assist-line-active { stroke-opacity: 1; stroke-width: 2.5; }
+  .assist-line-dim { stroke-opacity: 0.12; }
+  .shot-dot-active { stroke: var(--series-2); stroke-width: 2.5; }
+  .shot-dot-dim { opacity: 0.2; }
   .match-pitch-commentary {
     margin-top: 10px;
     background: var(--page-plane);
@@ -718,6 +724,9 @@
     border-left: 3px solid var(--series-1);
   }
   .goal-timeline-row.conceded { border-left-color: var(--status-critical); }
+  .goal-timeline-row-clickable { cursor: pointer; }
+  .goal-timeline-row-clickable:hover { background: var(--surface-1); }
+  .goal-timeline-row-clickable:focus-visible { outline: 2px solid var(--series-1); outline-offset: 1px; }
   .goal-timeline-minute {
     flex: none;
     width: 30px;

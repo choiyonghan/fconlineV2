@@ -817,8 +817,11 @@
     return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
   }
 
-  /** 득점 타임라인 한 줄 — 분, 내 골/상대 골 구분, 선수, 유형, 어시스트, 이 구역 xG값(0~1). */
-  function goalTimelineRow(container, g) {
+  /**
+   * 득점 타임라인 한 줄 — 분, 내 골/상대 골 구분, 선수, 유형, 어시스트, 이 구역 xG값(0~1).
+   * onSelect가 있으면 행을 클릭/엔터 가능하게 만든다(슈팅 위치에서 그 슛만 활성화하는 용도).
+   */
+  function goalTimelineRow(container, g, onSelect) {
     var row = el('div', 'goal-timeline-row ' + (g.mine ? 'mine' : 'conceded'));
     var minute = absoluteMinuteOf(g.goalTimeMinutes, g.period);
     row.appendChild(el('div', 'goal-timeline-minute', minute != null ? minute + "'" : '-'));
@@ -835,6 +838,14 @@
     if (xg != null) detailParts.push('이 구역 xG ' + round1(xg) + '골');
     body.appendChild(el('div', 'goal-timeline-meta', detailParts.join(' · ')));
     row.appendChild(body);
+    if (onSelect) {
+      row.classList.add('goal-timeline-row-clickable');
+      row.tabIndex = 0;
+      row.setAttribute('role', 'button');
+      row.setAttribute('aria-label', '아래 슈팅 위치에서 이 골 활성화');
+      row.addEventListener('click', onSelect);
+      row.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } });
+    }
     container.appendChild(row);
   }
 
@@ -878,9 +889,14 @@
   }
 
   /**
-   * 매치 상세 모달의 인터랙티브 슈팅 위치 — 점을 클릭하면 그 슛의 어시스트 지점과 선으로
-   * 연결해 보여주고, 아래에 풋볼매니저 스타일 텍스트 해설이 뜬다. 실점(상대 슛)은 180도
-   * 반전(x,y,assistX,assistY 전부 1-값)해서 좌측(내 골대 방향)에 함께 그린다.
+   * 매치 상세 모달의 인터랙티브 슈팅 위치 — 어시스트가 있는 슛은 전부 화살표 선으로 미리
+   * 다 그려서 보여준다(득점 타임라인처럼 하나만 콕 집는 게 아니라 전체 그림 먼저). 슛 점이나
+   * (반환하는 컨트롤러를 통해) 타임라인 행을 클릭하면 그 슛만 활성화되고 나머지는 회색으로
+   * 흐려진다. 실점(상대 슛)은 180도 반전(x,y,assistX,assistY 전부 1-값)해서 좌측(내 골대
+   * 방향)에 함께 그린다.
+   *
+   * @returns {{selectGoal: function(Object): void}} 득점 타임라인 행 클릭 시 그 골에 해당하는
+   *   슛만 활성화하기 위한 컨트롤러(mine+spId+goalTimeMinutes+period로 매칭한다).
    */
   function renderInteractiveMatchPitch(container, myShots, concededShots) {
     container.replaceChildren();
@@ -902,7 +918,7 @@
     svg.setAttribute('viewBox', '0 0 ' + PITCH_W + ' ' + PITCH_H);
     svg.setAttribute('class', 'pitch');
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', '슈팅 위치, 클릭하면 상세 해설이 표시됩니다');
+    svg.setAttribute('aria-label', '슈팅·어시스트 위치, 클릭하면 상세 해설이 표시됩니다');
 
     // 어시스트 화살표 끝머리 마커 — svg마다 새로 생성되니 defs도 매번 같이 넣어준다.
     var defs = document.createElementNS(PITCH_NS, 'defs');
@@ -923,13 +939,38 @@
 
     drawPitchOutline(svg);
 
-    var commentaryBox = el('div', 'match-pitch-commentary', '슛을 클릭하면 상세 해설이 나와요.');
-    var assistLine = null;
-    var selectedDot = null;
+    var commentaryBox = el('div', 'match-pitch-commentary', '슛이나 위 득점 타임라인을 클릭하면 상세 해설이 나와요.');
+    var entries = [];
+
+    function activate(entry) {
+      entries.forEach(function (e) {
+        var isActive = e === entry;
+        e.dotEl.classList.toggle('shot-dot-active', isActive);
+        e.dotEl.classList.toggle('shot-dot-dim', !isActive);
+        if (e.lineEl) {
+          e.lineEl.classList.toggle('assist-line-active', isActive);
+          e.lineEl.classList.toggle('assist-line-dim', !isActive);
+        }
+      });
+      commentaryBox.textContent = buildShotCommentary(entry.shot);
+    }
 
     allShots.forEach(function (p) {
       var cx = (p.x * PITCH_W).toFixed(1);
       var cy = (p.y * PITCH_H).toFixed(1);
+
+      // 어시스트가 있는 슛은 처음부터 화살표 선을 그려둔다(선택 전까지는 전체가 다 보임).
+      var lineEl = null;
+      if (p.assist && p.assistX != null && p.assistY != null) {
+        lineEl = document.createElementNS(PITCH_NS, 'line');
+        lineEl.setAttribute('x1', (p.assistX * PITCH_W).toFixed(1));
+        lineEl.setAttribute('y1', (p.assistY * PITCH_H).toFixed(1));
+        lineEl.setAttribute('x2', cx);
+        lineEl.setAttribute('y2', cy);
+        lineEl.setAttribute('class', 'assist-line');
+        svg.appendChild(lineEl);
+      }
+
       var dot = document.createElementNS(PITCH_NS, 'circle');
       dot.setAttribute('cx', cx);
       dot.setAttribute('cy', cy);
@@ -938,29 +979,27 @@
       dot.tabIndex = 0;
       dot.setAttribute('role', 'button');
       dot.setAttribute('aria-label', p.playerName + '의 슛, 클릭하면 해설 표시');
-      var selectFn = function () {
-        if (selectedDot) selectedDot.classList.remove('shot-dot-selected');
-        dot.classList.add('shot-dot-selected');
-        selectedDot = dot;
-        if (assistLine) { assistLine.remove(); assistLine = null; }
-        if (p.assist && p.assistX != null && p.assistY != null) {
-          assistLine = document.createElementNS(PITCH_NS, 'line');
-          assistLine.setAttribute('x1', (p.assistX * PITCH_W).toFixed(1));
-          assistLine.setAttribute('y1', (p.assistY * PITCH_H).toFixed(1));
-          assistLine.setAttribute('x2', cx);
-          assistLine.setAttribute('y2', cy);
-          assistLine.setAttribute('class', 'assist-line');
-          svg.insertBefore(assistLine, dot);
-        }
-        commentaryBox.textContent = buildShotCommentary(p);
-      };
+      svg.appendChild(dot);
+
+      var entry = { shot: p, dotEl: dot, lineEl: lineEl };
+      entries.push(entry);
+      var selectFn = function () { activate(entry); };
       dot.addEventListener('click', selectFn);
       dot.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectFn(); } });
-      svg.appendChild(dot);
     });
 
     container.appendChild(svg);
     container.appendChild(commentaryBox);
+
+    return {
+      selectGoal: function (g) {
+        var match = entries.filter(function (e) {
+          return e.shot.mine === g.mine && e.shot.spId === g.spId
+            && e.shot.goalTimeMinutes === g.goalTimeMinutes && e.shot.period === g.period;
+        })[0];
+        if (match) activate(match);
+      }
+    };
   }
 
   /**
@@ -990,21 +1029,26 @@
       return ma - mb;
     });
 
+    // 피치를 먼저 만들어 컨트롤러를 얻어둔다(DOM에는 타임라인 다음에 붙여서 화면 순서는
+    // 유지한다) — 득점 타임라인 행을 클릭했을 때 아래 슈팅 위치에서 그 골만 활성화하기 위함.
+    var pitchWrap = el('div', 'pitch-wrap');
+    var pitchController = renderInteractiveMatchPitch(pitchWrap, myShots, concededShots);
+
     if (timeline.length) {
-      container.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
+      container.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인 (클릭하면 아래 슈팅 위치에서 활성화)'));
       var tl = el('div', 'goal-timeline');
-      timeline.forEach(function (g) { goalTimelineRow(tl, g); });
+      timeline.forEach(function (g) {
+        goalTimelineRow(tl, g, function () { pitchController.selectGoal(g); });
+      });
       container.appendChild(tl);
     }
 
-    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치 (클릭하면 해설이 나와요)');
+    var pitchTitle = el('p', 'card-title', '🎯 슈팅 위치');
     pitchTitle.style.marginTop = timeline.length ? '14px' : '0';
     container.appendChild(pitchTitle);
     if (concededShots.length) {
       container.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
     }
-    var pitchWrap = el('div', 'pitch-wrap');
-    renderInteractiveMatchPitch(pitchWrap, myShots, concededShots);
     container.appendChild(pitchWrap);
   }
 
