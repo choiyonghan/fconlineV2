@@ -665,7 +665,9 @@
       c.setAttribute('cx', cx);
       c.setAttribute('cy', cy);
       c.setAttribute('r', isGoal ? 5 : 3);
-      c.setAttribute('class', isGoal ? 'goal-dot' : 'miss-dot');
+      // p.mine === false면 상대가 넣은 골(실점) — 다른 색으로 구분한다. mine이 없는 호출부
+      // (기존 전체 슛 히트맵 등)는 전부 "내 슛"으로 취급해 기존 색 그대로 나온다.
+      c.setAttribute('class', isGoal ? (p.mine === false ? 'goal-dot-conceded' : 'goal-dot') : 'miss-dot');
       c.tabIndex = 0;
       var xgLabel = p.xg != null ? round1(p.xg) + '골' : null;
       var showFn = function (evt) {
@@ -691,10 +693,18 @@
     var gi = el('div', 'legend-item');
     var gs = el('span', 'legend-swatch'); gs.style.background = 'var(--series-1)'; gs.style.borderRadius = '50%';
     gi.appendChild(gs); gi.appendChild(document.createTextNode('득점'));
+    legend.appendChild(gi);
+    var hasConceded = points.some(function (p) { return p.goal && p.mine === false; });
+    if (hasConceded) {
+      var ci = el('div', 'legend-item');
+      var cs = el('span', 'legend-swatch'); cs.style.background = 'var(--status-critical)'; cs.style.borderRadius = '50%';
+      ci.appendChild(cs); ci.appendChild(document.createTextNode('상대 득점(실점)'));
+      legend.appendChild(ci);
+    }
     var mi = el('div', 'legend-item');
     var ms = el('span', 'legend-swatch'); ms.style.background = 'var(--gridline)'; ms.style.border = '1px solid var(--text-muted)'; ms.style.borderRadius = '50%';
     mi.appendChild(ms); mi.appendChild(document.createTextNode('무산(온타겟/오프타겟)'));
-    legend.appendChild(gi); legend.appendChild(mi);
+    legend.appendChild(mi);
     container.appendChild(legend);
   }
   // ---------------- tables ----------------
@@ -851,11 +861,11 @@
     // 나오게 한다. xG값은 반전 전 원래 좌표의 구역으로 계산해야 정확하다(zoneAggregate는 방향
     // 무관 "골대까지 거리" 기준 구역표라 반전 여부와 무관하게 원래 좌표를 써야 함).
     var pitchPoints = myShots.map(function (s) {
-      return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s) };
+      return { x: s.x, y: s.y, goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s), mine: true };
     }).concat(concededShots.map(function (s) {
       return {
         x: s.x != null ? 1 - s.x : null, y: s.y != null ? 1 - s.y : null,
-        goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s)
+        goal: s.isGoal, shootType: s.shootType, result: s.result, xg: xgOfShot(s), mine: false
       };
     })).filter(function (p) { return p.x != null && p.y != null; });
     pitchHeatmap(pitchWrap, pitchPoints);

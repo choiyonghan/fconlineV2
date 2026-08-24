@@ -428,6 +428,8 @@
   .pitch-line { fill: none; stroke: var(--gridline); stroke-width: 1; }
   .goal-dot { fill: var(--series-1); fill-opacity: 0.85; stroke: var(--surface-1); stroke-width: 1.5; cursor: pointer; }
   .goal-dot:hover, .goal-dot:focus { fill-opacity: 1; outline: none; }
+  .goal-dot-conceded { fill: var(--status-critical); fill-opacity: 0.85; stroke: var(--surface-1); stroke-width: 1.5; cursor: pointer; }
+  .goal-dot-conceded:hover, .goal-dot-conceded:focus { fill-opacity: 1; outline: none; }
   .miss-dot { fill: var(--gridline); fill-opacity: 0.7; stroke: var(--text-muted); stroke-width: 0.75; cursor: pointer; }
   .miss-dot:hover, .miss-dot:focus { fill-opacity: 1; outline: none; }
 
