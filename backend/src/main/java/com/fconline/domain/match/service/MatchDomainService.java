@@ -2,9 +2,11 @@ package com.fconline.domain.match.service;
 
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.FirstGoalResult;
 import com.fconline.domain.match.vo.GoalTimeCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
+import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
@@ -148,5 +150,32 @@ public class MatchDomainService {
     /** spId별 가장 최근 매치에서 관측된 카드 강화 단계(0~11강). */
     public List<PlayerGrade> latestSpGrades(String ouid, MatchType matchType, Instant from, Instant to) {
         return matchDetailRepository.findLatestSpGrades(ouid, matchType, from, to);
+    }
+
+    /**
+     * 특정 상대와의 매치별 "선제골"(누가 먼저 넣었는지) — AI 인사이트 스냅샷의 선제골 분석용.
+     * 매치별로 골 이벤트를 절대 분(period 오프셋 반영)으로 환산해 가장 이른 골의 주체를 고른다.
+     * 무득점으로 끝난 매치는 결과에 안 나온다(고를 골이 없으므로).
+     */
+    public List<FirstGoalResult> firstGoalScorers(String ouid, MatchType matchType, Instant from, Instant to,
+                                                   String opponentOuid) {
+        List<MatchGoalEvent> events = matchDetailRepository.findGoalEventsVsOpponent(ouid, matchType, from, to, opponentOuid);
+
+        Map<String, MatchGoalEvent> earliestByMatch = new LinkedHashMap<>();
+        for (MatchGoalEvent event : events) {
+            int absoluteMinute = nz(event.minute()) + periodOffset(event.period());
+            MatchGoalEvent current = earliestByMatch.get(event.matchId());
+            if (current == null || absoluteMinute < (nz(current.minute()) + periodOffset(current.period()))) {
+                earliestByMatch.put(event.matchId(), event);
+            }
+        }
+
+        return earliestByMatch.entrySet().stream()
+                .map(e -> new FirstGoalResult(e.getKey(), e.getValue().mine()))
+                .toList();
+    }
+
+    private static int nz(Integer value) {
+        return value == null ? 0 : value;
     }
 }

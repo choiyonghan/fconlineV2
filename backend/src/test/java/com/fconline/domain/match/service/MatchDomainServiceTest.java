@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
 
 import com.fconline.domain.match.repository.MatchDetailRepository;
+import com.fconline.domain.match.vo.FirstGoalResult;
 import com.fconline.domain.match.vo.GoalTimeCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
+import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchType;
 import java.time.Instant;
 import java.util.List;
@@ -58,6 +60,32 @@ class MatchDomainServiceTest {
                         tuple("61-75", 1L), // 75
                         tuple("76-90", 1L), // 90
                         tuple("연장전", 3L) // 95, 120, 91
+                );
+    }
+
+    @Test
+    void 매치별로_절대_분이_가장_이른_골의_주체를_선제골로_고른다() {
+        MatchDomainService service = new MatchDomainService(matchDetailRepository);
+        when(matchDetailRepository.findGoalEventsVsOpponent("me", MatchType.CUSTOM, null, null, "opp"))
+                .thenReturn(List.of(
+                        // match-1: 내 골(후반 10분=55) vs 상대 골(전반 5분=5) — 상대가 더 빠름
+                        new MatchGoalEvent("match-1", 10, 2, true),
+                        new MatchGoalEvent("match-1", 5, 1, false),
+                        // match-2: 내 골만 있음(전반 20분) — 내가 선제골
+                        new MatchGoalEvent("match-2", 20, 1, true),
+                        // match-3: 내가 먼저(전반 3분), 나중에 상대(전반 40분) — 그래도 내가 선제골
+                        new MatchGoalEvent("match-3", 3, 1, true),
+                        new MatchGoalEvent("match-3", 40, 1, false)
+                ));
+
+        List<FirstGoalResult> result = service.firstGoalScorers("me", MatchType.CUSTOM, null, null, "opp");
+
+        assertThat(result)
+                .extracting(FirstGoalResult::matchId, FirstGoalResult::mine)
+                .containsExactlyInAnyOrder(
+                        tuple("match-1", false),
+                        tuple("match-2", true),
+                        tuple("match-3", true)
                 );
     }
 }

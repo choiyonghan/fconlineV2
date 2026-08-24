@@ -4,6 +4,7 @@ import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
+import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
@@ -115,4 +116,12 @@ public interface MatchDetailRepositoryCustom {
      * 선수(예: 무실점만 지킨 골키퍼)는 shoot_events에 행이 없어 결과에서 빠진다.
      */
     List<PlayerGrade> findLatestSpGrades(String ouid, MatchType matchType, Instant from, Instant to);
+
+    /**
+     * 특정 상대와의 매치들에서 나온 골 이벤트 전체(누구 골인지 + 시각) — "선제골" 분석용
+     * (AI 인사이트 스냅샷). 상대 쪽 골은 findConcededShotPoints와 같은 원리(상대 본인 관점
+     * shoot_events)로 가져온다 — 상대가 추적 대상이 아니면 상대 쪽 골은 빠진다.
+     */
+    List<MatchGoalEvent> findGoalEventsVsOpponent(String ouid, MatchType matchType, Instant from, Instant to,
+                                                   String opponentOuid);
 }

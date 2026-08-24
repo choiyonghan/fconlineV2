@@ -4,6 +4,7 @@ import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
+import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
@@ -556,6 +557,71 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
             latestBySpId.putIfAbsent(row.get(se.spId), new PlayerGrade(row.get(se.spId), row.get(se.spGrade)));
         }
         return new ArrayList<>(latestBySpId.values());
+    }
+
+    @Override
+    public List<MatchGoalEvent> findGoalEventsVsOpponent(String ouid, MatchType matchType, Instant from, Instant to,
+                                                           String opponentOuid) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        // 1) 이 유저 관점, 이 상대와의 매치들에서 내 골.
+        List<Tuple> myGoalRows = queryFactory
+                .select(m.matchId, se.goalTimeMinutes, se.period)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to)
+                        .and(md.opponentOuid.eq(opponentOuid))
+                        .and(se.result.eq(ShootResult.GOAL)))
+                .fetch();
+
+        if (myGoalRows.isEmpty()) {
+            return findOpponentGoalsOnly(md, m, ouid, matchType, from, to, opponentOuid);
+        }
+
+        List<MatchGoalEvent> events = new ArrayList<>();
+        for (Tuple row : myGoalRows) {
+            events.add(new MatchGoalEvent(row.get(m.matchId), row.get(se.goalTimeMinutes), row.get(se.period), true));
+        }
+        events.addAll(findOpponentGoalsOnly(md, m, ouid, matchType, from, to, opponentOuid));
+        return events;
+    }
+
+    /**
+     * "상대 본인 관점" shoot_events에서 골만 가져온다(상대가 추적 대상이 아니면 빈 목록) —
+     * findConcededShotPoints와 같은 원리를 골 이벤트(시각)로 좁힌 것.
+     */
+    private List<MatchGoalEvent> findOpponentGoalsOnly(QMatchDetail md, QMatch m, String ouid, MatchType matchType,
+                                                         Instant from, Instant to, String opponentOuid) {
+        List<String> matchIds = queryFactory
+                .select(m.matchId)
+                .from(md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to).and(md.opponentOuid.eq(opponentOuid)))
+                .fetch();
+        if (matchIds.isEmpty()) {
+            return List.of();
+        }
+
+        QMatchDetail opp = new QMatchDetail("goalEventOpponentDetail");
+        QMatch oppMatch = new QMatch("goalEventOpponentMatch");
+        QShootEvent oppSe = new QShootEvent("goalEventOpponentShootEvent");
+
+        return queryFactory
+                .select(oppMatch.matchId, oppSe.goalTimeMinutes, oppSe.period)
+                .from(oppSe)
+                .join(oppSe.matchDetail, opp)
+                .join(opp.match, oppMatch)
+                .where(opp.ouid.eq(opponentOuid)
+                        .and(oppMatch.matchType.eq(matchType))
+                        .and(oppMatch.matchId.in(matchIds))
+                        .and(oppSe.result.eq(ShootResult.GOAL)))
+                .fetch().stream()
+                .map(row -> new MatchGoalEvent(row.get(oppMatch.matchId), row.get(oppSe.goalTimeMinutes),
+                        row.get(oppSe.period), false))
+                .toList();
     }
 
     /** from은 포함(>=), to는 배제(<) — Season.endInstantExclusiveOrNull()과 짝을 이루는 규약. */

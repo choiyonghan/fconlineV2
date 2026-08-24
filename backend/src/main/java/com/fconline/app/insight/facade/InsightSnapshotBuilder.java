@@ -1,5 +1,6 @@
 package com.fconline.app.insight.facade;
 
+import com.fconline.app.common.SeasonRangeResolver;
 import com.fconline.app.insight.dto.InsightSnapshotContent;
 import com.fconline.app.opponent.dto.OpponentMatchResponse;
 import com.fconline.app.opponent.dto.OpponentSummaryResponse;
@@ -11,13 +12,17 @@ import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.app.record.facade.RecordFacade;
+import com.fconline.domain.match.service.MatchDomainService;
+import com.fconline.domain.match.vo.FirstGoalResult;
 import com.fconline.domain.match.vo.MatchType;
+import com.fconline.domain.season.Season;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,12 +52,17 @@ public class InsightSnapshotBuilder {
     private final RecordFacade recordFacade;
     private final OpponentFacade opponentFacade;
     private final TrackedUserAliasResolver aliasResolver;
+    private final SeasonRangeResolver seasonRangeResolver;
+    private final MatchDomainService matchDomainService;
 
     public InsightSnapshotBuilder(RecordFacade recordFacade, OpponentFacade opponentFacade,
-                                   TrackedUserAliasResolver aliasResolver) {
+                                   TrackedUserAliasResolver aliasResolver, SeasonRangeResolver seasonRangeResolver,
+                                   MatchDomainService matchDomainService) {
         this.recordFacade = recordFacade;
         this.opponentFacade = opponentFacade;
         this.aliasResolver = aliasResolver;
+        this.seasonRangeResolver = seasonRangeResolver;
+        this.matchDomainService = matchDomainService;
     }
 
     @Transactional(readOnly = true)
@@ -67,13 +77,16 @@ public class InsightSnapshotBuilder {
 
         String summaryText = buildSummaryText(overall, opponents, allPlayers, assistChains, recentMatches);
 
+        Season season = seasonRangeResolver.resolve(seasonId);
         Map<String, String> opponentDetailByNickname = new LinkedHashMap<>();
         for (OpponentSummaryResponse o : opponents) {
             List<OpponentMatchResponse> matches = opponentFacade
                     .listOpponentMatches(ouid, o.opponentOuid(), matchType, seasonId,
                             PageRequest.of(0, OPPONENT_MATCH_LIMIT))
                     .getContent();
-            opponentDetailByNickname.put(o.opponentNickname(), buildOpponentDetailText(o, matches));
+            List<FirstGoalResult> firstGoals = matchDomainService.firstGoalScorers(
+                    ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), o.opponentOuid());
+            opponentDetailByNickname.put(o.opponentNickname(), buildOpponentDetailText(o, matches, firstGoals));
         }
 
         return new InsightSnapshotContent(summaryText, opponentDetailByNickname);
@@ -172,7 +185,8 @@ public class InsightSnapshotBuilder {
         return sb.toString();
     }
 
-    private String buildOpponentDetailText(OpponentSummaryResponse o, List<OpponentMatchResponse> matches) {
+    private String buildOpponentDetailText(OpponentSummaryResponse o, List<OpponentMatchResponse> matches,
+                                            List<FirstGoalResult> firstGoals) {
         StringBuilder sb = new StringBuilder();
         sb.append("[상대: ").append(withAlias(o.opponentNickname())).append("] 경기별 상세 기록(최신 ")
                 .append(matches.size()).append("건):\n");
@@ -191,6 +205,63 @@ public class InsightSnapshotBuilder {
         if (matches.isEmpty()) {
             sb.append("- (데이터 없음)\n");
         }
+
+        String firstGoalSummary = buildFirstGoalSummary(o, matches, firstGoals);
+        if (firstGoalSummary != null) {
+            sb.append("\n").append(firstGoalSummary);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * "누가 선제골을 더 많이 넣고, 그때 결과는 어땠는지" — 위 경기별 상세 기록(최신
+     * OPPONENT_MATCH_LIMIT건)과 같은 범위로 좁혀서(그래야 "표본 N건"과 승/무/패 합계가 서로
+     * 어긋나지 않는다) 집계한다. 두 참가자 다 추적 대상이어야 그 매치의 골 타임라인을 완전히
+     * 복원할 수 있으므로, firstGoals에 아예 안 잡힌(무득점이거나 양쪽 다 추적 안 되는) 매치는
+     * 자연히 표본에서 빠진다.
+     */
+    private String buildFirstGoalSummary(OpponentSummaryResponse o, List<OpponentMatchResponse> matches,
+                                          List<FirstGoalResult> firstGoals) {
+        if (firstGoals.isEmpty()) {
+            return null;
+        }
+        Map<String, String> resultByMatchId = matches.stream()
+                .collect(Collectors.toMap(OpponentMatchResponse::matchId, OpponentMatchResponse::result, (a, b) -> a));
+
+        int myFirst = 0, oppFirst = 0;
+        int myFirstWin = 0, myFirstDraw = 0, myFirstLose = 0;
+        int oppFirstWin = 0, oppFirstDraw = 0, oppFirstLose = 0;
+
+        for (FirstGoalResult fg : firstGoals) {
+            String result = resultByMatchId.get(fg.matchId());
+            if (result == null) {
+                continue; // 위에서 보여준 "최신 N건" 범위 밖 매치는 승/무/패 합계 어긋남 방지를 위해 제외
+            }
+            if (fg.mine()) {
+                myFirst++;
+                if ("승".equals(result)) myFirstWin++;
+                else if ("무".equals(result)) myFirstDraw++;
+                else if ("패".equals(result)) myFirstLose++;
+            } else {
+                oppFirst++;
+                if ("승".equals(result)) oppFirstWin++;
+                else if ("무".equals(result)) oppFirstDraw++;
+                else if ("패".equals(result)) oppFirstLose++;
+            }
+        }
+
+        int total = myFirst + oppFirst;
+        if (total == 0) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(withAlias(o.opponentNickname())).append("와의 선제골 분석(위 경기별 상세 기록과 같은 표본 ")
+                .append(total).append("건 — 양쪽 다 골 타임라인 복원 가능한 매치만, 무득점 경기는 표본에서 제외):\n");
+        sb.append("- 내가 선제골: ").append(myFirst).append("회 (그때 결과 ")
+                .append(myFirstWin).append("승 ").append(myFirstDraw).append("무 ").append(myFirstLose).append("패)\n");
+        sb.append("- 상대가 선제골: ").append(oppFirst).append("회 (그때 결과 ")
+                .append(oppFirstWin).append("승 ").append(oppFirstDraw).append("무 ").append(oppFirstLose).append("패)\n");
         return sb.toString();
     }
 
