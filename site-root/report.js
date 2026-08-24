@@ -919,10 +919,13 @@
    * 다 그려서 보여준다(득점 타임라인처럼 하나만 콕 집는 게 아니라 전체 그림 먼저). 슛 점이나
    * (반환하는 컨트롤러를 통해) 타임라인 행을 클릭하면 그 슛만 활성화되고 나머지는 회색으로
    * 흐려진다. 실점(상대 슛)은 180도 반전(x,y,assistX,assistY 전부 1-값)해서 좌측(내 골대
-   * 방향)에 함께 그린다.
+   * 방향)에 함께 그린다. container에는 피치 SVG만 그리고, 해설 텍스트 박스는 별도 줄로
+   * 붙일 수 있도록 commentaryEl로 반환만 한다(호출부가 원하는 위치에 appendChild한다).
    *
-   * @returns {{selectGoal: function(Object): void}} 득점 타임라인 행 클릭 시 그 골에 해당하는
-   *   슛만 활성화하기 위한 컨트롤러(mine+spId+goalTimeMinutes+period로 매칭한다).
+   * @returns {{commentaryEl: HTMLElement, selectGoal: function(Object): void}}
+   *   commentaryEl은 해설 텍스트가 표시되는 박스(호출부가 붙여야 화면에 보인다),
+   *   selectGoal은 득점 타임라인 행 클릭 시 그 골에 해당하는 슛만 활성화하기 위한 함수
+   *   (mine+spId+goalTimeMinutes+period로 매칭한다).
    */
   function renderInteractiveMatchPitch(container, myShots, concededShots) {
     container.replaceChildren();
@@ -1015,9 +1018,9 @@
     });
 
     container.appendChild(svg);
-    container.appendChild(commentaryBox);
 
     return {
+      commentaryEl: commentaryBox,
       selectGoal: function (g) {
         var match = entries.filter(function (e) {
           return e.shot.mine === g.mine && e.shot.spId === g.spId
@@ -1029,9 +1032,9 @@
   }
 
   /**
-   * 매치 상세 모달의 "⏱️ 득점 타임라인"(내 득점 + 실점을 한 줄로 합쳐 실제 시간 순으로 정렬)
-   * + "🎯 슈팅 위치" 섹션. concededShots가 비어 있으면(상대가 추적 대상이 아니면) 실점은
-   * 조용히 빠지고 내 득점만 나온다.
+   * 매치 상세 모달의 "⏱️ 득점 타임라인" / "🎯 슈팅 위치" / "📝 해설" 세 줄 섹션 — 각각
+   * 전체 폭을 차지하는 별도 줄로 위아래로 쌓는다. concededShots가 비어 있으면(상대가 추적
+   * 대상이 아니면) 실점은 조용히 빠지고 내 득점만 나온다.
    */
   function renderModalShots(container, myShots, concededShots) {
     container.replaceChildren();
@@ -1056,8 +1059,7 @@
     });
 
     // 피치를 먼저 만들어 컨트롤러를 얻어둔다 — 득점 타임라인 행을 클릭했을 때 슈팅 위치에서
-    // 그 골만 활성화하기 위함. 두 칸(타임라인/피치)은 modal-shots-body가 넓은 화면에선 좌우로,
-    // 좁은 화면(모바일)에선 위아래로(타임라인 먼저) 배치한다 — DOM 순서는 항상 타임라인이 먼저다.
+    // 그 골만 활성화하기 위함. 세 줄(타임라인/피치/해설)은 항상 이 순서로 위아래에 쌓인다.
     var pitchWrap = el('div', 'pitch-wrap');
     var pitchController = renderInteractiveMatchPitch(pitchWrap, myShots, concededShots);
 
@@ -1066,7 +1068,7 @@
     var timelineCol = el('div', 'modal-shots-col');
     if (timeline.length) {
       timelineCol.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
-      timelineCol.appendChild(el('p', 'card-caption', '클릭하면 슈팅 위치에서 그 골만 활성화됩니다.'));
+      timelineCol.appendChild(el('p', 'card-caption', '클릭하면 아래 슈팅 위치·해설에서 그 골만 활성화됩니다.'));
       var tl = el('div', 'goal-timeline');
       timeline.forEach(function (g) {
         goalTimelineRow(tl, g, function () { pitchController.selectGoal(g); });
@@ -1082,6 +1084,11 @@
     }
     pitchCol.appendChild(pitchWrap);
     body.appendChild(pitchCol);
+
+    var commentaryCol = el('div', 'modal-shots-col');
+    commentaryCol.appendChild(el('p', 'card-title', '📝 해설'));
+    commentaryCol.appendChild(pitchController.commentaryEl);
+    body.appendChild(commentaryCol);
 
     container.appendChild(body);
   }

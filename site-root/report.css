@@ -699,6 +699,9 @@
     display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
     background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
   }
+  @media (min-width: 720px) {
+    .modal-stat-grid { grid-template-columns: repeat(5, 1fr); }
+  }
   .modal-stat {
     background: var(--surface-1); padding: 10px 12px;
   }
@@ -712,14 +715,10 @@
   .modal-shots-section { margin-top: 14px; }
   .modal-shots-section .card-title { margin-top: 0; margin-bottom: 8px; }
 
-  /* 득점 타임라인 / 슈팅 위치 두 칸 — 넓은 화면(모달 폭 820px)에선 좌우로, 좁은 화면(모바일)
-     에선 기존처럼 위아래로(타임라인 먼저) 쌓인다. DOM 순서는 항상 타임라인이 먼저다. */
+  /* 득점 타임라인 / 슈팅 위치 / 해설 — 세 칸 다 각자 전체 폭 한 줄씩 위아래로 쌓는다. */
   .modal-shots-body { display: flex; flex-direction: column; gap: 16px; }
   .modal-shots-col .card-title { margin-top: 0; margin-bottom: 4px; }
   .modal-shots-col .card-caption { margin-top: 0; margin-bottom: 8px; }
-  @media (min-width: 720px) {
-    .modal-shots-body { display: grid; grid-template-columns: 1fr 1.3fr; gap: 22px; align-items: start; }
-  }
 
   /* ⏱️ 득점 타임라인 — 내 득점/실점을 시간 순으로 한 줄씩, 왼쪽 색 테두리로 구분 */
   .goal-timeline { display: flex; flex-direction: column; gap: 8px; }
