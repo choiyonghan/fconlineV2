@@ -717,6 +717,27 @@
   }
   .mom-card-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
   .mom-card-team { font-size: 12px; font-weight: 400; color: var(--text-muted); }
+
+  /* ⚖️ 상대 팀 비교 — 왼쪽=나(--series-1), 오른쪽=상대(--series-3). 값이 큰 쪽 색이 더 넓게 채워진다. */
+  .match-compare-section { margin-bottom: 14px; }
+  .compare-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+  .compare-row-label {
+    flex: 0 0 74px; font-size: 12px; color: var(--text-muted); margin: 0; text-align: right;
+  }
+  .compare-row-bar { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .compare-value {
+    flex: 0 0 44px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px;
+    color: var(--text-primary);
+  }
+  .compare-value-mine { text-align: right; }
+  .compare-value-opp { text-align: left; }
+  .compare-track {
+    flex: 1 1 auto; display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+    background: var(--gridline);
+  }
+  .compare-fill { height: 100%; transition: width 0.2s; }
+  .compare-fill-mine { background: var(--series-1); }
+  .compare-fill-opp { background: var(--series-3); }
   .mom-card-reason { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
   .modal-stat-grid {

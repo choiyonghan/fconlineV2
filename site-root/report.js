@@ -1171,6 +1171,91 @@
     if (worst !== mom) container.appendChild(card('🥶', 'Worst Player', worst, false));
   }
 
+  /**
+   * 게이지 바 1행 — 왼쪽=나, 오른쪽=상대(요청: "내가 높으면 A색, 상대가 높으면 B색"). 값이 큰
+   * 쪽 색(--series-1=나/파랑, --series-3=상대/청록)이 그만큼 넓게 채워져서 우세가 한눈에 보인다.
+   * mineVal/oppVal이 undefined면 "계산 중…"(비동기로 나중에 채워질 값, xG값 행 전용),
+   * null이면 "-"(데이터 자체가 없음)로 구분한다.
+   */
+  function compareRow(container, label, mineVal, oppVal, opts) {
+    opts = opts || {};
+    var format = opts.format || fmt;
+    var row = el('div', 'compare-row');
+    row.appendChild(el('p', 'compare-row-label', label));
+    var barRow = el('div', 'compare-row-bar');
+    var mineSpan = el('span', 'compare-value compare-value-mine');
+    var track = el('div', 'compare-track');
+    var mineFill = el('div', 'compare-fill compare-fill-mine');
+    var oppFill = el('div', 'compare-fill compare-fill-opp');
+    track.appendChild(mineFill);
+    track.appendChild(oppFill);
+    var oppSpan = el('span', 'compare-value compare-value-opp');
+    barRow.appendChild(mineSpan);
+    barRow.appendChild(track);
+    barRow.appendChild(oppSpan);
+    row.appendChild(barRow);
+    container.appendChild(row);
+
+    function update(mv, ov) {
+      mineSpan.textContent = mv === undefined ? '계산 중…' : (mv == null ? '-' : format(mv));
+      oppSpan.textContent = ov === undefined ? '계산 중…' : (ov == null ? '-' : format(ov));
+      var minePct = 50;
+      if (opts.minePct) {
+        minePct = opts.minePct(mv, ov);
+      } else if (typeof mv === 'number' && typeof ov === 'number' && (mv + ov) > 0) {
+        minePct = mv / (mv + ov) * 100;
+      } else if (typeof mv === 'number' && ov == null) {
+        minePct = 100;
+      } else if (mv == null && typeof ov === 'number') {
+        minePct = 0;
+      }
+      mineFill.style.width = minePct + '%';
+      oppFill.style.width = (100 - minePct) + '%';
+    }
+    update(mineVal, oppVal);
+    return { update: update };
+  }
+
+  /**
+   * "⚖️ 상대 팀 비교" — 상대도 추적 대상이어야 상대 쪽 팀 스탯(match-stats)을 가져올 수 있어서
+   * (concededShots·MOM/Worst와 같은 제약), oppStats가 없으면 섹션 전체를 안내 문구로 대체한다.
+   * xG값 행은 match-shots 응답이 따로 필요해 처음엔 "계산 중…"으로 시작하고, openMatchModal이
+   * 반환된 setXg로 나중에 채운다.
+   */
+  function buildCompareSection(container, mine, oppStats, mySquad, oppSquad) {
+    container.replaceChildren();
+    container.appendChild(el('p', 'card-title', '⚖️ 상대 팀 비교'));
+
+    if (!oppStats) {
+      container.appendChild(el('p', 'card-empty', '상대가 추적 대상이 아니라서 비교할 수 없어요.'));
+      return { setXg: function () {} };
+    }
+    container.appendChild(el('p', 'card-caption', '왼쪽 = 나, 오른쪽 = 상대. 값이 큰 쪽 색이 더 넓게 채워집니다.'));
+
+    var mySaves = mySquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
+    var oppSaves = oppSquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
+    var myShotAcc = mine.shootTotal > 0 ? (mine.effectiveShoot / mine.shootTotal * 100) : null;
+    var oppShotAcc = oppStats.shootTotal > 0 ? (oppStats.effectiveShoot / oppStats.shootTotal * 100) : null;
+    var pctFormat = function (v) { return Math.round(v) + '%'; };
+
+    compareRow(container, '득점', mine.goalsFor, mine.goalsAgainst);
+    var xgRow = compareRow(container, 'xG값', undefined, undefined, { format: fmt1 });
+    compareRow(container, '점유율', mine.possession, oppStats.possession, {
+      format: pctFormat, minePct: function (mv) { return mv == null ? 50 : mv; }
+    });
+    compareRow(container, '슛', mine.shootTotal, oppStats.shootTotal);
+    compareRow(container, '유효슛', mine.effectiveShoot, oppStats.effectiveShoot);
+    compareRow(container, '슛 성공률', myShotAcc, oppShotAcc, { format: pctFormat });
+    compareRow(container, '패스 횟수', mine.passSuccess, oppStats.passSuccess);
+    compareRow(container, '태클 횟수', mine.tackleSuccess, oppStats.tackleSuccess);
+    compareRow(container, '선방 횟수', mySaves, oppSaves);
+    compareRow(container, '파울', mine.foul, oppStats.foul);
+    compareRow(container, '옐로카드', mine.yellowCards, oppStats.yellowCards);
+    compareRow(container, '레드카드', mine.redCards, oppStats.redCards);
+
+    return { setXg: function (xgFor, xgAgainst) { xgRow.update(xgFor, xgAgainst); } };
+  }
+
   function xgOfShot(p) {
     return calcXg(p.x, p.y);
   }
@@ -1395,6 +1480,10 @@
             && e.shot.goalTimeMinutes === g.goalTimeMinutes && e.shot.period === g.period;
         })[0];
         if (match) activate(match);
+      },
+      // 아무것도 안 골라도 해설이 비어 보이지 않도록 renderModalShots가 기본값으로 하나 선택해둔다.
+      selectFirst: function () {
+        if (entries.length) activate(entries[0]);
       }
     };
   }
@@ -1453,12 +1542,144 @@
     pitchCol.appendChild(pitchWrap);
     body.appendChild(pitchCol);
 
+    var xgRaceCol = el('div', 'modal-shots-col');
+    xgRaceCol.appendChild(el('p', 'card-title', '📈 xG 추이'));
+    xgRaceCol.appendChild(el('p', 'card-caption', '슛이 나온 시각마다 xG값이 누적됩니다 — 선이 더 가파르게 올라간 쪽이 그 시간대에 우세했다는 뜻이에요.'));
+    var xgRaceChartEl = el('div', '');
+    xgRaceCol.appendChild(xgRaceChartEl);
+    body.appendChild(xgRaceCol);
+    renderXgRaceChart(xgRaceChartEl, myShots, concededShots);
+
     var commentaryCol = el('div', 'modal-shots-col');
     commentaryCol.appendChild(el('p', 'card-title', '📝 해설'));
     commentaryCol.appendChild(pitchController.commentaryEl);
     body.appendChild(commentaryCol);
 
     container.appendChild(body);
+
+    // 아무것도 안 고르면 해설 칸이 계속 비어 보인다는 피드백 — 기본으로 첫 골(없으면 첫 슛)을 선택해둔다.
+    if (timeline.length) pitchController.selectGoal(timeline[0]);
+    else pitchController.selectFirst();
+  }
+
+  /** 슛 목록을 시각 순 누적 xG로 바꾼다 — 0분 (0,0)에서 시작해 슛이 나올 때마다 계단식으로 오른다. */
+  function cumulativeXgSeries(shots) {
+    var points = shots
+      .filter(function (p) { return p.x != null && p.y != null; })
+      .map(function (p) { return { minute: absoluteMinuteOf(p.goalTimeMinutes, p.period), xg: calcXg(p.x, p.y) }; })
+      .filter(function (p) { return p.minute != null; })
+      .sort(function (a, b) { return a.minute - b.minute; });
+    var series = [{ minute: 0, cum: 0 }];
+    var cum = 0;
+    points.forEach(function (p) { cum += p.xg; series.push({ minute: p.minute, cum: cum }); });
+    return series;
+  }
+
+  /**
+   * "xG 추이(momentum)" 계단식 라인차트 — 슈팅 위치의 x,y 좌표를 그대로 써서(match-shots는
+   * player 단위가 아니라 매치 단위라 추가 API 호출 없음) 시간축(분) 위에 누적 xG를 그린다.
+   * lineChart(경기별 추이용, index 기반 x축)와 달리 x축이 실제 "분"이라 별도로 그린다.
+   */
+  function renderXgRaceChart(container, myShots, concededShots) {
+    container.replaceChildren();
+    var mine = cumulativeXgSeries(myShots);
+    var hasOpp = concededShots.length > 0;
+    var opp = hasOpp ? cumulativeXgSeries(concededShots) : null;
+    if (mine.length <= 1 && (!opp || opp.length <= 1)) {
+      container.appendChild(el('p', 'card-empty', '표시할 xG 데이터가 없습니다.'));
+      return;
+    }
+
+    var maxMinute = Math.max(90, mine[mine.length - 1].minute, opp ? opp[opp.length - 1].minute : 0);
+    function extend(series) {
+      var last = series[series.length - 1];
+      return last.minute < maxMinute ? series.concat([{ minute: maxMinute, cum: last.cum }]) : series;
+    }
+    mine = extend(mine);
+    if (opp) opp = extend(opp);
+    var maxCum = Math.max(1, mine[mine.length - 1].cum, opp ? opp[opp.length - 1].cum : 0);
+
+    var W = 480, H = 170, padL = 30, padR = 12, padT = 16, padB = 22;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    function xAt(minute) { return padL + (innerW * minute) / maxMinute; }
+    function yAt(cum) { return padT + innerH - (innerH * cum) / maxCum; }
+
+    function stepPoints(series) {
+      var pts = [];
+      for (var i = 0; i < series.length; i++) {
+        if (i > 0) pts.push(xAt(series[i].minute).toFixed(1) + ',' + yAt(series[i - 1].cum).toFixed(1));
+        pts.push(xAt(series[i].minute).toFixed(1) + ',' + yAt(series[i].cum).toFixed(1));
+      }
+      return pts.join(' ');
+    }
+
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('class', 'linechart');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', '시간대별 누적 xG 추이');
+
+    var Y_TICKS = 4;
+    for (var t = 0; t <= Y_TICKS; t++) {
+      var tickValue = (maxCum * t) / Y_TICKS;
+      var tickY = yAt(tickValue);
+      var gridLine = document.createElementNS(svgNS, 'line');
+      gridLine.setAttribute('x1', padL); gridLine.setAttribute('x2', W - padR);
+      gridLine.setAttribute('y1', tickY); gridLine.setAttribute('y2', tickY);
+      gridLine.setAttribute('class', 'linechart-axis');
+      gridLine.setAttribute('opacity', t === 0 ? '1' : '0.4');
+      svg.appendChild(gridLine);
+      var tickLabel = document.createElementNS(svgNS, 'text');
+      tickLabel.setAttribute('x', padL - 5);
+      tickLabel.setAttribute('y', tickY + 3);
+      tickLabel.setAttribute('text-anchor', 'end');
+      tickLabel.setAttribute('class', 'linechart-axis-label');
+      tickLabel.textContent = round1(tickValue);
+      svg.appendChild(tickLabel);
+    }
+    [0, 15, 30, 45, 60, 75, 90].forEach(function (min) {
+      if (min > maxMinute) return;
+      var t = document.createElementNS(svgNS, 'text');
+      t.setAttribute('x', xAt(min));
+      t.setAttribute('y', H - 6);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('class', 'linechart-axis-label');
+      t.textContent = min + "'";
+      svg.appendChild(t);
+    });
+
+    function drawSeries(series, color) {
+      var poly = document.createElementNS(svgNS, 'polyline');
+      poly.setAttribute('points', stepPoints(series));
+      poly.setAttribute('fill', 'none');
+      poly.setAttribute('stroke', color);
+      poly.setAttribute('stroke-width', '2');
+      poly.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(poly);
+    }
+    drawSeries(mine, 'var(--series-1)');
+    if (opp) drawSeries(opp, 'var(--series-3)');
+
+    container.appendChild(svg);
+
+    var legend = el('div', 'legend');
+    legend.style.marginTop = '8px';
+    legend.style.justifyContent = 'center';
+    function legendItem(label, color) {
+      var item = el('div', 'legend-item');
+      var sw = el('span', 'legend-swatch');
+      sw.style.background = color;
+      item.appendChild(sw);
+      item.appendChild(document.createTextNode(label));
+      legend.appendChild(item);
+    }
+    legendItem('나 (누적 xG ' + round1(mine[mine.length - 1].cum) + ')', 'var(--series-1)');
+    if (opp) legendItem('상대 (누적 xG ' + round1(opp[opp.length - 1].cum) + ')', 'var(--series-3)');
+    container.appendChild(legend);
+    if (!hasOpp) {
+      container.appendChild(el('p', 'card-caption', '상대가 추적 대상이 아니라 상대 쪽 xG 추이는 표시할 수 없어요.'));
+    }
   }
 
   var modalRequestSeq = 0;
@@ -1484,25 +1705,43 @@
 
     var momSection = el('div', 'mom-worst-section');
     modalBody.appendChild(momSection);
-    // MOM/Worst는 양팀 합쳐서 뽑는다(요청) — 상대도 추적 대상이어야 상대 스쿼드를 가져올 수 있다
-    // (concededShots와 같은 제약, allUsers로 확인).
+
+    var compareSection = el('div', 'match-compare-section');
+    modalBody.appendChild(compareSection);
+
+    // MOM/Worst·상대 스탯 비교는 둘 다 상대도 추적 대상이어야 가능하다(concededShots와 같은 제약,
+    // allUsers로 확인). 하나의 Promise.all로 스쿼드(양팀) + 상대 팀 스탯을 같이 불러온다.
     var opponentTracked = m.opponentOuid && allUsers.some(function (u) { return u.ouid === m.opponentOuid; });
-    var squadRequests = [
-      apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
-        .then(function (squad) { return squad.map(function (s) { s.team = 'mine'; return s; }); })
-    ];
-    if (opponentTracked) {
-      squadRequests.push(
-        apiGet('/api/v1/records/match-squad', { ouid: m.opponentOuid, matchType: state.matchType, matchId: m.matchId })
+    var mySquadPromise = apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
+      .then(function (squad) { return squad.map(function (s) { s.team = 'mine'; return s; }); })
+      .catch(function () { return []; });
+    var oppSquadPromise = opponentTracked
+      ? apiGet('/api/v1/records/match-squad', { ouid: m.opponentOuid, matchType: state.matchType, matchId: m.matchId })
           .then(function (squad) { return squad.map(function (s) { s.team = 'opponent'; return s; }); })
           .catch(function () { return []; })
-      );
+      : Promise.resolve([]);
+    var oppStatsPromise = opponentTracked
+      ? apiGet('/api/v1/records/match-stats', { ouid: m.opponentOuid, matchType: state.matchType, matchId: m.matchId })
+          .catch(function () { return null; })
+      : Promise.resolve(null);
+
+    // xG값 행은 match-shots(별도 요청, 아래)가 끝나야 채워진다 — 어느 쪽이 먼저 끝나든 서로
+    // 기다리지 않고 준비되는 대로 반영하기 위한 작은 상태 저장소.
+    var compareXgState = { for: null, against: null, ready: false };
+    var compareRefs = null;
+    function applyCompareXg() {
+      if (compareRefs && compareXgState.ready) compareRefs.setXg(compareXgState.for, compareXgState.against);
     }
-    Promise.all(squadRequests)
+
+    Promise.all([mySquadPromise, oppSquadPromise, oppStatsPromise])
       .then(function (results) {
-        if (seq === modalRequestSeq) buildMomWorstSection(momSection, results[0].concat(results[1] || []));
+        if (seq !== modalRequestSeq) return;
+        var mySquad = results[0], oppSquad = results[1], oppStats = results[2];
+        buildMomWorstSection(momSection, mySquad.concat(oppSquad));
+        compareRefs = buildCompareSection(compareSection, m, oppStats, mySquad, oppSquad);
+        applyCompareXg();
       })
-      .catch(function () { /* MOM/Worst는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
+      .catch(function () { /* MOM/Worst·비교는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
     var grid = el('div', 'modal-stat-grid');
     grid.appendChild(statBlock('평점', m.averageRating != null ? fmt1(m.averageRating) : '-'));
@@ -1534,6 +1773,11 @@
         xgAgainstBlock.querySelector('.modal-stat-value').textContent =
           result.concededShots.length ? round1(xgAgainst) + '골' : '-';
         renderModalShots(shotSection, result.myShots, result.concededShots);
+
+        compareXgState.for = xgFor;
+        compareXgState.against = result.concededShots.length ? xgAgainst : null;
+        compareXgState.ready = true;
+        applyCompareXg();
       })
       .catch(function () {
         if (seq !== modalRequestSeq) return;

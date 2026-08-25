@@ -292,6 +292,21 @@ public class RecordFacade {
                 .toList();
     }
 
+    /**
+     * 매치 상세 모달의 "상대 스탯 비교"용 — 특정 매치 1건, 이 ouid 관점의 팀 스탯 한 행
+     * (RecentMatchResponse를 그대로 재사용 — "최근 경기" 목록의 한 행과 필드가 완전히 같다).
+     * ouid가 이 매치에 없으면(상대가 추적 대상이 아니거나 매치를 못 찾음) 예외를 던진다 —
+     * 호출부(컨트롤러/프론트)가 "비교 데이터 없음"으로 처리한다.
+     */
+    @Transactional(readOnly = true)
+    public RecentMatchResponse getMatchStats(String ouid, MatchType matchType, String matchId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+        RecentMatchRaw raw = matchDetailRepository.findByOuidAndMatchId(ouid, matchType, matchId)
+                .orElseThrow(() -> new DomainException("해당 매치를 찾을 수 없습니다: ouid=" + ouid + ", matchId=" + matchId));
+        return toRecentMatchResponse(raw);
+    }
+
     private List<MatchShotResponse> toMatchShotResponses(List<MatchShotDetail> shots, Map<String, String> playerNames) {
         return shots.stream()
                 .map(s -> new MatchShotResponse(

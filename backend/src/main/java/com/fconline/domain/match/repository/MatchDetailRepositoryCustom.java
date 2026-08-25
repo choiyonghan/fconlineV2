@@ -78,6 +78,13 @@ public interface MatchDetailRepositoryCustom {
     Page<RecentMatchRaw> findRecentByOuid(String ouid, MatchType matchType, Instant from, Instant to, Pageable pageable);
 
     /**
+     * 매치 상세 모달의 "상대 스탯 비교"용 — 특정 매치 1건, 특정 ouid 관점의 팀 스탯 한 행.
+     * ouid가 그 매치의 참가자가 아니면(상대가 추적 대상이 아니거나 매치를 안 찾음) 빈 Optional.
+     * matchType은 필수 파라미터로 강제(다른 findXxx와 같은 이유 — analysis 6.2 재발 방지).
+     */
+    java.util.Optional<RecentMatchRaw> findByOuidAndMatchId(String ouid, MatchType matchType, String matchId);
+
+    /**
      * 좌표 히트맵용 슛 위치 원시 목록. goalsOnly=true면 득점한 슛만. 좌표가 없는 행은 제외.
      * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만(상대별 전적 펼침의
      * "이 상대전 평균 득점 xG값" 계산용 — aggregateTally와 같은 패턴).

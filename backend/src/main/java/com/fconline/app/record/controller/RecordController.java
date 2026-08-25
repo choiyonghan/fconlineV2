@@ -83,6 +83,18 @@ public class RecordController {
         return recordFacade.getMatchSquad(ouid, matchType, matchId);
     }
 
+    /**
+     * 매치 상세 모달의 "상대 스탯 비교"용 — 특정 매치 1건, 이 ouid 관점의 팀 스탯 한 행
+     * ("최근 경기" 목록 응답과 필드가 같다). 상대 ouid를 넣어 호출하면 상대 쪽 스탯이 나온다
+     * (상대가 추적 대상이 아니면 400 — 프론트는 실패 시 "비교 데이터 없음"으로 처리한다).
+     */
+    @GetMapping("/match-stats")
+    public RecentMatchResponse getMatchStats(@RequestParam String ouid,
+                                              @RequestParam MatchType matchType,
+                                              @RequestParam String matchId) {
+        return recordFacade.getMatchStats(ouid, matchType, matchId);
+    }
+
     /** 어시스트 체인 상위 목록(누가 누구에게 어시스트해서 득점했는지). */
     @GetMapping("/assist-chains")
     public List<AssistChainResponse> getAssistChains(@RequestParam String ouid,

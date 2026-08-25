@@ -339,6 +339,20 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .orderBy(m.matchDate.desc());
     }
 
+    @Override
+    public java.util.Optional<RecentMatchRaw> findByOuidAndMatchId(String ouid, MatchType matchType, String matchId) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+
+        BooleanBuilder where = new BooleanBuilder()
+                .and(md.ouid.eq(ouid))
+                .and(m.matchType.eq(matchType))
+                .and(m.matchId.eq(matchId));
+
+        Tuple row = recentMatchQuery(md, m, where).fetchFirst();
+        return row == null ? java.util.Optional.empty() : java.util.Optional.of(toRecentMatchRaw(row));
+    }
+
     private static RecentMatchRaw toRecentMatchRaw(Tuple row) {
         QMatchDetail md = QMatchDetail.matchDetail;
         QMatch m = QMatch.match;
