@@ -435,6 +435,13 @@
       });
       dashboardSummaryEl.appendChild(outroBox);
     }
+
+    // 최근 경기 10건은 별도 API 호출(loadRecentActivityFeed)로 채워진다 — 여기선 자리만 만든다.
+    var recentActivityBox = el('div', 'card dashboard-recent-activity');
+    recentActivityBox.id = 'dashboard-recent-activity';
+    recentActivityBox.style.marginTop = '14px';
+    recentActivityBox.hidden = true; // loadRecentActivityFeed가 다 모아지면 채우고 보여준다
+    dashboardSummaryEl.appendChild(recentActivityBox);
   }
 
   // 순위표 열 정의 — [헤더라벨, s에서 값을 뽑는 함수]. 득점/득점xG/실점/실점xG는 제목만 짧게
@@ -616,6 +623,13 @@
 
   var allUsers = [];
   var allSeasons = [];
+  // "전체" 화면에선 allUsers가 비어있을 수 있다(백엔드를 안 거쳐서) — 대시보드 스냅샷의
+  // data.ranking에서 9명 ouid를 미리 채워둬서, 대시보드 최근 경기 피드에서 모달을 열 때도
+  // "상대가 추적 대상인지" 판정(MOM/Worst 양팀 합산·상대 팀 비교에 필요)이 정확히 되게 한다.
+  var dashboardTrackedOuids = {};
+  function isTrackedOuid(ouid) {
+    return allUsers.some(function (u) { return u.ouid === ouid; }) || !!dashboardTrackedOuids[ouid];
+  }
 
   /**
    * /api/v1/users, /api/v1/seasons(둘 다 백엔드 실시간 호출)는 실제 유저 칩을 처음 클릭하는
@@ -690,13 +704,86 @@
    * data.ranking(ouid+nickname)에서 뽑는다. 스냅샷 자체가 없으면(첫 배치 전 등) 그때만
    * ensureLiveData()로 폴백해 칩을 채운다 — 그래도 첫 화면이 완전히 안 뜨는 것보단 낫다.
    */
-  // "전체" 기본 화면은 백엔드를 거치지 않지만(대시보드 스냅샷만 읽음), 백엔드가 잠들어 있으면
-  // 나중에 실제 유저 칩을 눌렀을 때 콜드 스타트를 그대로 겪는다 — 화면엔 안 보이게 조용히
-  // 한 번 깨워둔다(응답을 기다리지도, 실패해도 아무것도 안 함). /actuator/health는 CORS 허용
-  // 목록(WebConfig의 /api/**)에 없어 브라우저 콘솔에 CORS 에러가 찍혀서, 대신 이미 CORS가
-  // 열려있는 가장 가벼운 API(유저 목록)로 깨운다.
-  function wakeBackendSilently() {
-    fetch(BASE_URL + '/api/v1/users').catch(function () { /* 그냥 깨우기만 하는 용도라 결과 무시 */ });
+  /**
+   * "전체" 기본 화면은 백엔드를 안 거치지만(대시보드 스냅샷만 읽음), 그래서 백엔드가 잠들어
+   * 있으면 나중에 실제 유저 칩을 눌렀을 때 콜드 스타트를 그대로 겪는다. 그냥 빈 핑을 보내
+   * 깨우기만 하던 것 대신, 9명 전체 기준 최근 경기 10건을 모아 대시보드 아래에 보여주는
+   * 용도로 바꿨다(요청) — 어차피 백엔드를 호출하니 결과를 버리지 않고 화면에 쓴다.
+   * 유저 목록은 백엔드가 아니라 스냅샷의 data.ranking에서 온다(init 참고).
+   */
+  function loadRecentActivityFeed(users) {
+    var container = document.getElementById('dashboard-recent-activity');
+    if (!container) return;
+    var requests = users.map(function (u) {
+      return apiGet('/api/v1/records/recent-matches', { ouid: u.ouid, matchType: 'CUSTOM', page: 0, size: 10 })
+        .then(function (page) {
+          return (page.content || []).map(function (m) {
+            m.__ouid = u.ouid;
+            m.__nickname = u.nickname;
+            return m;
+          });
+        })
+        .catch(function () { return []; });
+    });
+    Promise.all(requests).then(function (results) {
+      var all = [].concat.apply([], results);
+      // 같은 매치가 양쪽 트래킹 유저 관점에서 두 번 잡힐 수 있어(둘 다 서로의 상대로 추적 중이면)
+      // matchId로 한 번만 남긴다.
+      var seen = {};
+      var deduped = all.filter(function (m) {
+        if (seen[m.matchId]) return false;
+        seen[m.matchId] = true;
+        return true;
+      });
+      deduped.sort(function (a, b) { return new Date(b.matchDate) - new Date(a.matchDate); });
+      renderDashboardRecentActivity(container, deduped.slice(0, 10));
+    }).catch(function () {
+      container.replaceChildren();
+    });
+  }
+
+  function renderDashboardRecentActivity(container, matches) {
+    container.replaceChildren();
+    container.hidden = !matches.length;
+    if (!matches.length) return;
+    container.appendChild(el('p', 'card-title', '🕐 최근 경기 (전체 9명)'));
+    container.appendChild(el('p', 'card-caption', '9명 전체 기준 가장 최근 커스텀 매치 10건 — 클릭하면 상세 정보가 열립니다.'));
+    var wrap = el('div', 'table-scroll');
+    var table = document.createElement('table');
+    var thead = document.createElement('thead');
+    var htr = document.createElement('tr');
+    ['날짜', '대진', '결과', '스코어'].forEach(function (h, i) {
+      htr.appendChild(el('th', i === 3 ? 'num' : '', h));
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = document.createElement('tbody');
+    matches.forEach(function (m) {
+      var tr = document.createElement('tr');
+      tr.className = 'match-row';
+      tr.tabIndex = 0;
+      tr.setAttribute('role', 'button');
+      tr.setAttribute('aria-label', m.__nickname + ' vs ' + m.opponentNickname + ' 경기 상세 보기');
+      var d = new Date(m.matchDate);
+      tr.appendChild(el('td', '', d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })));
+      tr.appendChild(el('td', 'name-cell', m.__nickname + ' vs ' + m.opponentNickname));
+      var resTd = document.createElement('td');
+      resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
+      tr.appendChild(resTd);
+      tr.appendChild(el('td', 'num', m.goalsFor + ' : ' + m.goalsAgainst));
+      var openFn = function () {
+        // 이 매치의 주인 관점으로 모달을 열어야 match-shots/match-squad 등이 맞게 조회된다.
+        state.ouid = m.__ouid;
+        state.matchType = 'CUSTOM';
+        openMatchModal(m);
+      };
+      tr.addEventListener('click', openFn);
+      tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openFn(); } });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    container.appendChild(wrap);
   }
 
   function init() {
@@ -704,13 +791,14 @@
     showAllMode(true);
     setStatus(null);
     dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
-    wakeBackendSilently();
 
     fetchDashboardSnapshot().then(function (data) {
       renderDashboardSummary(data);
       var items = (data.ranking || []).map(function (r) { return { ouid: r.ouid, nickname: r.nickname }; });
+      items.forEach(function (u) { dashboardTrackedOuids[u.ouid] = true; });
       if (items.length) {
         buildUserChips(items);
+        loadRecentActivityFeed(items);
       } else {
         ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
       }
@@ -1691,7 +1779,9 @@
     var seq = ++modalRequestSeq;
     var d = new Date(m.matchDate);
     var myUser = allUsers.filter(function (u) { return u.ouid === state.ouid; })[0];
-    var myNickname = myUser ? myUser.nickname : '나';
+    // allUsers는 "전체" 화면에선 비어있을 수 있다(백엔드를 안 거쳐서) — 대시보드 최근 경기
+    // 피드에서 연 경우 m.__nickname(그 매치를 미리 붙일 때 넣어둔 값)으로 대신한다.
+    var myNickname = myUser ? myUser.nickname : (m.__nickname || '나');
     modalTitle.textContent = myNickname + ' vs ' + m.opponentNickname + ' · ' +
       d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
@@ -1722,7 +1812,7 @@
 
     // MOM/Worst·상대 스탯 비교는 둘 다 상대도 추적 대상이어야 가능하다(concededShots와 같은 제약,
     // allUsers로 확인). 하나의 Promise.all로 스쿼드(양팀) + 상대 팀 스탯을 같이 불러온다.
-    var opponentTracked = m.opponentOuid && allUsers.some(function (u) { return u.ouid === m.opponentOuid; });
+    var opponentTracked = m.opponentOuid && isTrackedOuid(m.opponentOuid);
     var mySquadPromise = apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
       .then(function (squad) { return squad.map(function (s) { s.team = 'mine'; return s; }); })
       .catch(function () { return []; });
