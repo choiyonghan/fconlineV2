@@ -288,6 +288,7 @@
     attack: document.getElementById('playstyle-panel-attack'),
     defense: document.getElementById('playstyle-panel-defense'),
     pass: document.getElementById('playstyle-panel-pass'),
+    dirty: document.getElementById('playstyle-panel-dirty'),
     possession: document.getElementById('playstyle-panel-possession')
   };
   playstyleTabButtons.forEach(function (btn) {
@@ -1040,22 +1041,29 @@
       svg.appendChild(t);
     });
 
+    // opts.activeLabel이 있으면(바이오리듬처럼 "한 축만 선택해서 보기") 그 라벨만 진하게,
+    // 나머지는 흐리게 그린다 — 없으면(기존 모든 호출부) 지금까지처럼 전부 동일하게 그린다.
+    function isDimmed(s) { return opts.activeLabel != null && s.label !== opts.activeLabel; }
+
     seriesList.forEach(function (s) {
+      var dimmed = isDimmed(s);
       var pts = s.values.map(function (v, i) { return xAt(i) + ',' + yAt(v); }).join(' ');
       var poly = document.createElementNS(svgNS, 'polyline');
       poly.setAttribute('points', pts);
       poly.setAttribute('fill', 'none');
       poly.setAttribute('stroke', s.color);
-      poly.setAttribute('stroke-width', '2');
+      poly.setAttribute('stroke-width', dimmed ? '1.5' : '2.5');
       poly.setAttribute('stroke-linejoin', 'round');
       poly.setAttribute('stroke-linecap', 'round');
+      poly.setAttribute('opacity', dimmed ? '0.25' : '1');
       svg.appendChild(poly);
 
       s.values.forEach(function (v, i) {
         var c = document.createElementNS(svgNS, 'circle');
         c.setAttribute('cx', xAt(i));
         c.setAttribute('cy', yAt(v));
-        c.setAttribute('r', '3');
+        c.setAttribute('r', dimmed ? '2' : '3');
+        c.setAttribute('opacity', dimmed ? '0.25' : '1');
         c.setAttribute('fill', s.color);
         c.setAttribute('class', 'linechart-dot');
         c.tabIndex = 0;
@@ -1078,12 +1086,31 @@
       legend.style.marginTop = '8px';
       legend.style.justifyContent = 'center';
       seriesList.forEach(function (s) {
-        var item = el('div', 'legend-item');
+        var clickable = typeof opts.onLegendClick === 'function';
+        var item = el('div', 'legend-item' + (clickable ? ' legend-item-clickable' : ''));
+        if (isDimmed(s)) item.classList.add('legend-item-dimmed');
         var sw = el('span', 'legend-swatch');
         sw.style.background = s.color;
         sw.style.borderRadius = '50%';
         item.appendChild(sw);
         item.appendChild(document.createTextNode(s.label));
+        if (clickable) {
+          item.tabIndex = 0;
+          item.setAttribute('role', 'button');
+          item.addEventListener('click', function () { opts.onLegendClick(s.label); });
+          item.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); opts.onLegendClick(s.label); }
+          });
+        }
+        if (opts.legendTooltips && opts.legendTooltips[s.label]) {
+          var lines = opts.legendTooltips[s.label];
+          var showFn = function (evt) { showTip(evt, lines); };
+          item.addEventListener('pointerenter', showFn);
+          item.addEventListener('pointermove', moveTip);
+          item.addEventListener('pointerleave', hideTip);
+          item.addEventListener('focus', showFn);
+          item.addEventListener('blur', hideTip);
+        }
         legend.appendChild(item);
       });
       container.appendChild(legend);
@@ -1556,7 +1583,9 @@
   /** 어시스트 출발 지점을 18존 라벨 문장으로("Zone 11 · 상대 3선 중앙"). */
   function describeAssistZone18(x, y) {
     var z = zone18(x, y);
-    return z ? 'Zone ' + z.number + ' · ' + z.label : null;
+    // "Zone 17" 같은 번호 접두어는 빼고 설정해둔 구역 명칭만 보여준다(요청) — 내부적으로는
+    // zone18()이 여전히 번호를 계산하지만 해설 문장에는 이제 노출하지 않는다.
+    return z ? z.label : null;
   }
 
   /** 풋볼매니저 스타일 텍스트 해설 한 줄 — 클릭한 슛 1건을 자연어 문장으로 조립한다. */
@@ -1864,6 +1893,10 @@
     }
     // 골이 터진 지점엔 축구공 이모지 마커를 얹는다 — 계단이 오르는 순간(누적 xG가 그 슛의 xg만큼
     // 뛴 지점)을 눈으로 바로 짚을 수 있게.
+    // font-family를 안 정해주면 SVG <text>가 UA 기본 폰트(보통 세리프)로 렌더링을 시도하다
+    // 이모지 대체 글리프 없이 이상한 글자(십자 모양 등)로 깨져 보이는 문제가 있었다 — 이모지
+    // 컬러 폰트를 명시적으로 지정해야 실제 축구공 이모지가 뜬다.
+    var EMOJI_FONT_STACK = "'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif";
     function drawGoalMarkers(series) {
       series.forEach(function (p) {
         if (!p.goal) return;
@@ -1871,8 +1904,12 @@
         mark.setAttribute('x', xAt(p.minute));
         mark.setAttribute('y', yAt(p.cum) - 6);
         mark.setAttribute('text-anchor', 'middle');
-        mark.setAttribute('font-size', '12');
+        mark.setAttribute('font-size', '13');
+        mark.setAttribute('font-family', EMOJI_FONT_STACK);
         mark.textContent = '⚽';
+        var title = document.createElementNS(svgNS, 'title');
+        title.textContent = round1(p.minute) + "' 골";
+        mark.appendChild(title);
         svg.appendChild(mark);
       });
     }
@@ -2573,11 +2610,23 @@
   }
 
   // ---------------- 플레이 성향 ----------------
-  function statMini(container, label, value, sub) {
+  /** tooltip은 문자열(1줄) 또는 문자열 배열(여러 줄) — 있으면 hover/focus 시 showTip으로 보여준다. */
+  function statMini(container, label, value, sub, tooltip) {
     var box = el('div', 'stat-mini');
     box.appendChild(el('p', 'stat-mini-label', label));
     box.appendChild(el('div', 'stat-mini-value', value));
     if (sub) box.appendChild(el('div', 'stat-mini-sub', sub));
+    if (tooltip) {
+      var lines = Array.isArray(tooltip) ? tooltip : [tooltip];
+      box.classList.add('stat-mini-hoverable');
+      box.tabIndex = 0;
+      var showFn = function (evt) { showTip(evt, lines); };
+      box.addEventListener('pointerenter', showFn);
+      box.addEventListener('pointermove', moveTip);
+      box.addEventListener('pointerleave', hideTip);
+      box.addEventListener('focus', showFn);
+      box.addEventListener('blur', hideTip);
+    }
     container.appendChild(box);
   }
 
@@ -2633,6 +2682,7 @@
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
     var passContainer = document.getElementById('playstyle-pass');
+    var dirtyContainer = document.getElementById('playstyle-dirty');
     var possContainer = document.getElementById('playstyle-possession');
     var attackChart = document.getElementById('chart-playstyle-attack');
     var defenseChart = document.getElementById('chart-playstyle-defense');
@@ -2641,6 +2691,7 @@
     attackContainer.replaceChildren();
     defenseContainer.replaceChildren();
     passContainer.replaceChildren();
+    dirtyContainer.replaceChildren();
     possContainer.replaceChildren();
 
     if (!totalGames) {
@@ -2648,7 +2699,6 @@
       attackChart.replaceChildren();
       defenseChart.replaceChildren();
       passChart.replaceChildren();
-      possChart.replaceChildren();
       document.getElementById('defense-trend-caption').textContent = '';
       return;
     }
@@ -2694,24 +2744,29 @@
     var blockRate = overall.blockTryTotal ? Math.round(overall.blockSuccessTotal / overall.blockTryTotal * 100) + '%' : '-';
     statMini(defenseContainer, '태클 시도/성공', fmt(overall.tackleTryTotal) + ' / ' + fmt(overall.tackleSuccessTotal), '성공률 ' + tackleRate);
     statMini(defenseContainer, '블락 시도/성공', fmt(overall.blockTryTotal) + ' / ' + fmt(overall.blockSuccessTotal), '성공률 ' + blockRate);
-    // "더티 플레이" 성향 — 게임 일시정지·파울·경고·퇴장.
-    statMini(defenseContainer, '게임 일시정지', fmt(overall.systemPauseTotal) + '회', '표본 전체 합계');
-    statMini(defenseContainer, '파울', fmt(overall.foulTotal) + '회', '표본 전체 합계');
-    statMini(defenseContainer, '경고(옐로카드)', fmt(overall.yellowCards) + '장', '표본 전체 합계');
-    statMini(defenseContainer, '퇴장(레드카드)', fmt(overall.redCards) + '장', '표본 전체 합계');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
 
-    // 패스 성향 — 매치 단위 팀 합계(MatchStats, 전체/숏/롱 패스 각각 시도-성공-성공률). 미스(시도-성공)는
-    // 성공률과 중복 정보라 빼고, 대신 숏/롱 세부 유형을 보여준다(요청).
+    // "더티 성향" — 수비 성향이 아니라 별도 탭(요청): 게임 일시정지·파울·경고·퇴장.
+    statMini(dirtyContainer, '게임 일시정지', fmt(overall.systemPauseTotal) + '회', '표본 전체 합계');
+    statMini(dirtyContainer, '파울', fmt(overall.foulTotal) + '회', '표본 전체 합계');
+    statMini(dirtyContainer, '경고(옐로카드)', fmt(overall.yellowCards) + '장', '표본 전체 합계');
+    statMini(dirtyContainer, '퇴장(레드카드)', fmt(overall.redCards) + '장', '표본 전체 합계');
+
+    // 패스 성향 — 매치 단위 팀 합계(MatchStats, 전체/숏/롱 패스 각각 시도-성공-성공률)를 경기당
+    // 평균으로 보여주고(요청, 다른 탭과 통일감), 표본 전체 합계는 작은 글씨 서브텍스트로만 곁들인다.
+    // 미스(시도-성공)는 성공률과 중복 정보라 빼고, 대신 숏/롱 세부 유형을 보여준다.
     function passRateOf(t, s) { return t ? Math.round(s / t * 100) + '%' : '-'; }
-    statMini(passContainer, '패스 시도수', fmt(overall.passTryTotal), '표본 전체 합계');
-    statMini(passContainer, '패스 성공수', fmt(overall.passSuccessTotal), '표본 전체 합계');
+    function passAvgMini(label, total, totalLabel) {
+      statMini(passContainer, label, total != null ? fmt1(total / totalGames) : '-', '전체 ' + totalLabel + ' ' + fmt(total));
+    }
+    passAvgMini('평균 패스시도', overall.passTryTotal, '시도');
+    passAvgMini('평균 패스성공', overall.passSuccessTotal, '성공');
     statMini(passContainer, '패스 성공률', passRateOf(overall.passTryTotal, overall.passSuccessTotal), '표본 전체 기준');
-    statMini(passContainer, '숏패스 시도수', fmt(overall.shortPassTryTotal), '표본 전체 합계');
-    statMini(passContainer, '숏패스 성공수', fmt(overall.shortPassSuccessTotal), '표본 전체 합계');
+    passAvgMini('평균 숏패스시도', overall.shortPassTryTotal, '시도');
+    passAvgMini('평균 숏패스성공', overall.shortPassSuccessTotal, '성공');
     statMini(passContainer, '숏패스 성공률', passRateOf(overall.shortPassTryTotal, overall.shortPassSuccessTotal), '표본 전체 기준');
-    statMini(passContainer, '롱패스 시도수', fmt(overall.longPassTryTotal), '표본 전체 합계');
-    statMini(passContainer, '롱패스 성공수', fmt(overall.longPassSuccessTotal), '표본 전체 합계');
+    passAvgMini('평균 롱패스시도', overall.longPassTryTotal, '시도');
+    passAvgMini('평균 롱패스성공', overall.longPassSuccessTotal, '성공');
     statMini(passContainer, '롱패스 성공률', passRateOf(overall.longPassTryTotal, overall.longPassSuccessTotal), '표본 전체 기준');
 
     // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
@@ -2760,6 +2815,16 @@
 
   var BIORHYTHM_WINDOW = 5; // 이동평균 폭 — 값 자체는 시즌 전체 경기를 다 쓰고, 곡선만 부드럽게 다듬는 용도.
   var BIORHYTHM_RESULT_POINT = { '승': 3, '무': 1, '패': 0 };
+  // 클릭해서 활성화하는 축 — 기본은 피지컬(요청), 유저/시즌을 바꿔도 선택이 유지되는 모듈 전역.
+  var biorhythmActiveAxis = '피지컬';
+  // "이 데이터가 왜 이런 값인지 모르겠다"는 피드백 — 각 축이 정확히 뭘 어떻게 계산한 값인지
+  // 스탯 박스/범례에 hover하면 보이는 툴팁으로 설명한다.
+  var BIORHYTHM_TOOLTIPS = {
+    '피지컬': ['🏃 피지컬', '경기별 팀 평균 평점(10점 만점)을', BIORHYTHM_WINDOW + '경기 이동평균으로 부드럽게 만든 뒤,', '이번 시즌 표본 안 최저=0점·최고=100점으로', '상대 환산한 값이에요.'],
+    '멘탈': ['🧠 멘탈', '경기 결과(승 3점·무 1점·패 0점)를', BIORHYTHM_WINDOW + '경기 이동평균으로 부드럽게 만든 뒤,', '이번 시즌 표본 안 최저=0점·최고=100점으로', '상대 환산한 값이에요. 최근 승리가 많을수록 올라가요.'],
+    '지능': ['🎯 지능', '결정력(경기별 실제 득점 − xG값)을', BIORHYTHM_WINDOW + '경기 이동평균으로 부드럽게 만든 뒤,', '이번 시즌 표본 안 최저=0점·최고=100점으로', '상대 환산한 값이에요. 기대보다 골을 더 넣을수록 올라가요.'],
+    '종합': ['🌊 종합 컨디션', '피지컬·멘탈·지능 3개 점수의 평균이에요.']
+  };
 
   /** i번째까지의 최근 WINDOW경기 평균(앞부분은 있는 만큼만) — 시즌 시작부터 곡선이 나오게 확장형으로 처리. */
   function biorhythmRollingAvg(rawValues) {
@@ -2832,16 +2897,28 @@
       return labels;
     }
 
-    statMini(summary, '🏃 피지컬', latestPhysical + '점', '평점 흐름 · 시즌 내 상대적 위치');
-    statMini(summary, '🧠 멘탈', latestMental + '점', '승무패 흐름 · 시즌 내 상대적 위치');
-    statMini(summary, '🎯 지능', latestIntellect + '점', '결정력(득점−xG값) 흐름 · 시즌 내 상대적 위치');
-    statMini(summary, '🌊 종합 컨디션', overallScore + '점', biorhythmMoodLabel(overallScore));
+    statMini(summary, '🏃 피지컬', latestPhysical + '점', '평점 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['피지컬']);
+    statMini(summary, '🧠 멘탈', latestMental + '점', '승무패 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['멘탈']);
+    statMini(summary, '🎯 지능', latestIntellect + '점', '결정력(득점−xG값) 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['지능']);
+    statMini(summary, '🌊 종합 컨디션', overallScore + '점', biorhythmMoodLabel(overallScore), BIORHYTHM_TOOLTIPS['종합']);
 
-    lineChart(chart, [
-      { label: '피지컬', color: 'var(--series-1)', values: physical },
-      { label: '멘탈', color: 'var(--series-2)', values: mental },
-      { label: '지능', color: 'var(--series-3)', values: intellect }
-    ], { labels: matchIndexLabels(chronological.length), unit: '점', yMin: 0, yMax: 100, refLines: [50], ariaLabel: '시즌 전체 바이오리듬 추이' });
+    // 차트는 "클릭한 축 하나만 활성화, 나머지는 흐리게" 방식(요청) — 기본은 피지컬.
+    // biorhythmActiveAxis는 모듈 전역이라 유저/시즌을 바꿔도 선택이 유지된다.
+    var labels = matchIndexLabels(chronological.length);
+    function drawBiorhythmChart() {
+      lineChart(chart, [
+        { label: '피지컬', color: 'var(--series-1)', values: physical },
+        { label: '멘탈', color: 'var(--series-2)', values: mental },
+        { label: '지능', color: 'var(--series-3)', values: intellect }
+      ], {
+        labels: labels, unit: '점', yMin: 0, yMax: 100, refLines: [50],
+        ariaLabel: '시즌 전체 바이오리듬 추이',
+        activeLabel: biorhythmActiveAxis,
+        legendTooltips: BIORHYTHM_TOOLTIPS,
+        onLegendClick: function (label) { biorhythmActiveAxis = label; drawBiorhythmChart(); }
+      });
+    }
+    drawBiorhythmChart();
   }
 
   // ---------------- 선택 변경 시 데이터 로딩 ----------------

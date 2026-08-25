@@ -100,6 +100,7 @@
         <button type="button" data-tab="attack" aria-pressed="true">⚔️ 공격 성향</button>
         <button type="button" data-tab="defense" aria-pressed="false">🛡️ 수비 성향</button>
         <button type="button" data-tab="pass" aria-pressed="false">🔁 패스 성향</button>
+        <button type="button" data-tab="dirty" aria-pressed="false">😈 더티 성향</button>
         <button type="button" data-tab="possession" aria-pressed="false">⚖️ 점유율</button>
       </div>
 
@@ -114,9 +115,13 @@
         <div id="chart-playstyle-defense"></div>
       </div>
       <div class="playstyle-box" id="playstyle-panel-pass" hidden>
-        <div class="stat-mini-grid" id="playstyle-pass"></div>
+        <div class="stat-mini-grid stat-mini-grid-3col" id="playstyle-pass"></div>
         <p class="card-caption" style="margin-top:10px;">경기별 패스 시도 vs 성공 추이(표본 전체)</p>
         <div id="chart-playstyle-pass"></div>
+      </div>
+      <div class="playstyle-box" id="playstyle-panel-dirty" hidden>
+        <p class="card-caption">파울/카드/게임 일시정지 등 매너와 관련된 지표입니다.</p>
+        <div class="stat-mini-grid" id="playstyle-dirty"></div>
       </div>
       <div class="playstyle-box" id="playstyle-panel-possession" hidden>
         <div class="stat-mini-grid" id="playstyle-possession"></div>
