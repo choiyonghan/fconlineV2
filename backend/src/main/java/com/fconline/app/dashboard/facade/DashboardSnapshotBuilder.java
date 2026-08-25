@@ -8,7 +8,7 @@ import com.fconline.app.dashboard.dto.DashboardScopeSummary;
 import com.fconline.app.dashboard.dto.DashboardSnapshotFile;
 import com.fconline.app.dashboard.dto.DashboardTopPlayer;
 import com.fconline.app.dashboard.dto.DashboardUserSnapshot;
-import com.fconline.app.dashboard.support.ApproxXgTable;
+import com.fconline.app.dashboard.support.ExpectedGoalsCalculator;
 import com.fconline.app.insight.facade.TrackedUserAliasResolver;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
@@ -25,7 +25,6 @@ import com.fconline.infrastructure.gemini.GeminiApiClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -106,42 +105,31 @@ public class DashboardSnapshotBuilder {
 
     private Map<String, DashboardScopeSummary> buildScope(List<TrackedUserResponse> users, MatchType matchType,
                                                             Long seasonId) {
-        Map<String, ShotHeatmapResponse> heatmapByOuid = new HashMap<>();
-        Map<String, ShotHeatmapResponse> concededByOuid = new HashMap<>();
-        ApproxXgTable xgTable = new ApproxXgTable();
-
-        for (TrackedUserResponse u : users) {
-            ShotHeatmapResponse heatmap = recordFacade.getShotHeatmap(u.ouid(), matchType, seasonId, false);
-            heatmapByOuid.put(u.ouid(), heatmap);
-            xgTable.addAll(heatmap.points());
-            concededByOuid.put(u.ouid(), recordFacade.getConcededShotHeatmap(u.ouid(), matchType, seasonId));
-        }
-        xgTable.build();
-
         Map<String, DashboardScopeSummary> result = new LinkedHashMap<>();
         for (TrackedUserResponse u : users) {
-            result.put(u.ouid(), buildScopeSummary(u.ouid(), matchType, seasonId,
-                    heatmapByOuid.get(u.ouid()), concededByOuid.get(u.ouid()), xgTable));
+            ShotHeatmapResponse heatmap = recordFacade.getShotHeatmap(u.ouid(), matchType, seasonId, false);
+            ShotHeatmapResponse conceded = recordFacade.getConcededShotHeatmap(u.ouid(), matchType, seasonId);
+            result.put(u.ouid(), buildScopeSummary(u.ouid(), matchType, seasonId, heatmap, conceded));
         }
         return result;
     }
 
     /**
      * 지표 공식은 report.js의 renderPlayStyle(플레이 성향 카드)과 동일하게 맞춘다 — 클래스
-     * 주석(DashboardScopeSummary) 참고.
+     * 주석(DashboardScopeSummary) 참고. xG는 ExpectedGoalsCalculator(거리·각도 로지스틱 회귀
+     * 순수 함수)라 더는 표본을 미리 풀링할 필요가 없다.
      */
     private DashboardScopeSummary buildScopeSummary(String ouid, MatchType matchType, Long seasonId,
-                                                      ShotHeatmapResponse heatmap, ShotHeatmapResponse conceded,
-                                                      ApproxXgTable xgTable) {
+                                                      ShotHeatmapResponse heatmap, ShotHeatmapResponse conceded) {
         OverallRecordResponse overall = recordFacade.getOverallRecord(ouid, matchType, seasonId);
         int games = overall.tally().win() + overall.tally().draw() + overall.tally().lose();
 
         List<ShotPointResponse> points = heatmap.points();
         List<ShotPointResponse> concededPoints = conceded.points();
 
-        double expectedGoalsFor = xgTable.expectedGoals(points);
+        double expectedGoalsFor = ExpectedGoalsCalculator.expectedGoals(points);
         long actualGoals = points.stream().filter(ShotPointResponse::goal).count();
-        double expectedGoalsAgainst = xgTable.expectedGoals(concededPoints);
+        double expectedGoalsAgainst = ExpectedGoalsCalculator.expectedGoals(concededPoints);
         int concededSampleGames = (int) concededPoints.stream().map(ShotPointResponse::matchId).distinct().count();
 
         int low = (int) overall.lowPossessionGames();

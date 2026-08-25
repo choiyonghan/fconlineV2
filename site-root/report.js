@@ -530,15 +530,6 @@
 
   var allUsers = [];
   var allSeasons = [];
-  var zoneAggregateRequested = false;
-  /** 근사 xG 표는 개인 리포트에서만 쓰인다 — "전체" 기본 화면에서 이걸 먼저 당기면 결국
-      백엔드를 실시간 호출하게 돼서(9명 x 2매치타입) 대시보드를 만든 목적이 무색해진다. 실제
-      유저 칩을 처음 누르는 순간에만 지연 로드한다. */
-  function ensureZoneAggregate() {
-    if (zoneAggregateRequested) return;
-    zoneAggregateRequested = true;
-    loadZoneAggregate();
-  }
 
   /**
    * /api/v1/users, /api/v1/seasons(둘 다 백엔드 실시간 호출)는 실제 유저 칩을 처음 클릭하는
@@ -591,7 +582,6 @@
     }
     showAllMode(false);
     ensureLiveData().then(function () {
-      ensureZoneAggregate();
       loadSelection();
     }).catch(function () { /* ensureLiveData가 이미 에러 상태를 보여줬다 */ });
   }
@@ -1067,7 +1057,8 @@
 
   function buildMomWorstSection(container, squad) {
     container.replaceChildren();
-    var candidates = squad.filter(function (s) { return s.rating != null; });
+    // rating이 정확히 0인 선수는 "출전은 등록됐지만 실제로 안 뛴" 경우다 — Worst로 뽑히면 안 된다.
+    var candidates = squad.filter(function (s) { return s.rating != null && s.rating > 0; });
     if (!candidates.length) return; // 평점 결측이면 조용히 생략(칸을 비우지 않고 아예 안 만듦)
 
     var mom = candidates.reduce(function (a, b) { return b.rating > a.rating ? b : a; });
@@ -1089,8 +1080,7 @@
   }
 
   function xgOfShot(p) {
-    if (!zoneAggregate || p.x == null || p.y == null) return null;
-    return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+    return calcXg(p.x, p.y);
   }
 
   /**
@@ -1127,8 +1117,9 @@
 
   /**
    * 슛/어시스트 좌표를 사람이 읽을 만한 위치 설명으로 바꾼다(예: "박스 안 중앙", "중거리 측면").
-   * zoneKey처럼 중앙/측면만 구분하고 좌/우는 구분하지 않는다 — 좌표계에서 어느 쪽이 실제
-   * 왼쪽/오른쪽 터치라인인지 검증된 바가 없어, 틀린 방향을 단정하지 않기 위함.
+   * 중앙/측면만 구분하고 좌/우는 구분하지 않는다 — 좌표계에서 어느 쪽이 실제 왼쪽/오른쪽
+   * 터치라인인지 검증된 바가 없어, 틀린 방향을 단정하지 않기 위함(zone18은 이 검증 없이도
+   * 요청받은 좌/우 명칭을 그대로 쓰기로 한 것 — 서로 다른 정책이라 여기선 그대로 둔다).
    */
   function describeZone(x, y) {
     if (x == null || y == null) return null;
@@ -1155,22 +1146,31 @@
    * number는 1~18(third*6+channel+1) — 표준 18존 표기와 같은 번호 체계를 쓰되, 공격 진영의
    * 비균등 세분화(Zone 14 골든스퀘어 등)까지는 재현하지 않은 균등 3×6 격자다.
    */
-  var ZONE18_THIRDS = ['수비 진영', '미드필드', '공격 진영'];
-  var ZONE18_CHANNELS = ['측면 A', '하프스페이스 A', '중앙 A', '중앙 B', '하프스페이스 B', '측면 B'];
+  /**
+   * 18존 명칭 — x축(골대까지 거리 방향) 6단계 × y축(좌우) 3단계, index = xIdx*3 + yIdx.
+   * 요청받은 고정 명칭 목록을 그대로 쓴다. 주의: y축(좌측/우측)이 실제 어느 터치라인인지는
+   * 이 좌표계에서 검증된 바 없다(describeZone 주석 참고) — "좌측"/"우측" 표기는 이 명칭
+   * 목록을 그대로 적용해달라는 요청에 따른 것이고, 실제 방향과 다를 수 있다.
+   */
+  var ZONE18_LABELS = [
+    '좌측 수비 측면', '수비 중앙', '우측 수비 측면',
+    '좌측 수비 전개', '후방 미드필더', '우측 중앙선 측면',
+    '좌측 중앙선 측면', '중앙 미드필더', '우측 중앙선 공격 전개',
+    '좌측 공격 하프스페이스', '상대 3선 중앙', '우측 공격 하프스페이스',
+    '좌측 박스 침투', '페널티 박스 정면', '우측 박스 침투',
+    '좌측 골라인 컷백', '골키퍼 바로 앞', '우측 골라인 컷백'
+  ];
   function zone18(x, y) {
     if (x == null || y == null) return null;
-    var thirdIdx = x < 1 / 3 ? 0 : (x < 2 / 3 ? 1 : 2);
-    var channelIdx = Math.min(5, Math.max(0, Math.floor(y * 6)));
-    return {
-      number: thirdIdx * 6 + channelIdx + 1,
-      third: ZONE18_THIRDS[thirdIdx],
-      channel: ZONE18_CHANNELS[channelIdx]
-    };
+    var xIdx = Math.min(Math.floor(x * 6), 5);
+    var yIdx = Math.min(Math.floor(y * 3), 2);
+    var number = xIdx * 3 + yIdx + 1;
+    return { number: number, label: ZONE18_LABELS[number - 1] };
   }
-  /** 어시스트 출발 지점을 18존 라벨 문장으로("공격 진영 하프스페이스 A(Zone 14)"). */
+  /** 어시스트 출발 지점을 18존 라벨 문장으로("Zone 11 · 상대 3선 중앙"). */
   function describeAssistZone18(x, y) {
     var z = zone18(x, y);
-    return z ? z.third + ' ' + z.channel + '(Zone ' + z.number + ')' : null;
+    return z ? 'Zone ' + z.number + ' · ' + z.label : null;
   }
 
   /** 풋볼매니저 스타일 텍스트 해설 한 줄 — 클릭한 슛 1건을 자연어 문장으로 조립한다. */
@@ -1422,9 +1422,9 @@
         if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
         var xgFor = expectedGoalsOf(result.myShots);
         var xgAgainst = expectedGoalsOf(result.concededShots);
-        xgForBlock.querySelector('.modal-stat-value').textContent = zoneAggregate ? round1(xgFor) + '골' : '-';
+        xgForBlock.querySelector('.modal-stat-value').textContent = round1(xgFor) + '골';
         xgAgainstBlock.querySelector('.modal-stat-value').textContent =
-          zoneAggregate ? (result.concededShots.length ? round1(xgAgainst) + '골' : '-') : '-';
+          result.concededShots.length ? round1(xgAgainst) + '골' : '-';
         renderModalShots(shotSection, result.myShots, result.concededShots);
       })
       .catch(function () {
@@ -1606,9 +1606,9 @@
               var expectedGoalsAgainst = expectedGoalsOf(concededPoints);
               var summaryGrid = el('div', 'stat-mini-grid opp-summary-grid');
               statMini(summaryGrid, '평균 득점', fmt1(goalsFor / n), '경기당 실제 득점');
-              statMini(summaryGrid, '평균 득점 xG값', zoneAggregate ? fmt1(expectedGoalsFor / n) : '계산 중…', '경기당 기대 득점');
+              statMini(summaryGrid, '평균 득점 xG값', fmt1(expectedGoalsFor / n), '경기당 기대 득점');
               statMini(summaryGrid, '평균 실점', fmt1(goalsAgainst / n), '경기당 실제 실점');
-              statMini(summaryGrid, '평균 실점 xG값', zoneAggregate ? fmt1(expectedGoalsAgainst / n) : '계산 중…', '경기당 기대 실점');
+              statMini(summaryGrid, '평균 실점 xG값', fmt1(expectedGoalsAgainst / n), '경기당 기대 실점');
               statMini(summaryGrid, '평균 슈팅', fmt1(effectiveShoot / n) + ' / ' + fmt1(shootTotal / n), '유효 / 전체');
               statMini(summaryGrid, '유효슈팅 비율', shootTotal > 0 ? pctOf(effectiveShoot, shootTotal) + '%' : '-',
                 '총 ' + fmt(effectiveShoot) + '회');
@@ -1884,136 +1884,40 @@
     void card.offsetWidth; // 리플로우 강제 — 같은 버튼 연타해도 애니메이션이 다시 재생되게 한다
     card.classList.add('grid-flash');
   });
-  // ---------------- 근사 xG 구역 집계 ----------------
-  // 원본 스냅샷 세션은 이 구역 표를 DB에서 직접 계산해뒀지만, 여기선 백엔드에 별도 엔드포인트가 없어
-  // 전 유저 × 양쪽 매치타입의 슈팅 좌표(/api/v1/records/shot-heatmap)를 브라우저에서 직접 모아 집계한다.
-  // 구역 경계는 위 pitchHeatmap이 그리는 박스/6야드 박스 사각형과 동일한 비율을 그대로 재사용한다 —
-  // 즉 화면에 그려지는 박스 안에 찍힌 점은 실제로도 "박스 안" 구역으로 집계된다. 정식 xG 모델이 아닌
-  // 근사치이며, 원본 세션이 썼던 정확한 경계값과 100% 동일하다는 보장은 없다(둘 다 근사치라는 점은 같다).
-  var ZONE_CACHE_KEY = 'matchreport-zonecache-v2'; // v2: 구역을 더 세밀하게(정밀도 개선) 바꾸며 캐시도 무효화
-  var zoneAggregate = null; // { table:[{zone,shots,goals,rate}], sampleSize, rateMap:{zone:rate} }
-  var lastPoints = null;
-  var lastOverall = null;
-  var lastTotalGames = 0;
-  var lastConcededPoints = null;
-  var lastConcededSampleGames = 0;
-  var lastMatches = null;
-
-  var BOX = { xMin: 343 / 400, yMin: 75 / 260, yMax: 185 / 260 };
-  var SIX = { xMin: 376 / 400, yMin: 104 / 260, yMax: 156 / 260 };
-  // 표본이 이 미만인 세밀 구역은 값이 튀기 쉬워(예: 1슈팅 1골 = 100%) 아래 coarseZoneKey의
-  // 넓은 구역 전환율로 대체한다 — "우리 데이터 기반"은 유지하면서 정밀도만 올리는 절충안.
-  var FINE_ZONE_MIN_SAMPLE = 8;
+  // ---------------- 근사 xG (거리·각도 로지스틱 회귀) ----------------
+  // 이전 버전은 전 유저 슈팅 표본을 모아 "이 구역에서 실제로 골이 난 비율"을 쓰는 경험적 방식이었다
+  // (표본을 모으는 API 호출이 여러 건 필요했고, 표본이 도착하기 전까진 "계산 중…"으로 표시됨).
+  // 지금은 골대까지 거리·시야각만으로 계산하는 순수 함수라 표본 수집이 필요 없고 항상 즉시 나온다.
+  var PITCH_LENGTH_M = 105.0;
+  var PITCH_WIDTH_M = 68.0;
+  var GOAL_WIDTH_M = 7.32;
+  var GOAL_Y_MIN_M = (PITCH_WIDTH_M - GOAL_WIDTH_M) / 2;
+  var GOAL_Y_MAX_M = (PITCH_WIDTH_M + GOAL_WIDTH_M) / 2;
+  var GOAL_CENTER_Y_M = PITCH_WIDTH_M / 2;
 
   /**
-   * 정밀 구역 — 거리 8단계(기존 5단계보다 촘촘하게, 특히 박스 안쪽을 세분화) × 중앙에서
-   * 얼마나 벗어났는지 3단계(중앙/중앙 인접/측면). 실제 슈팅 표본이 골대 근처에 몰려 있어(약
-   * 2,000건대 표본 중 다수가 박스 안) 이 구간을 더 세밀하게 나눠도 표본이 충분하다.
-   * 표본이 부족한 구역은 loadZoneAggregate에서 coarseZoneKey 전환율로 대체된다.
+   * 정규화 좌표(x,y ∈ [0,1], x=1이 상대 골대 방향)를 실제 미터 좌표(105×68)로 환산해 골대까지
+   * 거리와 골대를 바라보는 시야각(양쪽 골포스트까지의 거리로 코사인 법칙 적용)을 구하고,
+   * 거리·각도 로지스틱 회귀 근사식(logit = 0.5 − 0.15×거리 + 0.05×각도)에 넣는다. 정식 xG
+   * 모델은 아니다 — 수비수 배치·압박·패스 난이도 등은 반영하지 않는 거리·각도만의 근사치.
    */
-  var FINE_DISTANCE_BANDS = [
-    { min: 0.96, label: '골키퍼 코앞' },
-    { min: 0.92, label: '6야드 부근' },
-    { min: 0.875, label: '페널티스팟 부근' },
-    { min: 0.80, label: '박스 안(먼 쪽)' },
-    { min: 0.70, label: '박스 바로 앞' },
-    { min: 0.60, label: '중거리(가까운 쪽)' },
-    { min: 0.45, label: '중거리(먼 쪽)' },
-    { min: -1, label: '장거리' }
-  ];
-
-  function zoneKey(x, y) {
-    var distanceLabel = FINE_DISTANCE_BANDS[FINE_DISTANCE_BANDS.length - 1].label;
-    for (var i = 0; i < FINE_DISTANCE_BANDS.length; i++) {
-      if (x >= FINE_DISTANCE_BANDS[i].min) { distanceLabel = FINE_DISTANCE_BANDS[i].label; break; }
-    }
-    var boxCenter = (BOX.yMin + BOX.yMax) / 2;
-    var boxHalfWidth = (BOX.yMax - BOX.yMin) / 2;
-    var offCenter = Math.abs(y - boxCenter) / boxHalfWidth; // 0=정중앙, 1=박스 폭 경계, 그 이상=박스 밖
-    var lateralLabel = offCenter <= 0.5 ? '중앙' : (offCenter <= 1.3 ? '중앙 인접' : '측면');
-    return distanceLabel + ' · ' + lateralLabel;
-  }
-
-  /** 기존(v1) 5단계 × 2단계 구역 — 정밀 구역의 표본이 부족할 때 폴백 전환율로 쓴다. */
-  function coarseZoneKey(x, y) {
-    var isCenter = y >= BOX.yMin && y <= BOX.yMax;
-    var band;
-    if (x >= SIX.xMin) band = '초근접(6야드 부근)';
-    else if (x >= BOX.xMin) band = '박스 안';
-    else if (x >= 0.70) band = '박스 근처';
-    else if (x >= 0.55) band = '중거리';
-    else band = '장거리';
-    return band + ' · ' + (isCenter ? '중앙' : '측면');
-  }
-
-  function loadZoneAggregate() {
-    var cached = null;
-    try { cached = JSON.parse(sessionStorage.getItem(ZONE_CACHE_KEY) || 'null'); } catch (e) { /* ignore */ }
-    if (cached && cached.table && cached.sampleSize) {
-      applyZoneAggregate(cached);
-      return Promise.resolve();
-    }
-    var requests = [];
-    allUsers.forEach(function (u) {
-      ['CUSTOM', 'OFFICIAL'].forEach(function (mt) {
-        requests.push(
-          apiGet('/api/v1/records/shot-heatmap', { ouid: u.ouid, matchType: mt, goalsOnly: false })
-            .then(function (r) { return r.points; })
-            .catch(function () { return []; })
-        );
-      });
-    });
-    return Promise.all(requests).then(function (results) {
-      var fineCounts = {};
-      var coarseCounts = {};
-      var total = 0;
-      results.forEach(function (points) {
-        points.forEach(function (p) {
-          var fk = zoneKey(p.x, p.y);
-          var ck = coarseZoneKey(p.x, p.y);
-          if (!fineCounts[fk]) fineCounts[fk] = { zone: fk, shots: 0, goals: 0, coarseZone: ck };
-          fineCounts[fk].shots += 1;
-          if (p.goal) fineCounts[fk].goals += 1;
-
-          if (!coarseCounts[ck]) coarseCounts[ck] = { shots: 0, goals: 0 };
-          coarseCounts[ck].shots += 1;
-          if (p.goal) coarseCounts[ck].goals += 1;
-
-          total += 1;
-        });
-      });
-      var table = Object.keys(fineCounts).map(function (k) {
-        var c = fineCounts[k];
-        var rate;
-        if (c.shots >= FINE_ZONE_MIN_SAMPLE) {
-          rate = c.goals / c.shots;
-        } else {
-          var coarse = coarseCounts[c.coarseZone];
-          rate = coarse && coarse.shots ? coarse.goals / coarse.shots : (c.shots ? c.goals / c.shots : 0);
-        }
-        return { zone: c.zone, shots: c.shots, goals: c.goals, rate: rate };
-      }).sort(function (a, b) { return b.shots - a.shots; });
-      var agg = { table: table, sampleSize: total };
-      try { sessionStorage.setItem(ZONE_CACHE_KEY, JSON.stringify(agg)); } catch (e) { /* ignore */ }
-      applyZoneAggregate(agg);
-    });
-  }
-
-  function applyZoneAggregate(agg) {
-    zoneAggregate = agg;
-    zoneAggregate.rateMap = {};
-    agg.table.forEach(function (r) { zoneAggregate.rateMap[r.zone] = r.rate; });
-    if (lastPoints) updateXgTile(lastPoints);
-    if (lastPoints) renderShotPitch(lastPoints, lastConcededPoints || []);
-    if (lastOverall) {
-      renderPlayStyle(lastOverall, lastPoints, lastTotalGames, lastConcededPoints, lastConcededSampleGames, lastMatches);
-    }
+  function calcXg(x, y) {
+    if (x == null || y == null) return null;
+    var xm = x * PITCH_LENGTH_M;
+    var ym = y * PITCH_WIDTH_M;
+    var dist = Math.sqrt(Math.pow(PITCH_LENGTH_M - xm, 2) + Math.pow(GOAL_CENTER_Y_M - ym, 2));
+    var d1 = Math.sqrt(Math.pow(PITCH_LENGTH_M - xm, 2) + Math.pow(GOAL_Y_MIN_M - ym, 2));
+    var d2 = Math.sqrt(Math.pow(PITCH_LENGTH_M - xm, 2) + Math.pow(GOAL_Y_MAX_M - ym, 2));
+    var cosAngle = (d1 * d1 + d2 * d2 - GOAL_WIDTH_M * GOAL_WIDTH_M) / (2 * d1 * d2);
+    cosAngle = Math.max(-1, Math.min(1, cosAngle)); // 부동소수 오차로 [-1,1] 살짝 벗어나는 것 방지
+    var angleDeg = Math.acos(cosAngle) * (180 / Math.PI);
+    var logit = 0.5 - 0.15 * dist + 0.05 * angleDeg;
+    return 1 / (1 + Math.exp(-logit));
   }
 
   /**
    * "슈팅 위치 & 실제 xG값" 카드 — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
-   * 180도 반전(x,y 모두 1-값)해서 좌측(내 골대 방향)에 함께 그린다. zoneAggregate가 늦게
-   * 로드되면 applyZoneAggregate에서 다시 불러 xG 툴팁을 채운다.
+   * 180도 반전(x,y 모두 1-값)해서 좌측(내 골대 방향)에 함께 그린다.
    */
   function renderShotPitch(points, concededPoints) {
     var actualGoalsNow = points.filter(function (p) { return p.goal; }).length;
@@ -2024,14 +1928,14 @@
     var shotsForPitch = points.map(function (p) {
       var withXg = {};
       for (var k in p) withXg[k] = p[k];
-      withXg.xg = zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null;
+      withXg.xg = calcXg(p.x, p.y);
       withXg.mine = true;
       return withXg;
     }).concat(concededPoints.map(function (p) {
       return {
         x: p.x != null ? 1 - p.x : null, y: p.y != null ? 1 - p.y : null,
         goal: p.goal, shootType: p.shootType, result: p.result,
-        xg: zoneAggregate ? zoneAggregate.rateMap[zoneKey(p.x, p.y)] : null,
+        xg: calcXg(p.x, p.y),
         mine: false
       };
     })).filter(function (p) { return p.x != null && p.y != null; });
@@ -2043,16 +1947,7 @@
     var subEl = document.getElementById('xg-tile-sub');
     if (!valueEl) return;
     var actualGoals = points.filter(function (p) { return p.goal; }).length;
-    if (!zoneAggregate) {
-      valueEl.textContent = actualGoals + ' : 계산 중…';
-      subEl.textContent = '';
-      return;
-    }
-    var expectedGoals = 0;
-    points.forEach(function (p) {
-      var r = zoneAggregate.rateMap[zoneKey(p.x, p.y)];
-      if (r != null) expectedGoals += r;
-    });
+    var expectedGoals = expectedGoalsOf(points);
     var diff = actualGoals - expectedGoals;
     valueEl.textContent = actualGoals + ' : ' + fmt1(expectedGoals);
     subEl.textContent = (diff > 0 ? '+' : '') + fmt1(diff) + (diff >= 0 ? ' 기대 이상 마무리' : ' 기대 이하 마무리');
@@ -2095,10 +1990,9 @@
   }
 
   function expectedGoalsOf(points) {
-    if (!zoneAggregate) return 0;
     var sum = 0;
     points.forEach(function (p) {
-      var r = zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+      var r = calcXg(p.x, p.y);
       if (r != null) sum += r;
     });
     return sum;
@@ -2107,9 +2001,8 @@
   /** 매치별 xG값 추이 라인차트용 — 슛 포인트를 matchId로 묶어 매치당 xG값 합을 낸다. */
   function groupExpectedGoalsByMatch(points) {
     var byMatch = {};
-    if (!zoneAggregate) return byMatch;
     points.forEach(function (p) {
-      var r = zoneAggregate.rateMap[zoneKey(p.x, p.y)];
+      var r = calcXg(p.x, p.y);
       if (r == null) return;
       byMatch[p.matchId] = (byMatch[p.matchId] || 0) + r;
     });
@@ -2151,9 +2044,9 @@
     var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
 
     statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점');
-    statMini(attackContainer, '평균 득점 xG값', zoneAggregate ? fmt1(expectedGoals / totalGames) : '계산 중…', '경기당 기대 득점');
+    statMini(attackContainer, '평균 득점 xG값', fmt1(expectedGoals / totalGames), '경기당 기대 득점');
     statMini(attackContainer, '결정력',
-      zoneAggregate ? (actualGoals - expectedGoals >= 0 ? '+' : '') + fmt1(actualGoals - expectedGoals) : '-',
+      (actualGoals - expectedGoals >= 0 ? '+' : '') + fmt1(actualGoals - expectedGoals),
       '실제 득점 − xG값 (양수면 기대 이상)');
     statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
@@ -2164,13 +2057,13 @@
     var concededActualGoals = concededPoints.filter(function (p) { return p.goal; }).length;
     statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점');
     statMini(defenseContainer, '평균 실점 xG값',
-      zoneAggregate && concededSampleGames ? fmt1(concededExpectedGoals / concededSampleGames) : '-',
+      concededSampleGames ? fmt1(concededExpectedGoals / concededSampleGames) : '-',
       concededSampleGames ? concededSampleGames + '경기' : '데이터 없음');
     statMini(defenseContainer, '클린시트', fmt(overall.cleanSheets) + '경기', pctOf(overall.cleanSheets, totalGames) + '%');
     statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
     statMini(defenseContainer, '상대 결정력',
-      zoneAggregate && concededSampleGames
+      concededSampleGames
         ? (concededActualGoals - concededExpectedGoals >= 0 ? '+' : '') + fmt1(concededActualGoals - concededExpectedGoals)
         : '-',
       '상대 실제 득점 − 실점 xG값 (양수면 상대가 기대 이상)');
@@ -2185,8 +2078,7 @@
       return labels;
     }
 
-    // 매치별 xG값 — shot-heatmap 포인트를 matchId로 묶어서 계산한다(그룹 안 되면 zoneAggregate가
-    // 아직 준비 안 된 것 — 이 함수는 그때도 다시 불려서 자연히 채워진다).
+    // 매치별 xG값 — shot-heatmap 포인트를 matchId로 묶어서 계산한다.
     var xgByMatch = groupExpectedGoalsByMatch(points);
     lineChart(attackChart, [
       { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
@@ -2351,16 +2243,10 @@
     d.concededHeatmap.points.forEach(function (p) { concededMatchIdSet[p.matchId] = true; });
     var concededSampleGames = Object.keys(concededMatchIdSet).length;
 
-    lastOverall = overall;
-    lastTotalGames = totalGames;
-    lastConcededPoints = d.concededHeatmap.points;
-    lastConcededSampleGames = concededSampleGames;
-    lastMatches = d.matches;
     renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches);
 
     // heatmap (전체 슈팅 + xG값) — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
     // 180도 반전해서 좌측(내 골대 방향)에 함께 표시한다(매치 상세 모달과 동일한 방식).
-    lastPoints = d.heatmap.points;
     renderShotPitch(d.heatmap.points, d.concededHeatmap.points);
     updateXgTile(d.heatmap.points);
 

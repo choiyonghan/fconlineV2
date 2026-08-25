@@ -72,7 +72,9 @@ class MatchDetailRecentMatchesTest {
         assertThat(first.result()).isEqualTo(MatchResult.WIN);
         assertThat(first.goalsFor()).isEqualTo(3);
         assertThat(first.goalsAgainst()).isEqualTo(0);
-        assertThat(first.averageRating()).isEqualTo(8.2);
+        // averageRating은 DB 원본(5점 만점)의 2배로 나온다 — MatchDetailRepositoryImpl.doubled() 참고
+        // (Nexon 원본이 5점 만점이라 개인 평점(10점 만점)과 스케일을 맞추려는 것).
+        assertThat(first.averageRating()).isEqualTo(16.4);
         assertThat(first.possession()).isEqualTo(60);
 
         RecentMatchRaw second = recent.getContent().get(1);

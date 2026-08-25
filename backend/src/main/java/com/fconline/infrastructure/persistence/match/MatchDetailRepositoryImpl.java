@@ -114,7 +114,10 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         }
 
         return new MatchStatsSummary(
-                nzd(result.get(md.stats.averageRating.avg())),
+                // Nexon 원본 averageRating은 5점 만점(개인 평점은 10점 만점) — 화면/스냅샷 어디서든
+                // "평균 평점"이 같은 10점 만점으로 보이도록 여기서 한 번만 2배 해둔다(DB는 원본 그대로,
+                // 마이그레이션 없음. RecentMatchRaw 쪽도 toRecentMatchRaw에서 동일하게 처리).
+                nzd(result.get(md.stats.averageRating.avg())) * 2,
                 nzd(result.get(md.stats.possession.avg())),
                 nz(result.get(md.stats.foul.sumAggregate())),
                 nz(result.get(md.stats.yellowCards.sumAggregate())),
@@ -345,7 +348,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 row.get(md.result),
                 row.get(md.stats.goalsFor),
                 row.get(md.stats.goalsAgainst),
-                row.get(md.stats.averageRating),
+                doubled(row.get(md.stats.averageRating)), // 5점 만점 원본 -> 10점 만점(aggregateStatsSummary와 동일 이유)
                 row.get(md.stats.possession),
                 row.get(md.stats.shootTotal),
                 row.get(md.stats.effectiveShoot),
@@ -706,5 +709,10 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
     private static double nzd(Double value) {
         return value == null ? 0.0 : value;
+    }
+
+    /** averageRating 5점 만점 -> 10점 만점. null(결측)은 null 그대로 둔다(RecentMatchRaw.averageRating은 nullable). */
+    private static Double doubled(Double value) {
+        return value == null ? null : value * 2;
     }
 }
