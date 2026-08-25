@@ -1118,13 +1118,6 @@
   var modalBody = document.getElementById('modal-body');
   var modalLastFocus = null;
 
-  function statBlock(label, value) {
-    var box = el('div', 'modal-stat');
-    box.appendChild(el('p', 'modal-stat-label', label));
-    box.appendChild(el('div', 'modal-stat-value', value));
-    return box;
-  }
-
   /**
    * MOM/Worst Player 한줄평 — Nexon API에 MOM 플래그가 없어(백엔드 MatchSquadEntryRaw 주석 참고)
    * 언제나 이 방식(평점 최댓값/최솟값)으로만 뽑는다. 이유는 그 선수의 가장 두드러진 스탯
@@ -1597,7 +1590,8 @@
     }
     mine = extend(mine);
     if (opp) opp = extend(opp);
-    var maxCum = Math.max(1, mine[mine.length - 1].cum, opp ? opp[opp.length - 1].cum : 0);
+    // 최댓값에 딱 붙지 않도록 여유(20%)를 조금 둔다 — 선이 그래프 맨 위에 눌린 것처럼 보이던 것 개선.
+    var maxCum = Math.max(1, mine[mine.length - 1].cum, opp ? opp[opp.length - 1].cum : 0) * 1.2;
 
     var W = 480, H = 170, padL = 30, padR = 12, padT = 16, padB = 22;
     var innerW = W - padL - padR, innerH = H - padT - padB;
@@ -1743,23 +1737,10 @@
       })
       .catch(function () { /* MOM/Worst·비교는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
-    var grid = el('div', 'modal-stat-grid');
-    grid.appendChild(statBlock('평점', m.averageRating != null ? fmt1(m.averageRating) : '-'));
-    grid.appendChild(statBlock('점유율', m.possession != null ? m.possession + '%' : '-'));
-    grid.appendChild(statBlock('슈팅 (유효/전체)', (m.effectiveShoot != null ? m.effectiveShoot : '-') + ' / ' + (m.shootTotal != null ? m.shootTotal : '-')));
-    grid.appendChild(statBlock('패스 (성공/시도)', (m.passSuccess != null ? m.passSuccess : '-') + ' / ' + (m.passTry != null ? m.passTry : '-')));
-    grid.appendChild(statBlock('태클 (성공/시도)', (m.tackleSuccess != null ? m.tackleSuccess : '-') + ' / ' + (m.tackleTry != null ? m.tackleTry : '-')));
-    grid.appendChild(statBlock('파울', m.foul != null ? fmt(m.foul) : '-'));
-    grid.appendChild(statBlock('옐로카드', m.yellowCards != null ? fmt(m.yellowCards) : '-'));
-    grid.appendChild(statBlock('레드카드', m.redCards != null ? fmt(m.redCards) : '-'));
-    var xgForBlock = statBlock('득점 xG값', '계산 중…');
-    var xgAgainstBlock = statBlock('실점 xG값', '계산 중…');
-    grid.appendChild(xgForBlock);
-    grid.appendChild(xgAgainstBlock);
-    modalBody.appendChild(grid);
-
     // ⚽ 득점 상세 / 🥅 실점 상세(누가 골, 누가 어시, xG값) + 🎯 슈팅 위치 — 매치 1건의 슛 이벤트를
     // 그때 불러온다. concededShots는 상대도 추적 대상이어야 채워진다(아니면 조용히 생략).
+    // 예전엔 여기서 평점/점유율/슈팅/패스/태클/파울/카드/xG값을 표(모달-스탯-그리드)로 따로
+    // 보여줬는데, "⚖️ 상대 팀 비교"가 같은 정보를 상대와 나란히 더 잘 보여줘서 뺐다(요청).
     var shotSection = el('div', 'modal-shots-section');
     shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오는 중…'));
     modalBody.appendChild(shotSection);
@@ -1767,22 +1748,15 @@
     apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
       .then(function (result) {
         if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
-        var xgFor = expectedGoalsOf(result.myShots);
-        var xgAgainst = expectedGoalsOf(result.concededShots);
-        xgForBlock.querySelector('.modal-stat-value').textContent = round1(xgFor) + '골';
-        xgAgainstBlock.querySelector('.modal-stat-value').textContent =
-          result.concededShots.length ? round1(xgAgainst) + '골' : '-';
         renderModalShots(shotSection, result.myShots, result.concededShots);
 
-        compareXgState.for = xgFor;
-        compareXgState.against = result.concededShots.length ? xgAgainst : null;
+        compareXgState.for = expectedGoalsOf(result.myShots);
+        compareXgState.against = result.concededShots.length ? expectedGoalsOf(result.concededShots) : null;
         compareXgState.ready = true;
         applyCompareXg();
       })
       .catch(function () {
         if (seq !== modalRequestSeq) return;
-        xgForBlock.querySelector('.modal-stat-value').textContent = '-';
-        xgAgainstBlock.querySelector('.modal-stat-value').textContent = '-';
         shotSection.replaceChildren();
         shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오지 못했습니다.'));
       });
