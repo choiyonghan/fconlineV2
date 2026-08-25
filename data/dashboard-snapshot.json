@@ -1,59 +1,70 @@
 {
-  "generatedAt" : "2026-08-25T06:06:59.706553883Z",
+  "generatedAt" : "2026-08-25T06:41:42.768252887Z",
   "currentSeasonName" : "시즌2",
   "aiRankingFailed" : true,
-  "aiRankingNote" : "AI 랭킹 호출에 실패해 승률·득실차 기준으로 대체했습니다.",
+  "aiRankingNote" : "AI 랭킹 호출에 실패해 승률·득실차 기준 자동 집계로 대체했습니다.",
+  "introText" : "아아, 마이크 테스트! FC 온라인 리그의 잔혹하고도 눈물겨운 전체 유저 종합 순위 리포트를 발표합니다!\n\n이번 순위는 각 유저가 그동안 쌓아올린 피, 땀, 그리고 (누군가의) 눈물로 만들어진 승률·득실차 기준입니다. 영광의 1위부터 통곡의 꼴찌까지 지금 공개합니다! (AI 랭킹 호출에 실패해 자동 집계 기준으로 대신 보여드려요.)",
+  "outroText" : "[해설자 총평]\n오늘도 승자는 미소를, 패자는 다음 시즌을 기약합니다. 득실차 마이너스는 부끄러운 게 아니라 다음 경기를 더 화끈하게 만들 스토리일 뿐입니다 — 리그는 계속됩니다!",
   "ranking" : [ {
-    "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
-    "nickname" : "서울쥐",
-    "rank" : 1,
-    "reason" : "승률 60.0%, 경기당 득실차 +0.70 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
-    "nickname" : "내혀를가져가",
-    "rank" : 2,
-    "reason" : "승률 56.8%, 경기당 득실차 +0.70 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
-    "nickname" : "내눈을가져가",
-    "rank" : 3,
-    "reason" : "승률 55.8%, 경기당 득실차 +0.51 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "6dfa509e08e020945f9a208216aad98d",
-    "nickname" : "ST반니스텔로이",
-    "rank" : 4,
-    "reason" : "승률 50.0%, 경기당 득실차 +0.33 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
     "ouid" : "c4f8613f9995dc79c5413cc61fa1d6f2",
     "nickname" : "D로쏘네리",
-    "rank" : 5,
-    "reason" : "승률 50.0%, 경기당 득실차 +0.13 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "7f3fabc284ffe4b6bedf702a307f0f2e",
-    "nickname" : "욱냥0I",
-    "rank" : 6,
-    "reason" : "승률 44.4%, 경기당 득실차 +0.11 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "1894adb89b4a7953381bdd5671ce7610",
-    "nickname" : "지린성에사는욱구",
-    "rank" : 7,
-    "reason" : "승률 41.1%, 경기당 득실차 -0.11 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
-  }, {
-    "ouid" : "69144f360220ebdb6b10b20d2fc5733e",
-    "nickname" : "프란체스co토티",
-    "rank" : 8,
-    "reason" : "승률 0.0%, 경기당 득실차 -2.00 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
+    "displayName" : "D로쏘네리(설동민)",
+    "rank" : 1,
+    "reason" : "18전 14승 1무 3패 (승률 77.8%) | 득실 +17.0 | 평균 평점 4.30 — 승률 미친 포스로 리그 최고존엄 후보에 등극! 패배보다 승리가 압도적으로 많은 고고한 신선의 영역입니다."
   }, {
     "ouid" : "2a27e3732d7ea05e453ac8a41f39b134",
     "nickname" : "아기블루스",
+    "displayName" : "아기블루스(설동민)",
+    "rank" : 2,
+    "reason" : "23전 16승 2무 5패 (승률 69.6%) | 득실 +24.0 | 평균 평점 4.39 — 혼자 리그를 씹어먹는 중입니다! 득실차가 전체 유저 중 가장 화끈한 폭격기 성능을 보여줬네요."
+  }, {
+    "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
+    "nickname" : "내눈을가져가",
+    "displayName" : "내눈을가져가(최용한)",
+    "rank" : 3,
+    "reason" : "16전 9승 3무 4패 (승률 56.3%) | 득실 +13.0 | 평균 평점 4.23 — 눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."
+  }, {
+    "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
+    "nickname" : "내혀를가져가",
+    "displayName" : "내혀를가져가(최용한)",
+    "rank" : 4,
+    "reason" : "41전 22승 3무 16패 (승률 53.7%) | 득실 +31.0 | 평균 평점 4.03 — 무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."
+  }, {
+    "ouid" : "6dfa509e08e020945f9a208216aad98d",
+    "nickname" : "ST반니스텔로이",
+    "displayName" : "ST반니스텔로이(김정현)",
+    "rank" : 5,
+    "reason" : "12전 6승 0무 6패 (승률 50.0%) | 득실 +4.0 | 평균 평점 4.19 — 정확히 반반! 승리와 패배의 완벽한 황금 비율을 자랑하는 리그의 인간 반반치킨입니다."
+  }, {
+    "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
+    "nickname" : "서울쥐",
+    "displayName" : "서울쥐(김상기)",
+    "rank" : 6,
+    "reason" : "27전 13승 4무 10패 (승률 48.1%) | 득실 +12.0 | 평균 평점 4.17 — 살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."
+  }, {
+    "ouid" : "1894adb89b4a7953381bdd5671ce7610",
+    "nickname" : "지린성에사는욱구",
+    "displayName" : "지린성에사는욱구(전승욱)",
+    "rank" : 7,
+    "reason" : "55전 7승 7무 41패 (승률 12.7%) | 득실 -90.0 | 평균 평점 3.88 — 이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"
+  }, {
+    "ouid" : "7f3fabc284ffe4b6bedf702a307f0f2e",
+    "nickname" : "욱냥0I",
+    "displayName" : "욱냥0I(전승욱)",
+    "rank" : 8,
+    "reason" : "3전 0승 0무 3패 (승률 0.0%) | 득실 -4.0 | 평균 평점 3.81 — 표본이 아직 적지만, 승리의 맛을 아직 한 번도 보지 못한 아기 고양이 상태입니다."
+  }, {
+    "ouid" : "69144f360220ebdb6b10b20d2fc5733e",
+    "nickname" : "프란체스co토티",
+    "displayName" : "프란체스co토티(윤철희)",
     "rank" : 9,
-    "reason" : "승률 0.0%, 경기당 득실차 -2.50 기준으로 정렬했습니다(AI 랭킹 실패 대체)."
+    "reason" : "2전 0승 0무 2패 (승률 0.0%) | 득실 -4.0 | 평균 평점 3.75 — 표본이 적은 채로 평점이 아쉬운 편입니다! 경기장에 찍먹만 하러 오셨다가 수수료만 내고 가셨나 봐요!"
   } ],
   "users" : {
     "c4f8613f9995dc79c5413cc61fa1d6f2" : {
       "ouid" : "c4f8613f9995dc79c5413cc61fa1d6f2",
       "nickname" : "D로쏘네리",
-      "custom" : {
+      "summary" : {
         "games" : 18,
         "wins" : 14,
         "draws" : 1,
@@ -132,92 +143,12 @@
           "playerName" : "P. 에스투피냔",
           "value" : 1
         } ]
-      },
-      "season" : {
-        "games" : 16,
-        "wins" : 8,
-        "draws" : 4,
-        "losses" : 4,
-        "avgGoalsFor" : 2.5,
-        "avgGoalsForXg" : 2.851469391323503,
-        "finishing" : -5.623510261176051,
-        "shotsPerGame" : 6.75,
-        "avgGoalsAgainst" : 2.375,
-        "avgGoalsAgainstXg" : 2.657596075012912,
-        "concededSampleGames" : 16,
-        "cleanSheets" : 0,
-        "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 7,
-        "multiConcededPct" : 43.75,
-        "lowPossessionGames" : 0,
-        "lowPossessionPct" : 0.0,
-        "balancedPossessionGames" : 8,
-        "balancedPossessionPct" : 50.0,
-        "highPossessionGames" : 8,
-        "highPossessionPct" : 50.0,
-        "avgPossession" : 55.0,
-        "avgRating" : 4.28889,
-        "combo" : {
-          "playerAName" : "에르난 크레스포",
-          "playerBName" : "안드리 셰우첸코",
-          "goals" : 5
-        },
-        "topGoals" : [ {
-          "playerName" : "에르난 크레스포",
-          "value" : 9
-        }, {
-          "playerName" : "카카",
-          "value" : 9
-        }, {
-          "playerName" : "안드리 셰우첸코",
-          "value" : 8
-        } ],
-        "topAssists" : [ {
-          "playerName" : "안드리 셰우첸코",
-          "value" : 7
-        }, {
-          "playerName" : "루카 모드리치",
-          "value" : 5
-        }, {
-          "playerName" : "P. 에스투피냔",
-          "value" : 5
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "안드리 셰우첸코",
-          "value" : 15
-        }, {
-          "playerName" : "에르난 크레스포",
-          "value" : 12
-        }, {
-          "playerName" : "카카",
-          "value" : 12
-        } ],
-        "topDefense" : [ {
-          "playerName" : "파올로 말디니",
-          "value" : 60
-        }, {
-          "playerName" : "알레산드로 네스타",
-          "value" : 47
-        }, {
-          "playerName" : "프랑크 레이카르트",
-          "value" : 31
-        } ],
-        "topSaves" : [ {
-          "playerName" : "마이크 메냥",
-          "value" : 48
-        }, {
-          "playerName" : "잔루이지 돈나룸마",
-          "value" : 5
-        }, {
-          "playerName" : "파올로 말디니",
-          "value" : 1
-        } ]
       }
     },
     "6dfa509e08e020945f9a208216aad98d" : {
       "ouid" : "6dfa509e08e020945f9a208216aad98d",
       "nickname" : "ST반니스텔로이",
-      "custom" : {
+      "summary" : {
         "games" : 12,
         "wins" : 6,
         "draws" : 0,
@@ -293,43 +224,12 @@
           "playerName" : "루이스 피구",
           "value" : 2
         } ]
-      },
-      "season" : {
-        "games" : 0,
-        "wins" : 0,
-        "draws" : 0,
-        "losses" : 0,
-        "avgGoalsFor" : 0.0,
-        "avgGoalsForXg" : 0.0,
-        "finishing" : 0.0,
-        "shotsPerGame" : 0.0,
-        "avgGoalsAgainst" : 0.0,
-        "avgGoalsAgainstXg" : null,
-        "concededSampleGames" : 0,
-        "cleanSheets" : 0,
-        "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 0,
-        "multiConcededPct" : 0.0,
-        "lowPossessionGames" : 0,
-        "lowPossessionPct" : 0.0,
-        "balancedPossessionGames" : 0,
-        "balancedPossessionPct" : 0.0,
-        "highPossessionGames" : 0,
-        "highPossessionPct" : 0.0,
-        "avgPossession" : 0.0,
-        "avgRating" : 0.0,
-        "combo" : null,
-        "topGoals" : [ ],
-        "topAssists" : [ ],
-        "topAttackPoints" : [ ],
-        "topDefense" : [ ],
-        "topSaves" : [ ]
       }
     },
     "3187c800228a6e98e07fcd2a9cd97b93" : {
       "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
       "nickname" : "내눈을가져가",
-      "custom" : {
+      "summary" : {
         "games" : 16,
         "wins" : 9,
         "draws" : 3,
@@ -408,92 +308,12 @@
           "playerName" : "I. 라두",
           "value" : 13
         } ]
-      },
-      "season" : {
-        "games" : 43,
-        "wins" : 24,
-        "draws" : 7,
-        "losses" : 12,
-        "avgGoalsFor" : 2.697674418604651,
-        "avgGoalsForXg" : 2.649184527750134,
-        "finishing" : 2.085065306744255,
-        "shotsPerGame" : 6.1395348837209305,
-        "avgGoalsAgainst" : 2.186046511627907,
-        "avgGoalsAgainstXg" : 2.415064490698311,
-        "concededSampleGames" : 42,
-        "cleanSheets" : 11,
-        "cleanSheetPct" : 25.58139534883721,
-        "multiConcededGames" : 20,
-        "multiConcededPct" : 46.51162790697674,
-        "lowPossessionGames" : 16,
-        "lowPossessionPct" : 37.2093023255814,
-        "balancedPossessionGames" : 23,
-        "balancedPossessionPct" : 53.48837209302326,
-        "highPossessionGames" : 4,
-        "highPossessionPct" : 9.30232558139535,
-        "avgPossession" : 45.02325581395349,
-        "avgRating" : 4.130620465116279,
-        "combo" : {
-          "playerAName" : "에덴 아자르",
-          "playerBName" : "사뮈엘 에토",
-          "goals" : 10
-        },
-        "topGoals" : [ {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 24
-        }, {
-          "playerName" : "사뮈엘 에토",
-          "value" : 14
-        }, {
-          "playerName" : "디디에 드로그바",
-          "value" : 13
-        } ],
-        "topAssists" : [ {
-          "playerName" : "사뮈엘 에토",
-          "value" : 23
-        }, {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 13
-        }, {
-          "playerName" : "알렉시스 산체스",
-          "value" : 11
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 37
-        }, {
-          "playerName" : "사뮈엘 에토",
-          "value" : 37
-        }, {
-          "playerName" : "디디에 드로그바",
-          "value" : 21
-        } ],
-        "topDefense" : [ {
-          "playerName" : "덴젤 둠프리스",
-          "value" : 55
-        }, {
-          "playerName" : "에스테반 캄비아소",
-          "value" : 41
-        }, {
-          "playerName" : "파트리크 비에이라",
-          "value" : 37
-        } ],
-        "topSaves" : [ {
-          "playerName" : "M. 디 그레고리오",
-          "value" : 69
-        }, {
-          "playerName" : "티보 쿠르투아",
-          "value" : 27
-        }, {
-          "playerName" : "I. 라두",
-          "value" : 23
-        } ]
       }
     },
     "4b3bb4908597dd3cedb84fd24f5bebd1" : {
       "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
       "nickname" : "내혀를가져가",
-      "custom" : {
+      "summary" : {
         "games" : 41,
         "wins" : 22,
         "draws" : 3,
@@ -572,92 +392,12 @@
           "playerName" : "앙드레 오나나",
           "value" : 4
         } ]
-      },
-      "season" : {
-        "games" : 37,
-        "wins" : 21,
-        "draws" : 4,
-        "losses" : 12,
-        "avgGoalsFor" : 3.2162162162162162,
-        "avgGoalsForXg" : 2.9074853772489107,
-        "finishing" : 11.423041041790313,
-        "shotsPerGame" : 6.918918918918919,
-        "avgGoalsAgainst" : 2.5135135135135136,
-        "avgGoalsAgainstXg" : 3.0029508473690143,
-        "concededSampleGames" : 35,
-        "cleanSheets" : 7,
-        "cleanSheetPct" : 18.91891891891892,
-        "multiConcededGames" : 17,
-        "multiConcededPct" : 45.945945945945944,
-        "lowPossessionGames" : 14,
-        "lowPossessionPct" : 37.83783783783784,
-        "balancedPossessionGames" : 17,
-        "balancedPossessionPct" : 45.945945945945944,
-        "highPossessionGames" : 6,
-        "highPossessionPct" : 16.216216216216218,
-        "avgPossession" : 49.2972972972973,
-        "avgRating" : 4.234384054054055,
-        "combo" : {
-          "playerAName" : "로빈 반페르시",
-          "playerBName" : "조지 베스트",
-          "goals" : 27
-        },
-        "topGoals" : [ {
-          "playerName" : "로빈 반페르시",
-          "value" : 41
-        }, {
-          "playerName" : "조지 베스트",
-          "value" : 29
-        }, {
-          "playerName" : "마커스 래시포드",
-          "value" : 23
-        } ],
-        "topAssists" : [ {
-          "playerName" : "조지 베스트",
-          "value" : 30
-        }, {
-          "playerName" : "마커스 래시포드",
-          "value" : 22
-        }, {
-          "playerName" : "로빈 반페르시",
-          "value" : 20
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "로빈 반페르시",
-          "value" : 61
-        }, {
-          "playerName" : "조지 베스트",
-          "value" : 59
-        }, {
-          "playerName" : "마커스 래시포드",
-          "value" : 45
-        } ],
-        "topDefense" : [ {
-          "playerName" : "스콧 맥토미니",
-          "value" : 80
-        }, {
-          "playerName" : "리오 퍼디난드",
-          "value" : 76
-        }, {
-          "playerName" : "네마냐 비디치",
-          "value" : 69
-        } ],
-        "topSaves" : [ {
-          "playerName" : "팀 하워드",
-          "value" : 124
-        }, {
-          "playerName" : "앙드레 오나나",
-          "value" : 3
-        }, {
-          "playerName" : "스콧 맥토미니",
-          "value" : 2
-        } ]
       }
     },
     "1b8131906ebdd10fcb02b79367cc515a" : {
       "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
       "nickname" : "서울쥐",
-      "custom" : {
+      "summary" : {
         "games" : 27,
         "wins" : 13,
         "draws" : 4,
@@ -736,92 +476,12 @@
           "playerName" : "리스 제임스",
           "value" : 2
         } ]
-      },
-      "season" : {
-        "games" : 10,
-        "wins" : 6,
-        "draws" : 0,
-        "losses" : 4,
-        "avgGoalsFor" : 3.2,
-        "avgGoalsForXg" : 3.568884063635508,
-        "finishing" : -3.6888406363550814,
-        "shotsPerGame" : 8.8,
-        "avgGoalsAgainst" : 2.5,
-        "avgGoalsAgainstXg" : 2.69459851694908,
-        "concededSampleGames" : 9,
-        "cleanSheets" : 2,
-        "cleanSheetPct" : 20.0,
-        "multiConcededGames" : 6,
-        "multiConcededPct" : 60.0,
-        "lowPossessionGames" : 1,
-        "lowPossessionPct" : 10.0,
-        "balancedPossessionGames" : 9,
-        "balancedPossessionPct" : 90.0,
-        "highPossessionGames" : 0,
-        "highPossessionPct" : 0.0,
-        "avgPossession" : 48.4,
-        "avgRating" : 4.227778000000001,
-        "combo" : {
-          "playerAName" : "루디 펠러",
-          "playerBName" : "프란체스코 토티",
-          "goals" : 6
-        },
-        "topGoals" : [ {
-          "playerName" : "루디 펠러",
-          "value" : 7
-        }, {
-          "playerName" : "프란체스코 토티",
-          "value" : 6
-        }, {
-          "playerName" : "에반 은디카",
-          "value" : 5
-        } ],
-        "topAssists" : [ {
-          "playerName" : "나카타 히데토시",
-          "value" : 8
-        }, {
-          "playerName" : "루디 펠러",
-          "value" : 5
-        }, {
-          "playerName" : "프란체스코 토티",
-          "value" : 5
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "루디 펠러",
-          "value" : 12
-        }, {
-          "playerName" : "프란체스코 토티",
-          "value" : 11
-        }, {
-          "playerName" : "나카타 히데토시",
-          "value" : 10
-        } ],
-        "topDefense" : [ {
-          "playerName" : "에반 은디카",
-          "value" : 43
-        }, {
-          "playerName" : "마르키뉴스",
-          "value" : 34
-        }, {
-          "playerName" : "다니엘레 데로시",
-          "value" : 21
-        } ],
-        "topSaves" : [ {
-          "playerName" : "보이치에흐 슈체스니",
-          "value" : 29
-        }, {
-          "playerName" : "마르키뉴스",
-          "value" : 2
-        }, {
-          "playerName" : "티보 쿠르투아",
-          "value" : 2
-        } ]
       }
     },
     "2a27e3732d7ea05e453ac8a41f39b134" : {
       "ouid" : "2a27e3732d7ea05e453ac8a41f39b134",
       "nickname" : "아기블루스",
-      "custom" : {
+      "summary" : {
         "games" : 23,
         "wins" : 16,
         "draws" : 2,
@@ -900,80 +560,12 @@
           "playerName" : "우스만 뎀벨레",
           "value" : 2
         } ]
-      },
-      "season" : {
-        "games" : 2,
-        "wins" : 0,
-        "draws" : 0,
-        "losses" : 2,
-        "avgGoalsFor" : 1.0,
-        "avgGoalsForXg" : 1.7937052565336438,
-        "finishing" : -1.5874105130672875,
-        "shotsPerGame" : 4.5,
-        "avgGoalsAgainst" : 3.5,
-        "avgGoalsAgainstXg" : 2.3965655103606833,
-        "concededSampleGames" : 2,
-        "cleanSheets" : 0,
-        "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 2,
-        "multiConcededPct" : 100.0,
-        "lowPossessionGames" : 0,
-        "lowPossessionPct" : 0.0,
-        "balancedPossessionGames" : 1,
-        "balancedPossessionPct" : 50.0,
-        "highPossessionGames" : 1,
-        "highPossessionPct" : 50.0,
-        "avgPossession" : 54.5,
-        "avgRating" : 3.827775,
-        "combo" : {
-          "playerAName" : "크바라츠헬리아",
-          "playerBName" : "리오넬 메시",
-          "goals" : 1
-        },
-        "topGoals" : [ {
-          "playerName" : "리오넬 메시",
-          "value" : 2
-        } ],
-        "topAssists" : [ {
-          "playerName" : "주앙 네베스",
-          "value" : 1
-        }, {
-          "playerName" : "크바라츠헬리아",
-          "value" : 1
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "리오넬 메시",
-          "value" : 2
-        }, {
-          "playerName" : "주앙 네베스",
-          "value" : 1
-        }, {
-          "playerName" : "크바라츠헬리아",
-          "value" : 1
-        } ],
-        "topDefense" : [ {
-          "playerName" : "마르키뉴스",
-          "value" : 10
-        }, {
-          "playerName" : "주앙 네베스",
-          "value" : 6
-        }, {
-          "playerName" : "D. 두에",
-          "value" : 6
-        } ],
-        "topSaves" : [ {
-          "playerName" : "잔루이지 돈나룸마",
-          "value" : 4
-        }, {
-          "playerName" : "W. 자이르-에머리",
-          "value" : 1
-        } ]
       }
     },
     "7f3fabc284ffe4b6bedf702a307f0f2e" : {
       "ouid" : "7f3fabc284ffe4b6bedf702a307f0f2e",
       "nickname" : "욱냥0I",
-      "custom" : {
+      "summary" : {
         "games" : 3,
         "wins" : 0,
         "draws" : 0,
@@ -1046,92 +638,12 @@
           "playerName" : "보이치에흐 슈체스니",
           "value" : 4
         } ]
-      },
-      "season" : {
-        "games" : 9,
-        "wins" : 4,
-        "draws" : 2,
-        "losses" : 3,
-        "avgGoalsFor" : 2.5555555555555554,
-        "avgGoalsForXg" : 2.43237627598238,
-        "finishing" : 1.1086135161585773,
-        "shotsPerGame" : 6.444444444444445,
-        "avgGoalsAgainst" : 2.4444444444444446,
-        "avgGoalsAgainstXg" : 2.211629942364298,
-        "concededSampleGames" : 9,
-        "cleanSheets" : 1,
-        "cleanSheetPct" : 11.11111111111111,
-        "multiConcededGames" : 5,
-        "multiConcededPct" : 55.55555555555556,
-        "lowPossessionGames" : 4,
-        "lowPossessionPct" : 44.44444444444444,
-        "balancedPossessionGames" : 5,
-        "balancedPossessionPct" : 55.55555555555556,
-        "highPossessionGames" : 0,
-        "highPossessionPct" : 0.0,
-        "avgPossession" : 43.111111111111114,
-        "avgRating" : 3.6932111111111112,
-        "combo" : {
-          "playerAName" : "요한 크루이프",
-          "playerBName" : "헨릭 라르손",
-          "goals" : 4
-        },
-        "topGoals" : [ {
-          "playerName" : "요한 크루이프",
-          "value" : 7
-        }, {
-          "playerName" : "헨릭 라르손",
-          "value" : 6
-        }, {
-          "playerName" : "리오넬 메시",
-          "value" : 5
-        } ],
-        "topAssists" : [ {
-          "playerName" : "헨릭 라르손",
-          "value" : 4
-        }, {
-          "playerName" : "요한 크루이프",
-          "value" : 3
-        }, {
-          "playerName" : "야야 투레",
-          "value" : 3
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "헨릭 라르손",
-          "value" : 10
-        }, {
-          "playerName" : "요한 크루이프",
-          "value" : 10
-        }, {
-          "playerName" : "리오넬 메시",
-          "value" : 8
-        } ],
-        "topDefense" : [ {
-          "playerName" : "릴리앙 튀람",
-          "value" : 33
-        }, {
-          "playerName" : "마르코스 알론소",
-          "value" : 31
-        }, {
-          "playerName" : "야야 투레",
-          "value" : 22
-        } ],
-        "topSaves" : [ {
-          "playerName" : "야스퍼르 실러선",
-          "value" : 21
-        }, {
-          "playerName" : "보이치에흐 슈체스니",
-          "value" : 2
-        }, {
-          "playerName" : "리오넬 메시",
-          "value" : 1
-        } ]
       }
     },
     "1894adb89b4a7953381bdd5671ce7610" : {
       "ouid" : "1894adb89b4a7953381bdd5671ce7610",
       "nickname" : "지린성에사는욱구",
-      "custom" : {
+      "summary" : {
         "games" : 55,
         "wins" : 7,
         "draws" : 7,
@@ -1210,92 +722,12 @@
           "playerName" : "에드윈 반데르사르",
           "value" : 43
         } ]
-      },
-      "season" : {
-        "games" : 56,
-        "wins" : 23,
-        "draws" : 7,
-        "losses" : 26,
-        "avgGoalsFor" : 2.6964285714285716,
-        "avgGoalsForXg" : 2.772543089277664,
-        "finishing" : -4.262412999549184,
-        "shotsPerGame" : 6.732142857142857,
-        "avgGoalsAgainst" : 2.8035714285714284,
-        "avgGoalsAgainstXg" : 2.88909002630618,
-        "concededSampleGames" : 54,
-        "cleanSheets" : 5,
-        "cleanSheetPct" : 8.928571428571429,
-        "multiConcededGames" : 35,
-        "multiConcededPct" : 62.5,
-        "lowPossessionGames" : 11,
-        "lowPossessionPct" : 19.642857142857142,
-        "balancedPossessionGames" : 39,
-        "balancedPossessionPct" : 69.64285714285714,
-        "highPossessionGames" : 6,
-        "highPossessionPct" : 10.714285714285714,
-        "avgPossession" : 48.30357142857143,
-        "avgRating" : 4.079068214285715,
-        "combo" : {
-          "playerAName" : "로멜루 루카쿠",
-          "playerBName" : "웨인 루니",
-          "goals" : 18
-        },
-        "topGoals" : [ {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 24
-        }, {
-          "playerName" : "웨인 루니",
-          "value" : 22
-        }, {
-          "playerName" : "크리스티아누 호날두",
-          "value" : 21
-        } ],
-        "topAssists" : [ {
-          "playerName" : "웨인 루니",
-          "value" : 22
-        }, {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 15
-        }, {
-          "playerName" : "주앙 펠릭스",
-          "value" : 13
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "웨인 루니",
-          "value" : 44
-        }, {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 39
-        }, {
-          "playerName" : "크리스티아누 호날두",
-          "value" : 29
-        } ],
-        "topDefense" : [ {
-          "playerName" : "리오 퍼디난드",
-          "value" : 125
-        }, {
-          "playerName" : "야프 스탐",
-          "value" : 72
-        }, {
-          "playerName" : "스콧 맥토미니",
-          "value" : 67
-        } ],
-        "topSaves" : [ {
-          "playerName" : "주안 가르시아",
-          "value" : 47
-        }, {
-          "playerName" : "데헤아",
-          "value" : 41
-        }, {
-          "playerName" : "에드윈 반데르사르",
-          "value" : 35
-        } ]
       }
     },
     "69144f360220ebdb6b10b20d2fc5733e" : {
       "ouid" : "69144f360220ebdb6b10b20d2fc5733e",
       "nickname" : "프란체스co토티",
-      "custom" : {
+      "summary" : {
         "games" : 2,
         "wins" : 0,
         "draws" : 0,
@@ -1362,37 +794,6 @@
           "playerName" : "다비드 라야",
           "value" : 7
         } ]
-      },
-      "season" : {
-        "games" : 0,
-        "wins" : 0,
-        "draws" : 0,
-        "losses" : 0,
-        "avgGoalsFor" : 0.0,
-        "avgGoalsForXg" : 0.0,
-        "finishing" : 0.0,
-        "shotsPerGame" : 0.0,
-        "avgGoalsAgainst" : 0.0,
-        "avgGoalsAgainstXg" : null,
-        "concededSampleGames" : 0,
-        "cleanSheets" : 0,
-        "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 0,
-        "multiConcededPct" : 0.0,
-        "lowPossessionGames" : 0,
-        "lowPossessionPct" : 0.0,
-        "balancedPossessionGames" : 0,
-        "balancedPossessionPct" : 0.0,
-        "highPossessionGames" : 0,
-        "highPossessionPct" : 0.0,
-        "avgPossession" : 0.0,
-        "avgRating" : 0.0,
-        "combo" : null,
-        "topGoals" : [ ],
-        "topAssists" : [ ],
-        "topAttackPoints" : [ ],
-        "topDefense" : [ ],
-        "topSaves" : [ ]
       }
     }
   }
