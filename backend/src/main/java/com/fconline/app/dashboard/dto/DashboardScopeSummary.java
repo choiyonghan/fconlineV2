@@ -12,6 +12,8 @@ import java.util.List;
  *   <li>평균 실점 xG값의 분모는 games가 아니라 concededSampleGames(상대도 추적 대상이라
  *       실점 슛 좌표를 복원할 수 있었던 경기 수)다 — games보다 작거나 같다.</li>
  * </ul>
+ * totalXxx 필드들은 대시보드 순위표(프리미어리그 순위표 스타일 — played/goals/xg/shots/sot 등)용
+ * 합계값이다. avgXxx(경기당 평균)와 별도로 둔다 — 표는 합계로, 아코디언 상세는 평균으로 보여준다.
  */
 public record DashboardScopeSummary(
         int games,
@@ -25,6 +27,12 @@ public record DashboardScopeSummary(
         double avgGoalsAgainst,
         Double avgGoalsAgainstXg,
         int concededSampleGames,
+        int totalGoalsFor,
+        int totalGoalsAgainst,
+        int totalShots,
+        int totalShotsOnTarget,
+        double totalXgFor,
+        Double totalXgAgainst,
         int cleanSheets,
         double cleanSheetPct,
         int multiConcededGames,

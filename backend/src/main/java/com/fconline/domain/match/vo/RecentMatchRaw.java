@@ -11,6 +11,7 @@ public record RecentMatchRaw(
         String matchId,
         Instant matchDate,
         String opponentNickname,
+        String opponentOuid,
         MatchResult result,
         Integer goalsFor,
         Integer goalsAgainst,

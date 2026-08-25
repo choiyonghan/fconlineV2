@@ -425,15 +425,7 @@
       dashboardSummaryEl.appendChild(noteBox);
     }
 
-    var grid = el('div', 'dashboard-cards');
-    if (!data.ranking || !data.ranking.length) {
-      grid.appendChild(el('p', 'card-empty', '표시할 유저가 없습니다.'));
-    } else {
-      data.ranking.forEach(function (entry) {
-        grid.appendChild(buildDashboardUserCard(entry, data.users[entry.ouid]));
-      });
-    }
-    dashboardSummaryEl.appendChild(grid);
+    dashboardSummaryEl.appendChild(buildDashboardTable(data));
 
     if (data.outroText) {
       var outroBox = el('div', 'card');
@@ -445,24 +437,110 @@
     }
   }
 
-  function buildDashboardUserCard(entry, snapshot) {
-    var card = el('div', 'card dashboard-user-card');
+  /**
+   * 프리미어리그 순위표 스타일 — 유저 한 명이 한 행. 행을 클릭하면 아코디언으로 펼쳐져서
+   * 기존 카드에 있던 상세 스탯(12칸 그리드 + 환상의 콤비 + TOP3)이 그 아래 줄에 나온다.
+   */
+  function buildDashboardTable(data) {
+    var wrap = el('div', 'table-scroll dashboard-table-wrap');
+    var table = document.createElement('table');
+    table.className = 'dashboard-table';
+    var thead = document.createElement('thead');
+    var htr = document.createElement('tr');
+    [
+      ['', false], ['유저', false], ['경기', true], ['골', true], ['xG', true],
+      ['결정력', true], ['슈팅', true], ['유효슈팅', true], ['전환율', true], ['xG/슈팅', true]
+    ].forEach(function (h) {
+      htr.appendChild(el('th', h[1] ? 'num' : '', h[0]));
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
 
-    var head = el('div', 'dashboard-user-head');
-    head.appendChild(el('div', 'dashboard-rank-badge', '#' + entry.rank));
-    var nameCol = el('div', 'dashboard-user-name-col');
-    nameCol.appendChild(el('p', 'dashboard-user-name', entry.displayName || entry.nickname));
-    nameCol.appendChild(el('p', 'dashboard-user-reason', entry.reason || ''));
-    head.appendChild(nameCol);
-    card.appendChild(head);
-
-    var s = snapshot && snapshot.summary;
-    if (!s || s.games === 0) {
-      card.appendChild(el('p', 'card-empty', '표본 경기가 없습니다.'));
-      return card;
+    var tbody = document.createElement('tbody');
+    if (!data.ranking || !data.ranking.length) {
+      var emptyTr = document.createElement('tr');
+      var emptyTd = document.createElement('td');
+      emptyTd.colSpan = 10;
+      emptyTd.appendChild(el('p', 'card-empty', '표시할 유저가 없습니다.'));
+      emptyTr.appendChild(emptyTd);
+      tbody.appendChild(emptyTr);
+    } else {
+      data.ranking.forEach(function (entry) {
+        var snapshot = data.users[entry.ouid];
+        var rows = buildDashboardTableRow(entry, snapshot && snapshot.summary);
+        tbody.appendChild(rows.mainRow);
+        tbody.appendChild(rows.detailRow);
+      });
     }
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
 
-    card.appendChild(el('p', 'card-caption',
+  function buildDashboardTableRow(entry, s) {
+    var hasData = !!(s && s.games > 0);
+    var shots = hasData ? s.totalShots : 0;
+    var convPct = hasData && shots > 0 ? (s.totalGoalsFor / shots * 100) : null;
+    var xgPerShot = hasData && shots > 0 ? (s.totalXgFor / shots) : null;
+
+    var tr = document.createElement('tr');
+    tr.className = 'dashboard-row';
+    tr.tabIndex = 0;
+    tr.setAttribute('role', 'button');
+    tr.setAttribute('aria-expanded', 'false');
+    tr.setAttribute('aria-label', (entry.displayName || entry.nickname) + ' 상세 펼치기');
+
+    tr.appendChild(el('td', 'num dashboard-rank-cell', '#' + entry.rank));
+
+    var nameTd = el('td', 'name-cell dashboard-row-name-cell');
+    var caret = el('span', 'expand-caret', '▸');
+    nameTd.appendChild(caret);
+    var nameCol = el('span', 'dashboard-row-name-col');
+    nameCol.appendChild(el('span', 'dashboard-row-name', entry.displayName || entry.nickname));
+    if (entry.reason) nameCol.appendChild(el('span', 'dashboard-row-reason', entry.reason));
+    nameTd.appendChild(nameCol);
+    tr.appendChild(nameTd);
+
+    tr.appendChild(el('td', 'num', hasData ? fmt(s.games) : '-'));
+    tr.appendChild(el('td', 'num', hasData ? fmt(s.totalGoalsFor) : '-'));
+    tr.appendChild(el('td', 'num', hasData ? fmt1(s.totalXgFor) : '-'));
+    tr.appendChild(el('td', 'num', hasData ? ((s.finishing >= 0 ? '+' : '') + fmt1(s.finishing)) : '-'));
+    tr.appendChild(el('td', 'num', hasData ? fmt(shots) : '-'));
+    tr.appendChild(el('td', 'num', hasData ? fmt(s.totalShotsOnTarget) : '-'));
+    tr.appendChild(el('td', 'num', convPct == null ? '-' : Math.round(convPct) + '%'));
+    tr.appendChild(el('td', 'num', xgPerShot == null ? '-' : xgPerShot.toFixed(2)));
+
+    var detailTr = document.createElement('tr');
+    detailTr.className = 'dashboard-detail-row';
+    detailTr.hidden = true;
+    var detailTd = document.createElement('td');
+    detailTd.colSpan = 10;
+    var inner = el('div', 'dashboard-detail-inner');
+    if (hasData) {
+      renderDashboardDetailBody(inner, s, entry.reason);
+    } else {
+      inner.appendChild(el('p', 'card-empty', '표본 경기가 없습니다.'));
+    }
+    detailTd.appendChild(inner);
+    detailTr.appendChild(detailTd);
+
+    var expanded = false;
+    var toggle = function () {
+      expanded = !expanded;
+      tr.setAttribute('aria-expanded', String(expanded));
+      caret.textContent = expanded ? '▾' : '▸';
+      detailTr.hidden = !expanded;
+    };
+    tr.addEventListener('click', toggle);
+    tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+
+    return { mainRow: tr, detailRow: detailTr };
+  }
+
+  /** 아코디언 안쪽 — 예전 카드 본문 그대로(경기당 평균 12칸 그리드 + 환상의 콤비 + TOP3). */
+  function renderDashboardDetailBody(container, s, reason) {
+    if (reason) container.appendChild(el('p', 'dashboard-detail-reason', reason));
+    container.appendChild(el('p', 'card-caption',
       s.games + '전 ' + s.wins + '승 ' + s.draws + '무 ' + s.losses + '패'));
 
     var grid = el('div', 'stat-mini-grid');
@@ -486,7 +564,7 @@
     mini('고점유(55%↑)', s.highPossessionGames + '경기', Math.round(s.highPossessionPct) + '%');
     mini('균형점유(46~54%)', s.balancedPossessionGames + '경기', Math.round(s.balancedPossessionPct) + '%');
     mini('평균점유율', Math.round(s.avgPossession) + '%');
-    card.appendChild(grid);
+    container.appendChild(grid);
 
     var comboBox = el('div', 'dashboard-combo');
     comboBox.appendChild(el('p', 'card-title', '⚡ 환상의 콤비'));
@@ -496,7 +574,7 @@
     } else {
       comboBox.appendChild(el('p', 'card-empty', '기록된 어시스트 조합이 없습니다.'));
     }
-    card.appendChild(comboBox);
+    container.appendChild(comboBox);
 
     var top3Wrap = el('div', 'dashboard-top3-wrap');
     top3Wrap.appendChild(dashboardTop3Block('⚽ 최다골', s.topGoals));
@@ -504,9 +582,7 @@
     top3Wrap.appendChild(dashboardTop3Block('🔥 최다 공격포인트', s.topAttackPoints));
     top3Wrap.appendChild(dashboardTop3Block('🛡️ 최다 태클+인터셉트', s.topDefense));
     top3Wrap.appendChild(dashboardTop3Block('🧤 최다 선방', s.topSaves));
-    card.appendChild(top3Wrap);
-
-    return card;
+    container.appendChild(top3Wrap);
   }
 
   function dashboardTop3Block(title, list) {
@@ -1055,6 +1131,10 @@
     return isMom ? ratingText + '로 안정적인 경기력을 보였다' : ratingText + '로 아쉬운 경기를 보냈다';
   }
 
+  /**
+   * squad는 양팀 스쿼드를 합친 목록이다 — 각 항목에 team:'mine'|'opponent'가 붙어 있다(openMatchModal
+   * 참고, 상대가 추적 대상이 아니면 'mine'만 옴). MOM/Worst는 양팀 통틀어 뽑는다(요청).
+   */
   function buildMomWorstSection(container, squad) {
     container.replaceChildren();
     // rating이 정확히 0인 선수는 "출전은 등록됐지만 실제로 안 뛴" 경우다 — Worst로 뽑히면 안 된다.
@@ -1070,13 +1150,15 @@
       head.appendChild(el('span', 'mom-card-icon', icon));
       head.appendChild(el('span', 'mom-card-label', label));
       box.appendChild(head);
-      box.appendChild(el('p', 'mom-card-name', entry.playerName));
+      var nameRow = el('p', 'mom-card-name', entry.playerName);
+      nameRow.appendChild(el('span', 'mom-card-team', entry.team === 'opponent' ? ' (상대 팀)' : ' (내 팀)'));
+      box.appendChild(nameRow);
       box.appendChild(el('p', 'mom-card-reason', oneLinerFor(entry, isMom)));
       return box;
     }
 
     container.appendChild(card('🏆', 'Man of the Match', mom, true));
-    if (worst.spId !== mom.spId) container.appendChild(card('🥶', 'Worst Player', worst, false));
+    if (worst !== mom) container.appendChild(card('🥶', 'Worst Player', worst, false));
   }
 
   function xgOfShot(p) {
@@ -1392,8 +1474,24 @@
 
     var momSection = el('div', 'mom-worst-section');
     modalBody.appendChild(momSection);
-    apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
-      .then(function (squad) { if (seq === modalRequestSeq) buildMomWorstSection(momSection, squad); })
+    // MOM/Worst는 양팀 합쳐서 뽑는다(요청) — 상대도 추적 대상이어야 상대 스쿼드를 가져올 수 있다
+    // (concededShots와 같은 제약, allUsers로 확인).
+    var opponentTracked = m.opponentOuid && allUsers.some(function (u) { return u.ouid === m.opponentOuid; });
+    var squadRequests = [
+      apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
+        .then(function (squad) { return squad.map(function (s) { s.team = 'mine'; return s; }); })
+    ];
+    if (opponentTracked) {
+      squadRequests.push(
+        apiGet('/api/v1/records/match-squad', { ouid: m.opponentOuid, matchType: state.matchType, matchId: m.matchId })
+          .then(function (squad) { return squad.map(function (s) { s.team = 'opponent'; return s; }); })
+          .catch(function () { return []; })
+      );
+    }
+    Promise.all(squadRequests)
+      .then(function (results) {
+        if (seq === modalRequestSeq) buildMomWorstSection(momSection, results[0].concat(results[1] || []));
+      })
       .catch(function () { /* MOM/Worst는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
     var grid = el('div', 'modal-stat-grid');
@@ -1585,6 +1683,7 @@
                 var withName = {};
                 for (var k in m) withName[k] = m[k];
                 withName.opponentNickname = o.opponentNickname;
+                withName.opponentOuid = o.opponentOuid; // MOM/Worst 양팀 합산에 필요(openMatchModal)
                 var chip = el('div', 'match-chip chip result-' + m.result,
                   m.result + ' (' + m.goalsFor + ':' + m.goalsAgainst + ')');
                 chip.tabIndex = 0;
@@ -1746,6 +1845,7 @@
       var copy = {};
       for (var k in p) copy[k] = p[k];
       copy.attackPoints = p.goals + p.assists;
+      copy.finishing = p.goals - p.xg; // 결정력 = 실제 득점 − xG값(백엔드가 선수별 슛 좌표로 합산)
       copy.shootAccuracy = p.shootTotal > 0 ? (p.effectiveShoot / p.shootTotal * 100) : null;
       copy.passAccuracy = p.passTry > 0 ? (p.passSuccess / p.passTry * 100) : null;
       copy.dribbleRate = p.dribbleTry > 0 ? (p.dribbleSuccess / p.dribbleTry * 100) : null;
@@ -1797,6 +1897,10 @@
       { key: 'goals', label: '골', numeric: true },
       { key: 'assists', label: '도움', numeric: true },
       { key: 'attackPoints', label: '공격P', numeric: true },
+      { key: 'xg', label: 'xG', numeric: true },
+      { key: 'finishing', label: '결정력', numeric: true },
+      { key: 'shootTotal', label: '총슈팅', numeric: true },
+      { key: 'effectiveShoot', label: '유효슈팅', numeric: true },
       { key: 'shootAccuracy', label: '슛정확', numeric: true },
       { key: 'passAccuracy', label: '패스', numeric: true },
       { key: 'dribbleRate', label: '드리블', numeric: true },
@@ -1862,6 +1966,10 @@
       tr.appendChild(el('td', 'num', fmt(p.goals)));
       tr.appendChild(el('td', 'num', fmt(p.assists)));
       tr.appendChild(el('td', 'num', fmt(p.attackPoints)));
+      tr.appendChild(el('td', 'num', fmt1(p.xg)));
+      tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
+      tr.appendChild(el('td', 'num', fmt(p.shootTotal)));
+      tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
       tr.appendChild(el('td', 'num', pct(p.shootAccuracy)));
       tr.appendChild(el('td', 'num', pct(p.passAccuracy)));
       tr.appendChild(el('td', 'num', pct(p.dribbleRate)));

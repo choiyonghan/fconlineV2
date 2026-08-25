@@ -8,7 +8,7 @@ import com.fconline.app.dashboard.dto.DashboardScopeSummary;
 import com.fconline.app.dashboard.dto.DashboardSnapshotFile;
 import com.fconline.app.dashboard.dto.DashboardTopPlayer;
 import com.fconline.app.dashboard.dto.DashboardUserSnapshot;
-import com.fconline.app.dashboard.support.ExpectedGoalsCalculator;
+import com.fconline.domain.match.vo.ExpectedGoalsCalculator;
 import com.fconline.app.insight.facade.TrackedUserAliasResolver;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
@@ -127,9 +127,9 @@ public class DashboardSnapshotBuilder {
         List<ShotPointResponse> points = heatmap.points();
         List<ShotPointResponse> concededPoints = conceded.points();
 
-        double expectedGoalsFor = ExpectedGoalsCalculator.expectedGoals(points);
+        double expectedGoalsFor = sumXg(points);
         long actualGoals = points.stream().filter(ShotPointResponse::goal).count();
-        double expectedGoalsAgainst = ExpectedGoalsCalculator.expectedGoals(concededPoints);
+        double expectedGoalsAgainst = sumXg(concededPoints);
         int concededSampleGames = (int) concededPoints.stream().map(ShotPointResponse::matchId).distinct().count();
 
         int low = (int) overall.lowPossessionGames();
@@ -138,6 +138,7 @@ public class DashboardSnapshotBuilder {
 
         List<AssistChainResponse> chains = recordFacade.getAssistChains(ouid, matchType, seasonId, ASSIST_CHAIN_LIMIT);
         List<TopPlayerResponse> players = recordFacade.getAllPlayers(ouid, matchType, seasonId);
+        int totalShotsOnTarget = players.stream().mapToInt(TopPlayerResponse::effectiveShoot).sum();
 
         return new DashboardScopeSummary(
                 games, overall.tally().win(), overall.tally().draw(), overall.tally().lose(),
@@ -148,6 +149,9 @@ public class DashboardSnapshotBuilder {
                 games == 0 ? 0 : overall.tally().goalsAgainst() / (double) games,
                 concededSampleGames == 0 ? null : expectedGoalsAgainst / concededSampleGames,
                 concededSampleGames,
+                (int) overall.tally().goalsFor(), (int) overall.tally().goalsAgainst(),
+                points.size(), totalShotsOnTarget, expectedGoalsFor,
+                concededSampleGames == 0 ? null : expectedGoalsAgainst,
                 (int) overall.cleanSheets(), pct(overall.cleanSheets(), games),
                 (int) overall.multiConcededGames(), pct(overall.multiConcededGames(), games),
                 low, pct(low, games),
@@ -166,6 +170,14 @@ public class DashboardSnapshotBuilder {
 
     private static double pct(long count, int games) {
         return games == 0 ? 0 : count * 100.0 / games;
+    }
+
+    private static double sumXg(List<ShotPointResponse> points) {
+        double sum = 0;
+        for (ShotPointResponse p : points) {
+            sum += ExpectedGoalsCalculator.calcXg(p.x(), p.y());
+        }
+        return sum;
     }
 
     /** "환상의 콤비" — 양방향(A→B+B→A) 합산 골 최다 조합 1위. report.js의 topAssistDuos와 동일한 병합 방식. */

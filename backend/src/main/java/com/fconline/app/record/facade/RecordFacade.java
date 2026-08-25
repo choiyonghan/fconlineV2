@@ -17,10 +17,12 @@ import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.ExpectedGoalsCalculator;
 import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
+import com.fconline.domain.match.vo.PlayerShotPoint;
 import com.fconline.domain.match.vo.RecentMatchRaw;
 import com.fconline.domain.match.vo.ShootResult;
 import com.fconline.domain.match.vo.ShotPoint;
@@ -32,6 +34,8 @@ import com.fconline.domain.season.Season;
 import com.fconline.domain.shared.exception.DomainException;
 import com.fconline.domain.user.TrackedUser;
 import com.fconline.domain.user.repository.TrackedUserRepository;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +104,7 @@ public class RecordFacade {
                 .toList();
 
         Map<String, String> playerNames = playerNamesOf(topPlayers);
+        Map<String, Double> xgBySpId = xgBySpId(ouid, matchType, from, to, null);
 
         List<TopPlayerResponse> topPlayerResponses = topPlayers.stream()
                 .map(stat -> new TopPlayerResponse(
@@ -110,7 +115,7 @@ public class RecordFacade {
                         stat.tackles(), stat.intercepts(), stat.blocks(),
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
-                        stat.avgRating(), stat.contributionScore()))
+                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
 
         return new OverallRecordResponse(
@@ -149,10 +154,13 @@ public class RecordFacade {
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
+        var from = season.startInstant();
+        var to = season.endInstantExclusiveOrNull();
         List<TopPlayerStat> players = matchDomainService.topPlayers(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid, ALL_PLAYERS_LIMIT);
+                ouid, matchType, from, to, opponentOuid, ALL_PLAYERS_LIMIT);
 
         Map<String, String> playerNames = playerNamesOf(players);
+        Map<String, Double> xgBySpId = xgBySpId(ouid, matchType, from, to, opponentOuid);
 
         return players.stream()
                 .map(stat -> new TopPlayerResponse(
@@ -163,8 +171,18 @@ public class RecordFacade {
                         stat.tackles(), stat.intercepts(), stat.blocks(),
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
-                        stat.avgRating(), stat.contributionScore()))
+                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
+    }
+
+    /** "전체 선수 스탯"의 xG/결정력 열용 — 선수별 슛 좌표를 spId로 묶어 xG를 합산한다. */
+    private Map<String, Double> xgBySpId(String ouid, MatchType matchType, Instant from, Instant to,
+                                          String opponentOuid) {
+        Map<String, Double> result = new HashMap<>();
+        for (PlayerShotPoint p : matchDomainService.playerShotPoints(ouid, matchType, from, to, opponentOuid)) {
+            result.merge(p.spId(), ExpectedGoalsCalculator.calcXg(p.x(), p.y()), Double::sum);
+        }
+        return result;
     }
 
     private Map<String, String> playerNamesOf(List<TopPlayerStat> topPlayers) {
@@ -358,6 +376,7 @@ public class RecordFacade {
                 raw.matchId(),
                 raw.matchDate(),
                 raw.opponentNickname(),
+                raw.opponentOuid(),
                 raw.result().label(),
                 nz(raw.goalsFor()),
                 nz(raw.goalsAgainst()),

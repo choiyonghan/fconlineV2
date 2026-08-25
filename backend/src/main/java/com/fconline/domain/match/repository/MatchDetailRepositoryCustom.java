@@ -8,6 +8,7 @@ import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
+import com.fconline.domain.match.vo.PlayerShotPoint;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.OpponentTally;
@@ -132,4 +133,12 @@ public interface MatchDetailRepositoryCustom {
      * 시점의 행만 가져온다.
      */
     List<MatchSquadEntryRaw> findSquadByMatch(String ouid, MatchType matchType, String matchId);
+
+    /**
+     * "전체 선수 스탯"의 선수별 xG 합산용 — spId가 붙은 슛 좌표 전체(득점 여부 무관, findShotPoints와
+     * 같은 원리지만 spId를 추가로 선택). opponentOuid가 null이면 전체 상대 합산, 지정하면 그
+     * 상대와의 경기만("상대별 전적" 펼침에서 "이 상대전 xG" 계산용 — 다른 findXxx와 같은 패턴).
+     */
+    List<PlayerShotPoint> findShotPointsByPlayer(String ouid, MatchType matchType, Instant from, Instant to,
+                                                  String opponentOuid);
 }

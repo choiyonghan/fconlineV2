@@ -1,7 +1,4 @@
-package com.fconline.app.dashboard.support;
-
-import com.fconline.app.record.dto.ShotPointResponse;
-import java.util.List;
+package com.fconline.domain.match.vo;
 
 /**
  * 거리·각도 로지스틱 회귀 근사 xG — {@code site-root/report.js}의 {@code calcXg}와 반드시 같은
@@ -37,14 +34,5 @@ public final class ExpectedGoalsCalculator {
         double angleDeg = Math.toDegrees(Math.acos(cosAngle));
         double logit = 0.5 - 0.15 * dist + 0.05 * angleDeg;
         return 1 / (1 + Math.exp(-logit));
-    }
-
-    /** 슛 포인트 목록의 합산 기대 득점(xG). */
-    public static double expectedGoals(List<ShotPointResponse> points) {
-        double sum = 0;
-        for (ShotPointResponse p : points) {
-            sum += calcXg(p.x(), p.y());
-        }
-        return sum;
     }
 }

@@ -716,6 +716,7 @@
     color: var(--text-muted); margin: 0;
   }
   .mom-card-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
+  .mom-card-team { font-size: 12px; font-weight: 400; color: var(--text-muted); }
   .mom-card-reason { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
   .modal-stat-grid {
@@ -785,27 +786,30 @@
   .segmented button:disabled { opacity: 0.35; cursor: not-allowed; }
 
   /* ---------- "전체" 칩 = 9인 요약 대시보드(report.html, #dashboard-summary) ----------
-     "바둑알식" 2열 그리드로 화면을 좌우로 쪼갠다 — 카드 9장을 위아래로 한 줄씩 쌓으면 너무
-     길어진다는 피드백. 좁은 화면(모바일)에서는 1열로 접힌다. */
-  .dashboard-cards {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
+     프리미어리그 순위표 스타일 표 — 행을 클릭하면 아코디언으로 펼쳐져 기존 상세 스탯이 나온다. */
+  .dashboard-table-wrap { margin-top: 4px; }
+  .dashboard-table th.num, .dashboard-table td.num { text-align: right; }
+  .dashboard-rank-cell {
+    font-family: var(--font-display); font-weight: 700; color: var(--text-secondary); width: 40px;
   }
-  @media (max-width: 720px) {
-    .dashboard-cards { grid-template-columns: 1fr; }
+  .dashboard-row { cursor: pointer; }
+  .dashboard-row:hover td { background: var(--page-plane); }
+  .dashboard-row:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
+  .dashboard-row-name-cell { display: flex; align-items: baseline; gap: 8px; min-width: 220px; }
+  .dashboard-row-name-cell .expand-caret { color: var(--text-muted); flex: 0 0 auto; }
+  .dashboard-row-name-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .dashboard-row-name { font-weight: 700; color: var(--text-primary); }
+  .dashboard-row-reason {
+    font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; max-width: 46vw;
   }
-  .dashboard-user-card { margin: 0; }
-  .dashboard-user-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
-  .dashboard-rank-badge {
-    flex: 0 0 auto; font-family: var(--font-display); font-size: 18px; font-weight: 700;
-    color: var(--surface-1); background: var(--series-1); border-radius: 6px;
-    padding: 6px 12px; min-width: 44px; text-align: center;
-  }
-  .dashboard-user-name-col { min-width: 0; }
-  .dashboard-user-name { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 3px; }
-  .dashboard-user-reason { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
-  .dashboard-user-card .stat-mini-grid,
-  .dashboard-user-card .dashboard-combo,
-  .dashboard-user-card .dashboard-top3-wrap { margin-top: 14px; }
+  .dashboard-detail-row td { padding: 0; border-bottom: 1px solid var(--gridline); background: var(--page-plane); }
+  .dashboard-detail-inner { padding: 14px 16px 18px 46px; }
+  .dashboard-detail-reason { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.5; }
+  .dashboard-detail-inner .stat-mini-grid,
+  .dashboard-detail-inner .dashboard-combo,
+  .dashboard-detail-inner .dashboard-top3-wrap { margin-top: 14px; }
+  .dashboard-detail-inner .stat-mini-grid { margin-top: 0; }
   .dashboard-combo { margin: 0; }
   .dashboard-combo .card-title { margin: 0 0 4px; }
   .dashboard-combo .card-caption { margin: 0; }

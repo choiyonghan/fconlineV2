@@ -7,6 +7,7 @@ public record RecentMatchResponse(
         String matchId,
         Instant matchDate,
         String opponentNickname,
+        String opponentOuid,
         String result,
         int goalsFor,
         int goalsAgainst,

@@ -8,6 +8,7 @@ import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
 import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
+import com.fconline.domain.match.vo.PlayerShotPoint;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
 import com.fconline.domain.match.vo.PlayerGrade;
@@ -327,7 +328,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
      */
     private JPAQuery<Tuple> recentMatchQuery(QMatchDetail md, QMatch m, BooleanBuilder where) {
         return queryFactory
-                .select(m.matchId, m.matchDate, md.opponentNickname, md.result,
+                .select(m.matchId, m.matchDate, md.opponentNickname, md.opponentOuid, md.result,
                         md.stats.goalsFor, md.stats.goalsAgainst, md.stats.averageRating, md.stats.possession,
                         md.stats.shootTotal, md.stats.effectiveShoot, md.stats.passTry, md.stats.passSuccess,
                         md.stats.tackleTry, md.stats.tackleSuccess, md.stats.foul, md.stats.yellowCards,
@@ -345,6 +346,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 row.get(m.matchId),
                 row.get(m.matchDate),
                 row.get(md.opponentNickname),
+                row.get(md.opponentOuid),
                 row.get(md.result),
                 row.get(md.stats.goalsFor),
                 row.get(md.stats.goalsAgainst),
@@ -388,6 +390,31 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .fetch().stream()
                 .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
                         row.get(m.matchId)))
+                .toList();
+    }
+
+    @Override
+    public List<PlayerShotPoint> findShotPointsByPlayer(String ouid, MatchType matchType, Instant from, Instant to,
+                                                          String opponentOuid) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to)
+                .and(se.x.isNotNull())
+                .and(se.y.isNotNull());
+        if (opponentOuid != null) {
+            where.and(md.opponentOuid.eq(opponentOuid));
+        }
+
+        return queryFactory
+                .select(se.spId, se.x, se.y)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(where)
+                .fetch().stream()
+                .map(row -> new PlayerShotPoint(row.get(se.spId), row.get(se.x), row.get(se.y)))
                 .toList();
     }
 

@@ -6,6 +6,7 @@ import com.fconline.domain.match.vo.FirstGoalResult;
 import com.fconline.domain.match.vo.GoalTimeCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
+import com.fconline.domain.match.vo.PlayerShotPoint;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
@@ -121,6 +122,12 @@ public class MatchDomainService {
     public List<ShotPoint> shotHeatmap(String ouid, MatchType matchType, Instant from, Instant to,
                                         String opponentOuid, boolean goalsOnly) {
         return matchDetailRepository.findShotPoints(ouid, matchType, from, to, opponentOuid, goalsOnly);
+    }
+
+    /** "전체 선수 스탯"의 선수별 xG 합산용 — spId가 붙은 슛 좌표 전체. */
+    public List<PlayerShotPoint> playerShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                                   String opponentOuid) {
+        return matchDetailRepository.findShotPointsByPlayer(ouid, matchType, from, to, opponentOuid);
     }
 
     /**
