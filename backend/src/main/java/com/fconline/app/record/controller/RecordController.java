@@ -3,6 +3,7 @@ package com.fconline.app.record.controller;
 import com.fconline.app.record.facade.RecordFacade;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.MatchShotsResponse;
+import com.fconline.app.record.dto.MatchSquadEntryResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -69,6 +70,17 @@ public class RecordController {
                                              @RequestParam MatchType matchType,
                                              @RequestParam String matchId) {
         return recordFacade.getMatchShots(ouid, matchType, matchId);
+    }
+
+    /**
+     * 매치 상세 모달의 MOM/Worst Player용 — 특정 매치 1건의 이 유저 스쿼드 전체(평점 포함).
+     * Nexon API에 MOM 플래그가 없어 프론트가 이 rating을 비교해서 직접 뽑는다.
+     */
+    @GetMapping("/match-squad")
+    public List<MatchSquadEntryResponse> getMatchSquad(@RequestParam String ouid,
+                                                         @RequestParam MatchType matchType,
+                                                         @RequestParam String matchId) {
+        return recordFacade.getMatchSquad(ouid, matchType, matchId);
     }
 
     /** 어시스트 체인 상위 목록(누가 누구에게 어시스트해서 득점했는지). */

@@ -812,6 +812,45 @@
     return box;
   }
 
+  /**
+   * MOM/Worst Player 한줄평 — Nexon API에 MOM 플래그가 없어(백엔드 MatchSquadEntryRaw 주석 참고)
+   * 언제나 이 방식(평점 최댓값/최솟값)으로만 뽑는다. 이유는 그 선수의 가장 두드러진 스탯
+   * 하나를 우선순위(골>어시스트>세이브>태클+인터셉트)로 골라 문장화하고, 특별한 스탯이 없으면
+   * 평점만 언급한다.
+   */
+  function oneLinerFor(entry, isMom) {
+    var ratingText = entry.rating != null ? '평점 ' + fmt1(entry.rating) : '평점 기록 없음';
+    if (entry.goal > 0) return entry.goal + '골로 ' + (isMom ? '팀을 이끌었다' : '만은 넣었다') + ' (' + ratingText + ')';
+    if (entry.assist > 0) return entry.assist + '도움으로 공격을 살렸다 (' + ratingText + ')';
+    if (entry.save > 0) return entry.save + '선방으로 골문을 지켰다 (' + ratingText + ')';
+    var defense = entry.tackle + entry.intercept;
+    if (defense > 0) return '태클+인터셉트 ' + defense + '회로 수비에 기여했다 (' + ratingText + ')';
+    return isMom ? ratingText + '로 안정적인 경기력을 보였다' : ratingText + '로 아쉬운 경기를 보냈다';
+  }
+
+  function buildMomWorstSection(container, squad) {
+    container.replaceChildren();
+    var candidates = squad.filter(function (s) { return s.rating != null; });
+    if (!candidates.length) return; // 평점 결측이면 조용히 생략(칸을 비우지 않고 아예 안 만듦)
+
+    var mom = candidates.reduce(function (a, b) { return b.rating > a.rating ? b : a; });
+    var worst = candidates.reduce(function (a, b) { return b.rating < a.rating ? b : a; });
+
+    function card(icon, label, entry, isMom) {
+      var box = el('div', 'mom-card ' + (isMom ? 'mom-card-best' : 'mom-card-worst'));
+      var head = el('p', 'mom-card-head');
+      head.appendChild(el('span', 'mom-card-icon', icon));
+      head.appendChild(el('span', 'mom-card-label', label));
+      box.appendChild(head);
+      box.appendChild(el('p', 'mom-card-name', entry.playerName));
+      box.appendChild(el('p', 'mom-card-reason', oneLinerFor(entry, isMom)));
+      return box;
+    }
+
+    container.appendChild(card('🏆', 'Man of the Match', mom, true));
+    if (worst.spId !== mom.spId) container.appendChild(card('🥶', 'Worst Player', worst, false));
+  }
+
   function xgOfShot(p) {
     if (!zoneAggregate || p.x == null || p.y == null) return null;
     return zoneAggregate.rateMap[zoneKey(p.x, p.y)];
@@ -961,7 +1000,7 @@
     marker.setAttribute('orient', 'auto-start-reverse');
     var arrowPath = document.createElementNS(PITCH_NS, 'path');
     arrowPath.setAttribute('d', 'M0,0 L8,4 L0,8 Z');
-    arrowPath.style.fill = 'var(--series-2)';
+    arrowPath.style.fill = 'var(--assist-arrow)'; // 초록 피치 위 대비를 위해 전용 골드 변수 사용(--series-2 주황 대신)
     marker.appendChild(arrowPath);
     defs.appendChild(marker);
     svg.appendChild(defs);
@@ -1113,6 +1152,12 @@
     scoreSpan.textContent = m.goalsFor + ' : ' + m.goalsAgainst;
     resultLine.appendChild(scoreSpan);
     modalBody.appendChild(resultLine);
+
+    var momSection = el('div', 'mom-worst-section');
+    modalBody.appendChild(momSection);
+    apiGet('/api/v1/records/match-squad', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
+      .then(function (squad) { if (seq === modalRequestSeq) buildMomWorstSection(momSection, squad); })
+      .catch(function () { /* MOM/Worst는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
     var grid = el('div', 'modal-stat-grid');
     grid.appendChild(statBlock('평점', m.averageRating != null ? fmt1(m.averageRating) : '-'));

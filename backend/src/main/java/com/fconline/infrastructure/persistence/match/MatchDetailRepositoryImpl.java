@@ -6,6 +6,7 @@ import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
+import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.OpponentTally;
@@ -589,6 +590,27 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         }
         events.addAll(findOpponentGoalsOnly(md, m, ouid, matchType, from, to, opponentOuid));
         return events;
+    }
+
+    @Override
+    public List<MatchSquadEntryRaw> findSquadByMatch(String ouid, MatchType matchType, String matchId) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QSquadEntry sq = QSquadEntry.squadEntry;
+
+        return queryFactory
+                .select(sq.spId, sq.spPosition, sq.goal, sq.assist, sq.save, sq.tackle, sq.intercept, sq.block,
+                        sq.substitute, sq.rating)
+                .from(sq)
+                .join(sq.matchDetail, md)
+                .join(md.match, m)
+                .where(md.ouid.eq(ouid).and(m.matchType.eq(matchType)).and(m.matchId.eq(matchId)))
+                .fetch().stream()
+                .map(row -> new MatchSquadEntryRaw(
+                        row.get(sq.spId), row.get(sq.spPosition), row.get(sq.goal), row.get(sq.assist),
+                        row.get(sq.save), row.get(sq.tackle), row.get(sq.intercept), row.get(sq.block),
+                        Boolean.TRUE.equals(row.get(sq.substitute)), row.get(sq.rating)))
+                .toList();
     }
 
     /**

@@ -6,6 +6,7 @@ import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
+import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
@@ -124,4 +125,11 @@ public interface MatchDetailRepositoryCustom {
      */
     List<MatchGoalEvent> findGoalEventsVsOpponent(String ouid, MatchType matchType, Instant from, Instant to,
                                                    String opponentOuid);
+
+    /**
+     * 매치 상세 모달의 MOM/Worst Player용 — 특정 매치 1건에서 이 ouid의 스쿼드 11(+교체)명 전체
+     * (평점 포함). findShotsByMatch와 같은 원리로 matchId+ouid+matchType으로 정확히 한 참가자
+     * 시점의 행만 가져온다.
+     */
+    List<MatchSquadEntryRaw> findSquadByMatch(String ouid, MatchType matchType, String matchId);
 }

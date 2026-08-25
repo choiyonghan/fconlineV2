@@ -13,6 +13,8 @@
     --series-1: #2a78d6; /* blue: goals / primary accent */
     --series-2: #eb6834; /* orange: assists */
     --series-3: #1baf7a; /* aqua: defense */
+    --assist-arrow: #ffd60a; /* gold: 매치 모달 슈팅 위치의 어시스트 화살표 전용 — 초록 피치 위에서
+      --series-2(주황)보다 대비가 확실해야 해서 별도 변수로 분리 */
 
     --status-good: #0ca30c;
     --status-warning: #fab219;
@@ -42,6 +44,7 @@
       --series-1: #3987e5;
       --series-2: #d95926;
       --series-3: #199e70;
+      --assist-arrow: #ffd60a;
 
       --status-warning-text: #fab219; /* on the dark surface the raw warning hue clears 3:1 as text */
 
@@ -64,6 +67,7 @@
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
+    --assist-arrow: #ffd60a;
 
     --status-warning-text: #fab219;
 
@@ -439,9 +443,9 @@
   /* 매치 상세 모달의 인터랙티브 슈팅 위치 — 어시스트 화살표는 전부 미리 그려두고, 슛 점이나
      득점 타임라인 행을 클릭하면 그 슛만 활성화(active)하고 나머지는 흐리게(dim) 만든다. */
   .assist-line {
-    stroke: var(--series-2);
+    stroke: var(--assist-arrow);
     stroke-width: 1.5;
-    stroke-opacity: 0.6;
+    stroke-opacity: 0.75;
     stroke-dasharray: 4, 3;
     fill: none;
     marker-end: url(#assist-arrowhead);
@@ -695,6 +699,25 @@
   }
   .modal-close:hover { background: var(--page-plane); color: var(--text-primary); }
   .modal-close:focus-visible { outline: 2px solid var(--series-1); }
+
+  /* 🏆 MOM / 🥶 Worst Player — 평점 비교로 뽑은 결과(API에 MOM 플래그 없음, report.js 주석 참고).
+     rating이 전부 결측이면 buildMomWorstSection이 아무것도 안 넣어 이 섹션은 비어서 접힌다. */
+  .mom-worst-section { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .mom-card {
+    flex: 1 1 220px; border-radius: 8px; padding: 10px 14px; border: 1px solid var(--border);
+    background: var(--surface-1);
+  }
+  .mom-card-best { border-color: var(--status-good); background: color-mix(in srgb, var(--status-good) 8%, var(--surface-1)); }
+  .mom-card-worst { border-color: var(--status-critical); background: color-mix(in srgb, var(--status-critical) 8%, var(--surface-1)); }
+  .mom-card-head { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; }
+  .mom-card-icon { font-size: 15px; }
+  .mom-card-label {
+    font-family: var(--font-display); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-muted); margin: 0;
+  }
+  .mom-card-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
+  .mom-card-reason { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
   .modal-stat-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
     background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;

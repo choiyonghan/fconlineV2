@@ -7,6 +7,7 @@ import com.fconline.app.record.dto.GoalTimeBucketResponse;
 import com.fconline.app.record.dto.GoalTypeStatResponse;
 import com.fconline.app.record.dto.MatchShotResponse;
 import com.fconline.app.record.dto.MatchShotsResponse;
+import com.fconline.app.record.dto.MatchSquadEntryResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
@@ -17,6 +18,7 @@ import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.MatchShotDetail;
+import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.RecentMatchRaw;
@@ -247,6 +249,29 @@ public class RecordFacade {
         return new MatchShotsResponse(
                 toMatchShotResponses(myShots, playerNames),
                 toMatchShotResponses(concededShots, playerNames));
+    }
+
+    /**
+     * 매치 상세 모달의 MOM/Worst Player용 — 특정 매치 1건의 이 유저 스쿼드 전체(평점 포함).
+     * Nexon API에 MOM 플래그가 없어(MatchSquadEntryRaw 클래스 주석 참고) 프론트가 이 rating을
+     * 비교해서 MOM/Worst를 직접 뽑는다.
+     */
+    @Transactional(readOnly = true)
+    public List<MatchSquadEntryResponse> getMatchSquad(String ouid, MatchType matchType, String matchId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        List<MatchSquadEntryRaw> squad = matchDetailRepository.findSquadByMatch(ouid, matchType, matchId);
+        Map<String, String> playerNames = playerMetaRepository.findBySpIdIn(
+                        squad.stream().map(MatchSquadEntryRaw::spId).toList()).stream()
+                .collect(Collectors.toMap(PlayerMeta::getSpId, PlayerMeta::getSpName, (a, b) -> a));
+
+        return squad.stream()
+                .map(s -> new MatchSquadEntryResponse(
+                        s.spId(), playerNames.getOrDefault(s.spId(), s.spId()), s.spPosition(),
+                        s.goal(), s.assist(), s.save(), s.tackle(), s.intercept(), s.block(),
+                        s.substitute(), s.rating()))
+                .toList();
     }
 
     private List<MatchShotResponse> toMatchShotResponses(List<MatchShotDetail> shots, Map<String, String> playerNames) {
