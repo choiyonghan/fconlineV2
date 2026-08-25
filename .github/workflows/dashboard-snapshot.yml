@@ -42,6 +42,8 @@ jobs:
           # AI 랭킹(9명 종합 실력 순위 + 근거)용 — 실패해도 배치는 승률 기준 대체 랭킹으로 계속
           # 진행한다(DashboardSnapshotBuilder 참고), 워크플로우 자체를 막지 않는다.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # "닉네임(실명)" 표시용 — insight-snapshot.yml과 같은 시크릿을 그대로 재사용한다.
+          TRACKED_USER_REAL_NAMES: ${{ secrets.TRACKED_USER_REAL_NAMES }}
         run: |
           java -jar backend/build/libs/*.jar --spring.profiles.active=dashboard-snapshot
 

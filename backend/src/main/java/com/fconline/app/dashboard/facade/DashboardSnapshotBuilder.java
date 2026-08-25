@@ -9,6 +9,7 @@ import com.fconline.app.dashboard.dto.DashboardSnapshotFile;
 import com.fconline.app.dashboard.dto.DashboardTopPlayer;
 import com.fconline.app.dashboard.dto.DashboardUserSnapshot;
 import com.fconline.app.dashboard.support.ApproxXgTable;
+import com.fconline.app.insight.facade.TrackedUserAliasResolver;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
@@ -37,11 +38,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 메인 대시보드(site-root/index.html) 스냅샷 조립. 매일 아침 배치({@code dashboard-snapshot}
- * 프로파일, DashboardSnapshotCliRunner)가 호출해 data/dashboard-snapshot.json을 만든다 —
- * 백엔드가 잠들어 있어도(Render 무료 티어 콜드 스타트) 대시보드는 이 정적 파일만 읽어 즉시
- * 뜨게 하려는 목적. 기존 RecordFacade/SeasonFacade/UserFacade만 재사용하고 새 DB 테이블/
- * 마이그레이션은 없다.
+ * 메인 대시보드(report.html, 유저 칩 "전체") 스냅샷 조립. 매일 아침 배치({@code dashboard-snapshot}
+ * 프로파일, DashboardSnapshotCliRunner)가 호출해 data/dashboard-snapshot.json을 만든다 — 백엔드가
+ * 잠들어 있어도(Render 무료 티어 콜드 스타트) 대시보드는 이 정적 파일만 읽어 즉시 뜨게 하려는
+ * 목적. 기존 RecordFacade/SeasonFacade/UserFacade만 재사용하고 새 DB 테이블/마이그레이션은 없다.
+ *
+ * 스코프는 "모두의 커스텀"(matchType=CUSTOM, 현재시즌 날짜 범위) 하나뿐이다 — 공식전은 대시보드에
+ * 안 남긴다(요청). SeasonRangeResolver.resolve(null)이 "전체 기간"이 아니라 "오늘 기준 진행 중인
+ * 시즌"으로 해석되므로(app.common.SeasonRangeResolver), currentSeason.id()를 명시적으로 넘긴다.
  */
 @Component
 public class DashboardSnapshotBuilder {
@@ -56,14 +60,17 @@ public class DashboardSnapshotBuilder {
     private final SeasonFacade seasonFacade;
     private final RecordFacade recordFacade;
     private final GeminiApiClient geminiApiClient;
+    private final TrackedUserAliasResolver aliasResolver;
     private final ObjectMapper objectMapper;
 
     public DashboardSnapshotBuilder(UserFacade userFacade, SeasonFacade seasonFacade, RecordFacade recordFacade,
-                                     GeminiApiClient geminiApiClient, ObjectMapper objectMapper) {
+                                     GeminiApiClient geminiApiClient, TrackedUserAliasResolver aliasResolver,
+                                     ObjectMapper objectMapper) {
         this.userFacade = userFacade;
         this.seasonFacade = seasonFacade;
         this.recordFacade = recordFacade;
         this.geminiApiClient = geminiApiClient;
+        this.aliasResolver = aliasResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -72,23 +79,18 @@ public class DashboardSnapshotBuilder {
         List<TrackedUserResponse> users = userFacade.listTrackedUsers();
         SeasonResponse currentSeason = resolveCurrentSeason();
 
-        // SeasonRangeResolver.resolve(null)은 "전체 기간"이 아니라 "오늘 기준 진행 중인 시즌"으로
-        // 해석된다(app.common.SeasonRangeResolver 참고) — 이 앱은 어디서나 항상 시즌 경계로
-        // 스코프되는 구조라 "모두의 커스텀"도 currentSeason.id()를 명시적으로 넘긴다. 즉 두
-        // 스코프는 같은 현재시즌 기간 안에서 matchType만 다르다(CUSTOM vs OFFICIAL).
-        Map<String, DashboardScopeSummary> customByOuid = buildScope(users, MatchType.CUSTOM, currentSeason.id());
-        Map<String, DashboardScopeSummary> seasonByOuid = buildScope(users, MatchType.OFFICIAL, currentSeason.id());
+        Map<String, DashboardScopeSummary> summaryByOuid = buildScope(users, MatchType.CUSTOM, currentSeason.id());
 
         Map<String, DashboardUserSnapshot> snapshots = new LinkedHashMap<>();
         for (TrackedUserResponse u : users) {
-            snapshots.put(u.ouid(), new DashboardUserSnapshot(
-                    u.ouid(), u.nickname(), customByOuid.get(u.ouid()), seasonByOuid.get(u.ouid())));
+            snapshots.put(u.ouid(), new DashboardUserSnapshot(u.ouid(), u.nickname(), summaryByOuid.get(u.ouid())));
         }
 
-        RankingResult ranking = buildRanking(users, customByOuid, seasonByOuid);
+        RankingResult ranking = buildRanking(users, summaryByOuid);
 
         return new DashboardSnapshotFile(Instant.now(), currentSeason.name(),
-                ranking.failed(), ranking.note(), ranking.entries(), snapshots);
+                ranking.failed(), ranking.note(), ranking.introText(), ranking.outroText(),
+                ranking.entries(), snapshots);
     }
 
     private SeasonResponse resolveCurrentSeason() {
@@ -100,7 +102,7 @@ public class DashboardSnapshotBuilder {
                 });
     }
 
-    // ---------------- 스코프(커스텀/시즌) 서머리 ----------------
+    // ---------------- 스코프("모두의 커스텀") 서머리 ----------------
 
     private Map<String, DashboardScopeSummary> buildScope(List<TrackedUserResponse> users, MatchType matchType,
                                                             Long seasonId) {
@@ -205,68 +207,72 @@ public class DashboardSnapshotBuilder {
                 .toList();
     }
 
+    /** 닉네임에 매핑된 실명이 있으면 "닉네임(실명)"으로, 없으면 닉네임 그대로(InsightSnapshotBuilder.withAlias와 동일). */
+    private String displayNameOf(String nickname) {
+        String realName = aliasResolver.realNameOf(nickname);
+        return realName == null ? nickname : nickname + "(" + realName + ")";
+    }
+
     // ---------------- AI 랭킹 ----------------
 
-    private record RankingResult(boolean failed, String note, List<DashboardRankingEntry> entries) {
+    private record RankingResult(boolean failed, String note, String introText, String outroText,
+                                  List<DashboardRankingEntry> entries) {
     }
 
     private static final String RANKING_SYSTEM_INSTRUCTION = """
-            너는 FC 온라인(피파온라인) 친구 그룹의 전적 데이터를 분석하는 어시스턴트다. 아래 유저들의
-            "모두의 커스텀"(전체 기간 커스텀 매치)과 "현재시즌"(공식전) 통계를 보고 종합 실력 기준
-            1위부터 꼴찌까지 순위를 매겨라. 승률과 득실차를 가장 중요하게 보고, 결정력(실제 득점-xG),
-            평균 평점, 클린시트 비율도 참고해라. 표본 경기 수가 너무 적은(예: 5경기 미만) 유저는
-            신뢰도가 낮다는 점도 감안해라.
-            반드시 순수 JSON 배열로만 답하라. 코드블록, 마크다운, 다른 설명 문장을 절대 섞지 마라.
-            형식: [{"nickname":"정확히 입력받은 닉네임 그대로","rank":1,"reason":"2~3문장 한국어 사유"}, ...]
-            입력받은 유저 수와 정확히 같은 개수의 항목을, rank는 1부터 그 수까지 중복 없이 채워라.
+            너는 FC 온라인(피파온라인) 친구 그룹의 전적 데이터를 근거로 "종합 순위 리포트"를 발표하는
+            과장되고 유쾌한 스포츠 해설자다. 아래 유저들의 "모두의 커스텀"(현재시즌 커스텀 매치) 통계를
+            보고 종합 실력 기준 1위부터 꼴찌까지 순위를 매겨라. 승률과 득실차를 가장 중요하게 보고,
+            결정력(실제 득점-xG), 평균 평점, 클린시트 비율도 참고해라. 표본 경기 수가 너무 적은(예: 5경기
+            미만) 유저는 신뢰도가 낮다는 점도 감안해라.
+
+            톤: 과장된 스포츠 중계·해설 말투(이모지 섞어서 재밌게, 하지만 인신공격이나 진짜 조롱은 금지 —
+            성적에 대한 유쾌한 놀림 정도만). 반드시 순수 JSON 오브젝트로만 답하라. 코드블록, 마크다운, 다른
+            설명 문장을 절대 섞지 마라. 형식:
+            {"introText":"리포트 시작 인사말 1~2문단(재밌게)",
+             "ranking":[{"nickname":"정확히 입력받은 닉네임 그대로","rank":1,"reason":"전적 요약 + 2~3문장 유쾌한 해설"}, ...],
+             "outroText":"전체 총평 1문단(재밌게)"}
+            입력받은 유저 수와 정확히 같은 개수의 ranking 항목을, rank는 1부터 그 수까지 중복 없이 채워라.
             """;
 
-    private RankingResult buildRanking(List<TrackedUserResponse> users,
-                                        Map<String, DashboardScopeSummary> customByOuid,
-                                        Map<String, DashboardScopeSummary> seasonByOuid) {
+    private RankingResult buildRanking(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
         try {
-            String prompt = buildRankingPrompt(users, customByOuid, seasonByOuid);
+            String prompt = buildRankingPrompt(users, summaryByOuid);
             String raw = geminiApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
-            List<DashboardRankingEntry> parsed = parseRanking(raw, users);
-            return new RankingResult(false, null, parsed);
+            return parseRanking(raw, users);
         } catch (Exception e) {
-            log.error("AI 랭킹 호출/파싱 실패 — 승률 기준 정렬로 대체합니다.", e);
-            return new RankingResult(true, "AI 랭킹 호출에 실패해 승률·득실차 기준으로 대체했습니다.",
-                    fallbackRanking(users, customByOuid, seasonByOuid));
+            log.error("AI 랭킹 호출/파싱 실패 — 승률 기준 대체 랭킹(고정 유머 해설 포함)으로 대체합니다.", e);
+            return fallbackRanking(users, summaryByOuid);
         }
     }
 
-    private String buildRankingPrompt(List<TrackedUserResponse> users,
-                                       Map<String, DashboardScopeSummary> customByOuid,
-                                       Map<String, DashboardScopeSummary> seasonByOuid) {
+    private String buildRankingPrompt(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
         StringBuilder sb = new StringBuilder();
-        sb.append("유저 ").append(users.size()).append("명:\n\n");
+        sb.append("유저 ").append(users.size()).append("명(모두의 커스텀 기준):\n\n");
         for (TrackedUserResponse u : users) {
             sb.append("- 닉네임: ").append(u.nickname()).append("\n");
-            appendScopeLine(sb, "  모두의 커스텀", customByOuid.get(u.ouid()));
-            appendScopeLine(sb, "  현재시즌", seasonByOuid.get(u.ouid()));
-            sb.append("\n");
+            appendScopeLine(sb, summaryByOuid.get(u.ouid()));
         }
         return sb.toString();
     }
 
-    private void appendScopeLine(StringBuilder sb, String label, DashboardScopeSummary s) {
+    private void appendScopeLine(StringBuilder sb, DashboardScopeSummary s) {
         if (s == null || s.games() == 0) {
-            sb.append(label).append(": 표본 없음\n");
+            sb.append("  표본 없음\n\n");
             return;
         }
-        double winRate = s.games() == 0 ? 0 : s.wins() * 100.0 / s.games();
-        sb.append(label).append(": ").append(s.games()).append("전 ")
+        double winRate = s.wins() * 100.0 / s.games();
+        sb.append("  ").append(s.games()).append("전 ")
                 .append(s.wins()).append("승 ").append(s.draws()).append("무 ").append(s.losses())
                 .append("패 (승률 ").append(String.format("%.1f", winRate)).append("%), ")
                 .append("평균득점 ").append(String.format("%.2f", s.avgGoalsFor())).append(", ")
                 .append("평균실점 ").append(String.format("%.2f", s.avgGoalsAgainst())).append(", ")
                 .append("결정력 ").append(String.format("%+.1f", s.finishing())).append(", ")
                 .append("평균평점 ").append(String.format("%.2f", s.avgRating())).append(", ")
-                .append("클린시트 ").append(String.format("%.0f", s.cleanSheetPct())).append("%\n");
+                .append("클린시트 ").append(String.format("%.0f", s.cleanSheetPct())).append("%\n\n");
     }
 
-    private List<DashboardRankingEntry> parseRanking(String raw, List<TrackedUserResponse> users) throws Exception {
+    private RankingResult parseRanking(String raw, List<TrackedUserResponse> users) throws Exception {
         JsonNode root = objectMapper.readTree(raw);
         JsonNode array = root.isArray() ? root : root.path("ranking");
         if (!array.isArray() || array.size() != users.size()) {
@@ -286,35 +292,81 @@ public class DashboardSnapshotBuilder {
             if (ouid == null || rank < 1 || rank > users.size() || !seenRanks.add(rank) || !seenNicknames.add(nickname)) {
                 throw new IllegalStateException("Gemini 랭킹 응답이 유효하지 않습니다(닉네임/순위 불일치): " + raw);
             }
-            entries.add(new DashboardRankingEntry(ouid, nickname, rank, reason));
+            entries.add(new DashboardRankingEntry(ouid, nickname, displayNameOf(nickname), rank, reason));
         }
         entries.sort(Comparator.comparingInt(DashboardRankingEntry::rank));
-        return entries;
+
+        String introText = root.has("introText") ? root.path("introText").asText(null) : null;
+        String outroText = root.has("outroText") ? root.path("outroText").asText(null) : null;
+        return new RankingResult(false, null, introText, outroText, entries);
     }
 
-    /** Gemini 호출/파싱 실패 시 결정론적 대체 — 현재시즌 승률(표본 없으면 커스텀 승률) → 득실차 순. */
-    private List<DashboardRankingEntry> fallbackRanking(List<TrackedUserResponse> users,
-                                                          Map<String, DashboardScopeSummary> customByOuid,
-                                                          Map<String, DashboardScopeSummary> seasonByOuid) {
-        record Scored(TrackedUserResponse user, double winRate, double avgGoalDiff) {
+    // ---------------- Gemini 호출 실패 시 대체(fallback) ----------------
+
+    /**
+     * 사용자가 실제로 만든(AI에게 물어봐서 받은) "해설자 톤" 예시를 그대로 재현하고 싶어했다 —
+     * 다만 그 예시의 순위/전적 숫자를 소스에 영구히 박아두면 데이터가 갱신될 때마다 거짓말이
+     * 되고, 실명이 들어간 문장도 있어(이 저장소는 public이라 실명은 절대 커밋하지 않는다 —
+     * TrackedUserAliasResolver 클래스 주석 참고) 그대로 하드코딩할 수 없었다. 그래서:
+     * - 순위/전적 숫자는 항상 그때그때 실제 계산값을 쓴다(승률 desc → 평균 득실차 desc).
+     * - "해설:" 농담 한 줄만 닉네임별로 고정해서 재사용한다(숫자·실명은 다 빼고 재작성) —
+     *   어느 순위에 있든 그 유저의 "캐릭터"로 계속 붙는다.
+     * - 인트로/총평도 그 예시의 텍스트지만, 총평은 특정 순위·득실을 콕 집어 말하는 문장이라
+     *   그대로 두면 순위가 바뀐 날 거짓말이 되므로 순위-무관 버전으로 다시 썼다.
+     */
+    private static final Map<String, String> FALLBACK_JOKES = Map.ofEntries(
+            Map.entry("D로쏘네리", "승률 미친 포스로 리그 최고존엄 후보에 등극! 패배보다 승리가 압도적으로 많은 고고한 신선의 영역입니다."),
+            Map.entry("아기블루스", "혼자 리그를 씹어먹는 중입니다! 득실차가 전체 유저 중 가장 화끈한 폭격기 성능을 보여줬네요."),
+            Map.entry("내눈을가져가", "눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."),
+            Map.entry("내혀를가져가", "무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."),
+            Map.entry("ST반니스텔로이", "정확히 반반! 승리와 패배의 완벽한 황금 비율을 자랑하는 리그의 인간 반반치킨입니다."),
+            Map.entry("서울쥐", "살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."),
+            Map.entry("지린성에사는욱구", "이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"),
+            Map.entry("욱냥0I", "표본이 아직 적지만, 승리의 맛을 아직 한 번도 보지 못한 아기 고양이 상태입니다."),
+            Map.entry("프란체스co토티", "표본이 적은 채로 평점이 아쉬운 편입니다! 경기장에 찍먹만 하러 오셨다가 수수료만 내고 가셨나 봐요!")
+    );
+
+    private static final String FALLBACK_INTRO =
+            "아아, 마이크 테스트! FC 온라인 리그의 잔혹하고도 눈물겨운 전체 유저 종합 순위 리포트를 발표합니다!\n\n" +
+            "이번 순위는 각 유저가 그동안 쌓아올린 피, 땀, 그리고 (누군가의) 눈물로 만들어진 승률·득실차 기준입니다. " +
+            "영광의 1위부터 통곡의 꼴찌까지 지금 공개합니다! (AI 랭킹 호출에 실패해 자동 집계 기준으로 대신 보여드려요.)";
+
+    private static final String FALLBACK_OUTRO =
+            "[해설자 총평]\n오늘도 승자는 미소를, 패자는 다음 시즌을 기약합니다. 득실차 마이너스는 부끄러운 게 아니라 " +
+            "다음 경기를 더 화끈하게 만들 스토리일 뿐입니다 — 리그는 계속됩니다!";
+
+    private RankingResult fallbackRanking(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
+        record Scored(TrackedUserResponse user, DashboardScopeSummary summary, double winRate, double avgGoalDiff) {
         }
         List<Scored> scored = users.stream().map(u -> {
-            DashboardScopeSummary s = seasonByOuid.get(u.ouid());
-            if (s == null || s.games() == 0) s = customByOuid.get(u.ouid());
-            if (s == null || s.games() == 0) return new Scored(u, 0, 0);
+            DashboardScopeSummary s = summaryByOuid.get(u.ouid());
+            if (s == null || s.games() == 0) return new Scored(u, s, 0, 0);
             double winRate = s.wins() * 100.0 / s.games();
             double goalDiff = s.avgGoalsFor() - s.avgGoalsAgainst();
-            return new Scored(u, winRate, goalDiff);
+            return new Scored(u, s, winRate, goalDiff);
         }).sorted(Comparator.comparingDouble(Scored::winRate).reversed()
                 .thenComparing(Comparator.comparingDouble(Scored::avgGoalDiff).reversed())).toList();
 
         List<DashboardRankingEntry> entries = new ArrayList<>();
         int rank = 1;
         for (Scored s : scored) {
-            String reason = String.format("승률 %.1f%%, 경기당 득실차 %+.2f 기준으로 정렬했습니다(AI 랭킹 실패 대체).",
-                    s.winRate(), s.avgGoalDiff());
-            entries.add(new DashboardRankingEntry(s.user().ouid(), s.user().nickname(), rank++, reason));
+            entries.add(new DashboardRankingEntry(s.user().ouid(), s.user().nickname(),
+                    displayNameOf(s.user().nickname()), rank++, fallbackReason(s.user().nickname(), s.summary())));
         }
-        return entries;
+        return new RankingResult(true, "AI 랭킹 호출에 실패해 승률·득실차 기준 자동 집계로 대체했습니다.",
+                FALLBACK_INTRO, FALLBACK_OUTRO, entries);
+    }
+
+    private String fallbackReason(String nickname, DashboardScopeSummary s) {
+        String joke = FALLBACK_JOKES.getOrDefault(nickname, "묵묵히 자기 몫을 하고 있습니다.");
+        if (s == null || s.games() == 0) {
+            return "표본 경기가 아직 없습니다. " + joke;
+        }
+        double winRate = s.wins() * 100.0 / s.games();
+        String statLine = s.games() + "전 " + s.wins() + "승 " + s.draws() + "무 " + s.losses() + "패 (승률 "
+                + String.format("%.1f", winRate) + "%) | 득실 "
+                + String.format("%+.1f", (s.avgGoalsFor() - s.avgGoalsAgainst()) * s.games())
+                + " | 평균 평점 " + String.format("%.2f", s.avgRating());
+        return statLine + " — " + joke;
     }
 }

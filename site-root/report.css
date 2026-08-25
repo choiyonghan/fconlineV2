@@ -103,12 +103,6 @@
     gap: 16px;
     flex-wrap: wrap;
   }
-  .scorebug-title-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-  .back-to-dashboard {
-    font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--text-secondary);
-    text-decoration: none; white-space: nowrap;
-  }
-  .back-to-dashboard:hover { color: var(--series-1); text-decoration: underline; }
   h1 {
     font-family: var(--font-display);
     font-weight: 600;
@@ -790,8 +784,15 @@
   tr.match-row:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
   .segmented button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  /* ---------- 메인 대시보드(site-root/index.html, dashboard.js) ---------- */
-  .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
+  /* ---------- "전체" 칩 = 9인 요약 대시보드(report.html, #dashboard-summary) ----------
+     "바둑알식" 2열 그리드로 화면을 좌우로 쪼갠다 — 카드 9장을 위아래로 한 줄씩 쌓으면 너무
+     길어진다는 피드백. 좁은 화면(모바일)에서는 1열로 접힌다. */
+  .dashboard-cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
+  }
+  @media (max-width: 720px) {
+    .dashboard-cards { grid-template-columns: 1fr; }
+  }
   .dashboard-user-card { margin: 0; }
   .dashboard-user-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
   .dashboard-rank-badge {
@@ -802,8 +803,9 @@
   .dashboard-user-name-col { min-width: 0; }
   .dashboard-user-name { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 3px; }
   .dashboard-user-reason { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
-  .dashboard-scope-tabs { margin-bottom: 12px; }
-  .dashboard-scope-body { display: flex; flex-direction: column; gap: 14px; }
+  .dashboard-user-card .stat-mini-grid,
+  .dashboard-user-card .dashboard-combo,
+  .dashboard-user-card .dashboard-top3-wrap { margin-top: 14px; }
   .dashboard-combo { margin: 0; }
   .dashboard-combo .card-title { margin: 0 0 4px; }
   .dashboard-combo .card-caption { margin: 0; }

@@ -1,43 +1,14 @@
 <!doctype html>
-<html lang="ko" data-theme="dark">
+<html lang="ko">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="icon" href="favicon.svg" />
-<title>FC ONLINE 대시보드</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="report.css">
+<meta http-equiv="refresh" content="0; url=report.html" />
+<link rel="canonical" href="report.html" />
+<title>매치 리포트</title>
 </head>
 <body>
-
-<div class="wrap">
-  <header class="scorebug">
-    <div class="scorebug-top">
-      <div class="scorebug-title-row">
-        <h1>🏆 FC ONLINE 대시보드</h1>
-      </div>
-      <p class="card-caption" id="dashboard-updated"></p>
-    </div>
-  </header>
-
-  <p id="dashboard-status" class="card-caption" role="status" aria-live="polite"></p>
-
-  <div class="card" id="ranking-note-card" hidden style="margin-bottom:14px;">
-    <p class="card-title">⚠️ AI 랭킹 안내</p>
-    <p class="card-caption" id="ranking-note-text"></p>
-  </div>
-
-  <section id="dashboard-cards" class="dashboard-cards" aria-label="유저별 요약"></section>
-
-  <footer class="note">
-    <strong>매일 아침(KST 09:45 전후) 자동 갱신되는 스냅샷입니다.</strong> 백엔드(<code>fconlinev2-backend.onrender.com</code>)를
-    실시간으로 호출하지 않고 이 저장소에 미리 구워둔 정적 JSON만 읽습니다 — 백엔드가 잠들어 있어도(콜드 스타트)
-    이 페이지는 항상 즉시 뜹니다. 순위는 AI(Gemini)에게 9명의 통계를 근거로 종합 실력 순위를 물어본 결과입니다.
-    실시간·경기별 상세 데이터는 <a href="report.html">개인별 상세 리포트</a>에서 확인하세요.</footer>
-</div>
-
-<script src="dashboard.js"></script>
+<!-- report.html이 실제 앱이다 — 유저 칩 중 맨 앞 "전체"가 기본 활성화되어 있어 여기서
+     리다이렉트해도 곧바로 9명 요약 대시보드가 보인다(report.js의 ALL_OUID 처리 참고). -->
+<p>이동 중입니다… <a href="report.html">여기를 눌러주세요</a>.</p>
 </body>
 </html>

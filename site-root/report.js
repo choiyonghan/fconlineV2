@@ -4,6 +4,16 @@
   var BASE_URL = 'https://fconlinev2-backend.onrender.com';
 
   /**
+   * 유저 칩 맨 앞의 "전체" 가짜 유저 — 기본 선택값(개인별 실시간 리포트 대신 9명 요약
+   * 대시보드를 먼저 보여준다). 백엔드를 전혀 거치지 않고 DASHBOARD_SNAPSHOT_URL(매일 아침
+   * dashboard-snapshot.yml이 커밋해둔 정적 JSON)만 읽는다 — 백엔드 콜드 스타트와 무관하게
+   * 항상 즉시 뜨는 게 목적. 실제 트래킹 유저 ouid와 절대 겹치지 않는 값이라 buildChips/
+   * setActiveChip 등 기존 칩 로직을 그대로 재사용할 수 있다.
+   */
+  var ALL_OUID = '__ALL__';
+  var DASHBOARD_SNAPSHOT_URL = 'https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/dashboard-snapshot.json';
+
+  /**
    * "욱식 점수"는 닉네임에 "욱"이 들어가는 두 유저(지린성에사는욱구, 욱냥0I)만의 재미 요소 규칙
    * (승5/무3/패1)이다 — v1이 WOOK_NICKNAMES에 하드코딩했던 값과 동일. 백엔드 score_rules 테이블은
    * 건드리지 않고(데이터 마이그레이션 없이) 여기서 노출할 때만 계산한다.
@@ -344,57 +354,284 @@
     });
   }
 
+  // ---------------- "전체" 대시보드(9명 요약) ----------------
+  var matchtypeFilterGroup = document.getElementById('matchtype-filter-group');
+  var seasonFilterGroup = document.getElementById('season-filter-group');
+  var userReportContent = document.getElementById('user-report-content');
+  var dashboardSummaryEl = document.getElementById('dashboard-summary');
+  var dashboardSnapshotPromise = null; // 칩을 왔다갔다 눌러도 재요청하지 않도록 메모이즈
+
+  /** "전체" 칩 선택 시 개인 리포트 섹션들을 숨기고 대시보드 섹션만, 나머지는 반대로. */
+  function showAllMode(isAll) {
+    userReportContent.hidden = isAll;
+    dashboardSummaryEl.hidden = !isAll;
+    matchtypeFilterGroup.hidden = isAll; // 대시보드는 항상 "모두의 커스텀" 고정 스코프라 무의미
+    seasonFilterGroup.hidden = isAll;
+    if (isAll) document.getElementById('page-title').textContent = '전체 유저 요약';
+  }
+
+  /** 백엔드를 전혀 거치지 않는다(raw.githubusercontent.com 정적 fetch) — 초기 진입 시 chip
+      목록도 이 응답의 data.ranking(ouid+nickname)에서 뽑아 쓴다(init 참고), 그래야 첫 화면이
+      백엔드 콜드 스타트와 완전히 무관해진다. 실패하면 호출부가 알아서 폴백한다. */
+  function fetchDashboardSnapshot() {
+    if (!dashboardSnapshotPromise) {
+      dashboardSnapshotPromise = fetch(DASHBOARD_SNAPSHOT_URL, { cache: 'no-store' })
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .catch(function (err) {
+          dashboardSnapshotPromise = null; // 실패하면 다음 시도 때 재요청할 수 있게 캐시를 비운다
+          throw err;
+        });
+    }
+    return dashboardSnapshotPromise;
+  }
+
+  function renderDashboardError(err) {
+    dashboardSummaryEl.replaceChildren();
+    dashboardSummaryEl.appendChild(el('p', 'card-empty',
+      '대시보드 스냅샷을 아직 불러올 수 없습니다(' + err.message + '). 아직 첫 배치가 안 돌았을 수 있어요 — ' +
+      '위에서 유저를 직접 선택하면 실시간 데이터를 볼 수 있어요.'));
+  }
+
+  /** "전체" 칩을 다시 누를 때(칩은 이미 만들어져 있는 상태) 쓴다 — 최초 진입 시 chip 구성까지
+      같이 하는 init()과는 별개 경로. */
+  function loadDashboardSummary() {
+    dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
+    return fetchDashboardSnapshot().then(renderDashboardSummary).catch(renderDashboardError);
+  }
+
+  function renderDashboardSummary(data) {
+    dashboardSummaryEl.replaceChildren();
+
+    var d = new Date(data.generatedAt);
+    var updatedLine = el('p', 'card-caption', '업데이트: ' + d.toLocaleString('ko-KR', {
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    }) + ' · ' + (data.currentSeasonName || '') + ' 커스텀 매치 기준');
+    dashboardSummaryEl.appendChild(updatedLine);
+
+    if (data.introText) {
+      var introBox = el('div', 'card');
+      introBox.style.marginBottom = '14px';
+      data.introText.split('\n').forEach(function (line) {
+        if (line) introBox.appendChild(el('p', 'card-caption', line));
+      });
+      dashboardSummaryEl.appendChild(introBox);
+    }
+
+    if (data.aiRankingFailed && data.aiRankingNote) {
+      var noteBox = el('div', 'card');
+      noteBox.style.marginBottom = '14px';
+      noteBox.appendChild(el('p', 'card-title', '⚠️ AI 랭킹 안내'));
+      noteBox.appendChild(el('p', 'card-caption', data.aiRankingNote));
+      dashboardSummaryEl.appendChild(noteBox);
+    }
+
+    var grid = el('div', 'dashboard-cards');
+    if (!data.ranking || !data.ranking.length) {
+      grid.appendChild(el('p', 'card-empty', '표시할 유저가 없습니다.'));
+    } else {
+      data.ranking.forEach(function (entry) {
+        grid.appendChild(buildDashboardUserCard(entry, data.users[entry.ouid]));
+      });
+    }
+    dashboardSummaryEl.appendChild(grid);
+
+    if (data.outroText) {
+      var outroBox = el('div', 'card');
+      outroBox.style.marginTop = '14px';
+      data.outroText.split('\n').forEach(function (line) {
+        if (line) outroBox.appendChild(el('p', 'card-caption', line));
+      });
+      dashboardSummaryEl.appendChild(outroBox);
+    }
+  }
+
+  function buildDashboardUserCard(entry, snapshot) {
+    var card = el('div', 'card dashboard-user-card');
+
+    var head = el('div', 'dashboard-user-head');
+    head.appendChild(el('div', 'dashboard-rank-badge', '#' + entry.rank));
+    var nameCol = el('div', 'dashboard-user-name-col');
+    nameCol.appendChild(el('p', 'dashboard-user-name', entry.displayName || entry.nickname));
+    nameCol.appendChild(el('p', 'dashboard-user-reason', entry.reason || ''));
+    head.appendChild(nameCol);
+    card.appendChild(head);
+
+    var s = snapshot && snapshot.summary;
+    if (!s || s.games === 0) {
+      card.appendChild(el('p', 'card-empty', '표본 경기가 없습니다.'));
+      return card;
+    }
+
+    card.appendChild(el('p', 'card-caption',
+      s.games + '전 ' + s.wins + '승 ' + s.draws + '무 ' + s.losses + '패'));
+
+    var grid = el('div', 'stat-mini-grid');
+    function mini(label, value, sub) {
+      var box = el('div', 'stat-mini');
+      box.appendChild(el('p', 'stat-mini-label', label));
+      box.appendChild(el('div', 'stat-mini-value', value));
+      if (sub) box.appendChild(el('div', 'stat-mini-sub', sub));
+      grid.appendChild(box);
+    }
+    mini('평균득점', fmt1(s.avgGoalsFor));
+    mini('평균득점 xG값', fmt1(s.avgGoalsForXg));
+    mini('결정력', (s.finishing >= 0 ? '+' : '') + fmt1(s.finishing), '실제 득점 − xG값');
+    mini('경기당 슈팅', fmt1(s.shotsPerGame));
+    mini('평균실점', fmt1(s.avgGoalsAgainst));
+    mini('평균실점 xG값', s.avgGoalsAgainstXg == null ? '-' : fmt1(s.avgGoalsAgainstXg),
+      s.concededSampleGames ? s.concededSampleGames + '경기 표본' : '데이터 없음');
+    mini('클린시트', s.cleanSheets + '경기', Math.round(s.cleanSheetPct) + '%');
+    mini('다실점(3실점↑)', s.multiConcededGames + '경기', Math.round(s.multiConcededPct) + '%');
+    mini('저점유(45%↓)', s.lowPossessionGames + '경기', Math.round(s.lowPossessionPct) + '%');
+    mini('고점유(55%↑)', s.highPossessionGames + '경기', Math.round(s.highPossessionPct) + '%');
+    mini('균형점유(46~54%)', s.balancedPossessionGames + '경기', Math.round(s.balancedPossessionPct) + '%');
+    mini('평균점유율', Math.round(s.avgPossession) + '%');
+    card.appendChild(grid);
+
+    var comboBox = el('div', 'dashboard-combo');
+    comboBox.appendChild(el('p', 'card-title', '⚡ 환상의 콤비'));
+    if (s.combo) {
+      comboBox.appendChild(el('p', 'card-caption',
+        s.combo.playerAName + ' ↔ ' + s.combo.playerBName + ' — 합산 ' + s.combo.goals + '골'));
+    } else {
+      comboBox.appendChild(el('p', 'card-empty', '기록된 어시스트 조합이 없습니다.'));
+    }
+    card.appendChild(comboBox);
+
+    var top3Wrap = el('div', 'dashboard-top3-wrap');
+    top3Wrap.appendChild(dashboardTop3Block('⚽ 최다골', s.topGoals));
+    top3Wrap.appendChild(dashboardTop3Block('🅰️ 최다도움', s.topAssists));
+    top3Wrap.appendChild(dashboardTop3Block('🔥 최다 공격포인트', s.topAttackPoints));
+    top3Wrap.appendChild(dashboardTop3Block('🛡️ 최다 태클+인터셉트', s.topDefense));
+    top3Wrap.appendChild(dashboardTop3Block('🧤 최다 선방', s.topSaves));
+    card.appendChild(top3Wrap);
+
+    return card;
+  }
+
+  function dashboardTop3Block(title, list) {
+    var box = el('div', 'dashboard-top3-block');
+    box.appendChild(el('p', 'card-title', title));
+    if (!list || !list.length) {
+      box.appendChild(el('p', 'card-empty', '기록 없음'));
+      return box;
+    }
+    var ol = document.createElement('ol');
+    ol.className = 'dashboard-top3-list';
+    list.forEach(function (p) {
+      var li = document.createElement('li');
+      li.appendChild(el('span', 'dashboard-top3-name', p.playerName));
+      li.appendChild(el('span', 'dashboard-top3-value', String(p.value)));
+      ol.appendChild(li);
+    });
+    box.appendChild(ol);
+    return box;
+  }
+
   var allUsers = [];
   var allSeasons = [];
+  var zoneAggregateRequested = false;
+  /** 근사 xG 표는 개인 리포트에서만 쓰인다 — "전체" 기본 화면에서 이걸 먼저 당기면 결국
+      백엔드를 실시간 호출하게 돼서(9명 x 2매치타입) 대시보드를 만든 목적이 무색해진다. 실제
+      유저 칩을 처음 누르는 순간에만 지연 로드한다. */
+  function ensureZoneAggregate() {
+    if (zoneAggregateRequested) return;
+    zoneAggregateRequested = true;
+    loadZoneAggregate();
+  }
 
+  /**
+   * /api/v1/users, /api/v1/seasons(둘 다 백엔드 실시간 호출)는 실제 유저 칩을 처음 클릭하는
+   * 순간에만 불러온다 — 기본 화면("전체")은 이게 전혀 필요 없어서, 여기서 당기면 콜드 스타트를
+   * 그대로 다시 겪는다(대시보드를 만든 이유가 무색해짐). 시즌 칩 구성/기본 시즌 계산도 여기서
+   * 같이 한다(예전엔 init()이 다 했음).
+   */
+  var liveDataPromise = null;
+  function ensureLiveData() {
+    if (!liveDataPromise) {
+      setStatus('유저/시즌 목록을 불러오는 중입니다… 백엔드가 잠들어 있으면 첫 로딩에 최대 1분 정도 걸릴 수 있어요.');
+      liveDataPromise = Promise.all([apiGet('/api/v1/users'), apiGet('/api/v1/seasons')])
+        .then(function (results) {
+          allUsers = results[0];
+          allSeasons = results[1];
+          setStatus(null);
+
+          var sortedSeasons = allSeasons.slice().sort(function (a, b) { return b.id - a.id; });
+          buildChips(seasonChipRow, sortedSeasons,
+            function (s) { return s.id; },
+            function (s) { return s.name; },
+            function (value) {
+              state.seasonId = Number(value);
+              persist();
+              loadSelection();
+            });
+
+          var seasonMatch = allSeasons.filter(function (s) { return String(s.id) === String(savedSelection.seasonId); })[0];
+          var currentSeason = allSeasons.filter(function (s) { return s.current; })[0];
+          state.seasonId = seasonMatch ? seasonMatch.id : (currentSeason ? currentSeason.id : (allSeasons[0] ? allSeasons[0].id : null));
+          setActiveChip(seasonChipRow, state.seasonId);
+          mtButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mt') === state.matchType)); });
+        })
+        .catch(function (err) {
+          liveDataPromise = null;
+          setStatus('유저/시즌 목록을 불러오지 못했습니다 — 백엔드가 응답하지 않습니다. 새로고침해서 다시 시도해 주세요. (' + err.message + ')', true);
+          throw err;
+        });
+    }
+    return liveDataPromise;
+  }
+
+  function selectUser(value) {
+    state.ouid = value;
+    persist();
+    if (value === ALL_OUID) {
+      showAllMode(true);
+      loadDashboardSummary();
+      return;
+    }
+    showAllMode(false);
+    ensureLiveData().then(function () {
+      ensureZoneAggregate();
+      loadSelection();
+    }).catch(function () { /* ensureLiveData가 이미 에러 상태를 보여줬다 */ });
+  }
+
+  function buildUserChips(items) {
+    buildChips(userChipRow, [{ ouid: ALL_OUID, nickname: '전체' }].concat(items),
+      function (u) { return u.ouid; },
+      function (u) { return u.nickname; },
+      selectUser,
+      function (u) { return u.nickname.charAt(0); });
+    setActiveChip(userChipRow, state.ouid);
+  }
+
+  function byDisplayOrder(users) {
+    return users.slice().sort(function (a, b) { return a.displayOrder - b.displayOrder; });
+  }
+
+  /**
+   * 기본 화면은 "전체"(대시보드) — 유저 칩 목록조차 백엔드가 아니라 대시보드 스냅샷의
+   * data.ranking(ouid+nickname)에서 뽑는다. 스냅샷 자체가 없으면(첫 배치 전 등) 그때만
+   * ensureLiveData()로 폴백해 칩을 채운다 — 그래도 첫 화면이 완전히 안 뜨는 것보단 낫다.
+   */
   function init() {
-    setStatus('유저/시즌 목록을 불러오는 중입니다… 백엔드가 잠들어 있으면 첫 로딩에 최대 1분 정도 걸릴 수 있어요.');
-    return Promise.all([apiGet('/api/v1/users'), apiGet('/api/v1/seasons')])
-      .then(function (results) {
-        allUsers = results[0];
-        allSeasons = results[1];
-        if (!allUsers.length) { setStatus('추적 중인 유저가 없습니다.', true); return; }
+    state.ouid = ALL_OUID;
+    showAllMode(true);
+    setStatus(null);
+    dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
 
-        var sortedUsers = allUsers.slice().sort(function (a, b) { return a.displayOrder - b.displayOrder; });
-        buildChips(userChipRow, sortedUsers,
-          function (u) { return u.ouid; },
-          function (u) { return u.nickname; },
-          function (value) {
-            state.ouid = value;
-            persist();
-            loadSelection();
-          },
-          function (u) { return u.nickname.charAt(0); });
-
-        var sortedSeasons = allSeasons.slice().sort(function (a, b) { return b.id - a.id; });
-        buildChips(seasonChipRow, sortedSeasons,
-          function (s) { return s.id; },
-          function (s) { return s.name; },
-          function (value) {
-            state.seasonId = Number(value);
-            persist();
-            loadSelection();
-          });
-
-        state.ouid = (savedSelection.ouid && allUsers.some(function (u) { return u.ouid === savedSelection.ouid; }))
-          ? savedSelection.ouid
-          : allUsers[0].ouid;
-
-        var seasonMatch = allSeasons.filter(function (s) { return String(s.id) === String(savedSelection.seasonId); })[0];
-        var currentSeason = allSeasons.filter(function (s) { return s.current; })[0];
-        state.seasonId = seasonMatch ? seasonMatch.id : (currentSeason ? currentSeason.id : (allSeasons[0] ? allSeasons[0].id : null));
-
-        setActiveChip(userChipRow, state.ouid);
-        setActiveChip(seasonChipRow, state.seasonId);
-        mtButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mt') === state.matchType)); });
-
-        setStatus(null);
-        loadZoneAggregate();
-        return loadSelection();
-      })
-      .catch(function (err) {
-        setStatus('유저/시즌 목록을 불러오지 못했습니다 — 백엔드가 응답하지 않습니다. 새로고침해서 다시 시도해 주세요. (' + err.message + ')', true);
-      });
+    fetchDashboardSnapshot().then(function (data) {
+      renderDashboardSummary(data);
+      var items = (data.ranking || []).map(function (r) { return { ouid: r.ouid, nickname: r.nickname }; });
+      if (items.length) {
+        buildUserChips(items);
+      } else {
+        ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
+      }
+    }).catch(function (err) {
+      renderDashboardError(err);
+      ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
+    });
   }
 
   function barChart(container, rows, opts) {

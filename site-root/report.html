@@ -15,10 +15,7 @@
 <div class="wrap">
   <header class="scorebug">
     <div class="scorebug-top">
-      <div class="scorebug-title-row">
-        <a class="back-to-dashboard" href="./">← 대시보드</a>
-        <h1 id="page-title">매치 리포트</h1>
-      </div>
+      <h1 id="page-title">매치 리포트</h1>
       <p class="visitor-badge" id="visitor-badge" hidden></p>
     </div>
     <div class="filters">
@@ -26,14 +23,14 @@
         <span class="filter-label">유저</span>
         <div class="chip-row" id="user-select" role="group" aria-label="유저 선택"></div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group" id="matchtype-filter-group">
         <span class="filter-label">매치타입</span>
         <div class="segmented" id="matchtype-toggle" role="group" aria-label="매치 타입">
           <button type="button" data-mt="CUSTOM" aria-pressed="true">커스텀</button>
           <button type="button" data-mt="OFFICIAL" aria-pressed="false">공식전</button>
         </div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group" id="season-filter-group">
         <span class="filter-label">시즌</span>
         <div class="chip-row" id="season-select" role="group" aria-label="시즌 선택"></div>
       </div>
@@ -42,6 +39,12 @@
 
   <p id="load-status" class="card-caption" role="status" aria-live="polite" hidden></p>
 
+  <!-- "전체" 칩 선택 시(기본값)에만 보인다 — 9명 요약을 미리 구운 스냅샷에서 읽어와 렌더링한다
+       (dashboard-snapshot.yml + DashboardSnapshotBuilder). 아래 개인 리포트 섹션들과는 배타적으로
+       하나만 보인다(showUserMode/showAllMode). -->
+  <section id="dashboard-summary" class="dashboard-summary" hidden aria-label="전체 유저 요약"></section>
+
+  <div id="user-report-content">
   <section class="tiles" id="tiles" aria-label="종합 스탯"></section>
 
   <div class="card" style="margin-bottom:14px;">
@@ -135,6 +138,7 @@
     <p class="card-title">전체 선수 스탯</p>
     <p class="card-caption">열 제목을 클릭하면 정렬됩니다. 공격력/수비력/종합은 그룹 내 1위를 100점으로 맞춘 합성 점수, 슛정확·패스·드리블·공중볼은 성공률입니다.</p>
     <div class="table-scroll" id="table-allplayers"></div>
+  </div>
   </div>
 
   <footer class="note">
