@@ -103,6 +103,12 @@
     gap: 16px;
     flex-wrap: wrap;
   }
+  .scorebug-title-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .back-to-dashboard {
+    font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--text-secondary);
+    text-decoration: none; white-space: nowrap;
+  }
+  .back-to-dashboard:hover { color: var(--series-1); text-decoration: underline; }
   h1 {
     font-family: var(--font-display);
     font-weight: 600;
@@ -782,4 +788,34 @@
   tr.match-row { cursor: pointer; }
   tr.match-row:hover td { background: var(--page-plane); }
   tr.match-row:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
+  .segmented button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ---------- 메인 대시보드(site-root/index.html, dashboard.js) ---------- */
+  .dashboard-cards { display: flex; flex-direction: column; gap: 16px; }
+  .dashboard-user-card { margin: 0; }
+  .dashboard-user-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .dashboard-rank-badge {
+    flex: 0 0 auto; font-family: var(--font-display); font-size: 18px; font-weight: 700;
+    color: var(--surface-1); background: var(--series-1); border-radius: 6px;
+    padding: 6px 12px; min-width: 44px; text-align: center;
+  }
+  .dashboard-user-name-col { min-width: 0; }
+  .dashboard-user-name { font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0 0 3px; }
+  .dashboard-user-reason { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+  .dashboard-scope-tabs { margin-bottom: 12px; }
+  .dashboard-scope-body { display: flex; flex-direction: column; gap: 14px; }
+  .dashboard-combo { margin: 0; }
+  .dashboard-combo .card-title { margin: 0 0 4px; }
+  .dashboard-combo .card-caption { margin: 0; }
+  .dashboard-top3-wrap {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;
+  }
+  .dashboard-top3-block .card-title { font-size: 12px; margin: 0 0 6px; }
+  .dashboard-top3-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .dashboard-top3-list li {
+    display: flex; justify-content: space-between; gap: 8px; font-size: 13px;
+    padding: 4px 8px; background: var(--page-plane); border-radius: 4px;
+  }
+  .dashboard-top3-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dashboard-top3-value { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-secondary); flex: 0 0 auto; }
 

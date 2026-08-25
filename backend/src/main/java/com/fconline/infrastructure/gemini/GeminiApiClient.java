@@ -30,14 +30,29 @@ public class GeminiApiClient {
 
     /** systemInstruction(역할/제약)과 userPrompt(데이터+질문)를 분리해서 받는다. */
     public String ask(String systemInstruction, String userPrompt) {
+        return call(systemInstruction, userPrompt, false);
+    }
+
+    /**
+     * ask()와 같지만 generationConfig.responseMimeType=application/json을 강제해 코드블록/설명
+     * 없이 순수 JSON만 받는다 — 응답을 그대로 파싱해야 하는 호출부(예: 대시보드 AI 랭킹)용.
+     */
+    public String askJson(String systemInstruction, String userPrompt) {
+        return call(systemInstruction, userPrompt, true);
+    }
+
+    private String call(String systemInstruction, String userPrompt, boolean jsonMode) {
         if (properties.key() == null || properties.key().isBlank()) {
             throw new GeminiApiException("GEMINI_API_KEY가 설정되어 있지 않습니다.");
         }
 
+        Map<String, Object> generationConfig = jsonMode
+                ? Map.of("temperature", 0.4, "responseMimeType", "application/json")
+                : Map.of("temperature", 0.4);
         Map<String, Object> body = Map.of(
                 "systemInstruction", Map.of("parts", List.of(Map.of("text", systemInstruction))),
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", userPrompt)))),
-                "generationConfig", Map.of("temperature", 0.4)
+                "generationConfig", generationConfig
         );
 
         JsonNode response;
