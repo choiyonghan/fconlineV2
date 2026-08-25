@@ -437,37 +437,54 @@
     }
   }
 
+  // 순위표 열 정의 — [헤더라벨, s에서 값을 뽑는 함수]. 득점/득점xG/실점/실점xG는 제목만 짧게
+  // 줄이고 값은 상세와 동일한 "경기당 평균"을 그대로 쓴다(요청) — 시즌 합계가 아니다.
+  var DASHBOARD_TABLE_COLS = [
+    { label: '경기', get: function (s) { return fmt(s.games); } },
+    { label: '승', get: function (s) { return fmt(s.wins); } },
+    { label: '무', get: function (s) { return fmt(s.draws); } },
+    { label: '패', get: function (s) { return fmt(s.losses); } },
+    { label: '득점', get: function (s) { return fmt1(s.avgGoalsFor); } },
+    { label: '득점xG', get: function (s) { return fmt1(s.avgGoalsForXg); } },
+    { label: '결정력', get: function (s) { return (s.finishing >= 0 ? '+' : '') + fmt1(s.finishing); } },
+    { label: '실점', get: function (s) { return fmt1(s.avgGoalsAgainst); } },
+    { label: '실점xG', get: function (s) { return s.avgGoalsAgainstXg == null ? '-' : fmt1(s.avgGoalsAgainstXg); } },
+    { label: '클린시트', get: function (s) { return fmt(s.cleanSheets); } }
+  ];
+
   /**
    * 프리미어리그 순위표 스타일 — 유저 한 명이 한 행. 행을 클릭하면 아코디언으로 펼쳐져서
    * 기존 카드에 있던 상세 스탯(12칸 그리드 + 환상의 콤비 + TOP3)이 그 아래 줄에 나온다.
+   * 좁은 화면에서는 가로 스크롤 대신 각 행이 라벨:값 칩으로 줄바꿈되는 카드형으로 바뀐다
+   * (report.css의 @media (max-width: 760px) 참고).
    */
   function buildDashboardTable(data) {
-    var wrap = el('div', 'table-scroll dashboard-table-wrap');
+    var wrap = el('div', 'dashboard-table-wrap');
+    wrap.appendChild(el('p', 'card-caption', '행을 클릭하면 상세 데이터가 펼쳐집니다.'));
+
     var table = document.createElement('table');
     table.className = 'dashboard-table';
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
-    [
-      ['', false], ['유저', false], ['경기', true], ['골', true], ['xG', true],
-      ['결정력', true], ['슈팅', true], ['유효슈팅', true], ['전환율', true], ['xG/슈팅', true]
-    ].forEach(function (h) {
-      htr.appendChild(el('th', h[1] ? 'num' : '', h[0]));
-    });
+    htr.appendChild(el('th', 'dashboard-rank-col', '순위'));
+    htr.appendChild(el('th', '', '유저'));
+    DASHBOARD_TABLE_COLS.forEach(function (c) { htr.appendChild(el('th', 'num', c.label)); });
     thead.appendChild(htr);
     table.appendChild(thead);
 
+    var colCount = DASHBOARD_TABLE_COLS.length + 2;
     var tbody = document.createElement('tbody');
     if (!data.ranking || !data.ranking.length) {
       var emptyTr = document.createElement('tr');
       var emptyTd = document.createElement('td');
-      emptyTd.colSpan = 10;
+      emptyTd.colSpan = colCount;
       emptyTd.appendChild(el('p', 'card-empty', '표시할 유저가 없습니다.'));
       emptyTr.appendChild(emptyTd);
       tbody.appendChild(emptyTr);
     } else {
-      data.ranking.forEach(function (entry) {
+      data.ranking.forEach(function (entry, i) {
         var snapshot = data.users[entry.ouid];
-        var rows = buildDashboardTableRow(entry, snapshot && snapshot.summary);
+        var rows = buildDashboardTableRow(entry, snapshot && snapshot.summary, colCount, i);
         tbody.appendChild(rows.mainRow);
         tbody.appendChild(rows.detailRow);
       });
@@ -477,44 +494,37 @@
     return wrap;
   }
 
-  function buildDashboardTableRow(entry, s) {
+  function buildDashboardTableRow(entry, s, colCount, index) {
     var hasData = !!(s && s.games > 0);
-    var shots = hasData ? s.totalShots : 0;
-    var convPct = hasData && shots > 0 ? (s.totalGoalsFor / shots * 100) : null;
-    var xgPerShot = hasData && shots > 0 ? (s.totalXgFor / shots) : null;
 
     var tr = document.createElement('tr');
-    tr.className = 'dashboard-row';
+    tr.className = 'dashboard-row' + (index % 2 === 1 ? ' dashboard-row-alt' : '');
     tr.tabIndex = 0;
     tr.setAttribute('role', 'button');
     tr.setAttribute('aria-expanded', 'false');
     tr.setAttribute('aria-label', (entry.displayName || entry.nickname) + ' 상세 펼치기');
 
-    tr.appendChild(el('td', 'num dashboard-rank-cell', '#' + entry.rank));
+    var rankTd = el('td', 'num dashboard-rank-cell', entry.rank + '위');
+    if (entry.rank <= 3) rankTd.classList.add('dashboard-rank-top' + entry.rank);
+    tr.appendChild(rankTd);
 
     var nameTd = el('td', 'name-cell dashboard-row-name-cell');
     var caret = el('span', 'expand-caret', '▸');
     nameTd.appendChild(caret);
-    var nameCol = el('span', 'dashboard-row-name-col');
-    nameCol.appendChild(el('span', 'dashboard-row-name', entry.displayName || entry.nickname));
-    if (entry.reason) nameCol.appendChild(el('span', 'dashboard-row-reason', entry.reason));
-    nameTd.appendChild(nameCol);
+    nameTd.appendChild(el('span', 'dashboard-row-name', entry.displayName || entry.nickname));
     tr.appendChild(nameTd);
 
-    tr.appendChild(el('td', 'num', hasData ? fmt(s.games) : '-'));
-    tr.appendChild(el('td', 'num', hasData ? fmt(s.totalGoalsFor) : '-'));
-    tr.appendChild(el('td', 'num', hasData ? fmt1(s.totalXgFor) : '-'));
-    tr.appendChild(el('td', 'num', hasData ? ((s.finishing >= 0 ? '+' : '') + fmt1(s.finishing)) : '-'));
-    tr.appendChild(el('td', 'num', hasData ? fmt(shots) : '-'));
-    tr.appendChild(el('td', 'num', hasData ? fmt(s.totalShotsOnTarget) : '-'));
-    tr.appendChild(el('td', 'num', convPct == null ? '-' : Math.round(convPct) + '%'));
-    tr.appendChild(el('td', 'num', xgPerShot == null ? '-' : xgPerShot.toFixed(2)));
+    DASHBOARD_TABLE_COLS.forEach(function (c) {
+      var td = el('td', 'num', hasData ? c.get(s) : '-');
+      td.setAttribute('data-label', c.label);
+      tr.appendChild(td);
+    });
 
     var detailTr = document.createElement('tr');
-    detailTr.className = 'dashboard-detail-row';
+    detailTr.className = 'dashboard-detail-row' + (index % 2 === 1 ? ' dashboard-row-alt' : '');
     detailTr.hidden = true;
     var detailTd = document.createElement('td');
-    detailTd.colSpan = 10;
+    detailTd.colSpan = colCount;
     var inner = el('div', 'dashboard-detail-inner');
     if (hasData) {
       renderDashboardDetailBody(inner, s, entry.reason);

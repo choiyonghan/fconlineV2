@@ -786,30 +786,62 @@
   .segmented button:disabled { opacity: 0.35; cursor: not-allowed; }
 
   /* ---------- "전체" 칩 = 9인 요약 대시보드(report.html, #dashboard-summary) ----------
-     프리미어리그 순위표 스타일 표 — 행을 클릭하면 아코디언으로 펼쳐져 기존 상세 스탯이 나온다. */
+     프리미어리그 순위표 스타일 표 — 행을 클릭하면 아코디언으로 펼쳐져 기존 상세 스탯이 나온다.
+     min-width:0으로 위 table { min-width:560px } 기본값을 깨서 가로 스크롤이 생기지 않게 하고,
+     좁은 화면에서는 표 자체를 라벨:값 칩이 줄바꿈되는 카드형으로 바꾼다(아래 미디어쿼리). */
   .dashboard-table-wrap { margin-top: 4px; }
+  .dashboard-table { min-width: 0; font-size: 12.5px; }
+  .dashboard-table thead th { background: var(--page-plane); }
   .dashboard-table th.num, .dashboard-table td.num { text-align: right; }
+  .dashboard-rank-col { width: 44px; }
   .dashboard-rank-cell {
-    font-family: var(--font-display); font-weight: 700; color: var(--text-secondary); width: 40px;
+    font-family: var(--font-display); font-weight: 700; color: var(--text-secondary);
   }
+  .dashboard-rank-top1 { color: #d4af37; }
+  .dashboard-rank-top2 { color: #9aa0a6; }
+  .dashboard-rank-top3 { color: #b06a35; }
   .dashboard-row { cursor: pointer; }
+  .dashboard-row-alt td { background: color-mix(in srgb, var(--page-plane) 55%, transparent); }
   .dashboard-row:hover td { background: var(--page-plane); }
   .dashboard-row:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
-  .dashboard-row-name-cell { display: flex; align-items: baseline; gap: 8px; min-width: 220px; }
+  .dashboard-row-name-cell { display: flex; align-items: center; gap: 8px; min-width: 120px; }
   .dashboard-row-name-cell .expand-caret { color: var(--text-muted); flex: 0 0 auto; }
-  .dashboard-row-name-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .dashboard-row-name { font-weight: 700; color: var(--text-primary); }
-  .dashboard-row-reason {
-    font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis;
-    white-space: nowrap; max-width: 46vw;
-  }
+  .dashboard-row-name { font-weight: 700; color: var(--text-primary); white-space: nowrap; }
   .dashboard-detail-row td { padding: 0; border-bottom: 1px solid var(--gridline); background: var(--page-plane); }
   .dashboard-detail-inner { padding: 14px 16px 18px 46px; }
   .dashboard-detail-reason { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; line-height: 1.5; }
   .dashboard-detail-inner .stat-mini-grid,
   .dashboard-detail-inner .dashboard-combo,
   .dashboard-detail-inner .dashboard-top3-wrap { margin-top: 14px; }
-  .dashboard-detail-inner .stat-mini-grid { margin-top: 0; }
+  .dashboard-detail-inner .stat-mini-grid {
+    margin-top: 0; grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 640px) {
+    /* 상세 12칸 스탯을 4x3으로 */
+    .dashboard-detail-inner .stat-mini-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* 좁은 화면 — 표를 포기하고 행 하나가 "라벨: 값" 칩들이 줄바꿈되는 카드가 되게 한다(가로 스크롤 없음). */
+  @media (max-width: 760px) {
+    .dashboard-table thead { display: none; }
+    .dashboard-table, .dashboard-table tbody { display: block; width: 100%; }
+    .dashboard-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+      padding: 10px 4px; width: 100%;
+    }
+    .dashboard-row td { border: none; padding: 0; background: none !important; }
+    .dashboard-rank-cell { order: 0; }
+    .dashboard-row-name-cell { order: 1; flex: 1 1 auto; min-width: 0; }
+    .dashboard-row-name { overflow: hidden; text-overflow: ellipsis; }
+    .dashboard-table td[data-label] {
+      order: 2; display: flex; align-items: baseline; gap: 4px; font-size: 11.5px;
+      padding: 3px 7px; border-radius: 4px; background: var(--surface-1) !important;
+      border: 1px solid var(--border); white-space: nowrap;
+    }
+    .dashboard-table td[data-label]::before { content: attr(data-label) ":"; color: var(--text-muted); }
+    .dashboard-detail-row, .dashboard-detail-row td { display: block; width: 100%; }
+    .dashboard-detail-inner { padding: 10px 8px 16px 8px; }
+  }
   .dashboard-combo { margin: 0; }
   .dashboard-combo .card-title { margin: 0 0 4px; }
   .dashboard-combo .card-caption { margin: 0; }
