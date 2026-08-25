@@ -47,9 +47,9 @@ class MatchDetailPlayerGradesTest {
         entityManager.persist(match2);
 
         MatchDetail detail1 = MatchDetail.of(match1, "A", "B", "상대", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         MatchDetail detail2 = MatchDetail.of(match2, "A", "B", "상대", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         // sp-1: 옛날 매치엔 5강, 최근 매치엔 8강으로 강화됨 — 최근 값(8)만 나와야 한다.
         detail1.addShootEvent(ShootEvent.of(detail1, ShootType.FINESSE, ShootResult.GOAL,

@@ -30,14 +30,28 @@ public record NexonParticipantData(
         Integer passTry,
         Integer passSuccess,
         Integer shortPassTry,
+        Integer shortPassSuccess,
+        Integer longPassTry,
+        Integer longPassSuccess,
+        Integer bouncingLobPassTry,
+        Integer bouncingLobPassSuccess,
+        Integer drivenGroundPassTry,
+        Integer drivenGroundPassSuccess,
         Integer throughPassTry,
         Integer throughPassSuccess,
+        Integer lobbedThroughPassTry,
+        Integer lobbedThroughPassSuccess,
         Integer tackleTry,
         Integer tackleSuccess,
+        Integer blockTry,
+        Integer blockSuccess,
         Integer foul,
         Integer yellowCards,
         Integer redCards,
         Integer offside,
+        /** matchDetail.matchEndType 그대로("0=정상 종료"만 쓰기 필터 기준, MatchStats 클래스 주석 참고). */
+        Integer matchEndType,
+        Integer systemPause,
         List<ShootEventData> shootEvents,
         List<SquadEntryData> squadEntries,
         /** shootDetail[]/player[] 원본 그대로 (jsonb 백업 컬럼용). 없으면 null. */
@@ -55,7 +69,7 @@ public record NexonParticipantData(
     public record SquadEntryData(String spId, int spPosition, int goal, int assist,
                                   int save, int tackle, int intercept, int block,
                                   int shootTotal, int effectiveShoot, int passTry, int passSuccess,
-                                  int dribbleTry, int dribbleSuccess, int aerialTry, int aerialSuccess,
-                                  Double rating) {
+                                  int dribbleTry, int dribbleSuccess, int dribbleDistance,
+                                  int aerialTry, int aerialSuccess, Double rating) {
     }
 }

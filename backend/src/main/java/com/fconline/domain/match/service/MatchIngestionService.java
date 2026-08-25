@@ -59,14 +59,27 @@ public class MatchIngestionService {
                 .passTry(participant.passTry())
                 .passSuccess(participant.passSuccess())
                 .shortPassTry(participant.shortPassTry())
+                .shortPassSuccess(participant.shortPassSuccess())
+                .longPassTry(participant.longPassTry())
+                .longPassSuccess(participant.longPassSuccess())
+                .bouncingLobPassTry(participant.bouncingLobPassTry())
+                .bouncingLobPassSuccess(participant.bouncingLobPassSuccess())
+                .drivenGroundPassTry(participant.drivenGroundPassTry())
+                .drivenGroundPassSuccess(participant.drivenGroundPassSuccess())
                 .throughPassTry(participant.throughPassTry())
                 .throughPassSuccess(participant.throughPassSuccess())
+                .lobbedThroughPassTry(participant.lobbedThroughPassTry())
+                .lobbedThroughPassSuccess(participant.lobbedThroughPassSuccess())
                 .tackleTry(participant.tackleTry())
                 .tackleSuccess(participant.tackleSuccess())
+                .blockTry(participant.blockTry())
+                .blockSuccess(participant.blockSuccess())
                 .foul(participant.foul())
                 .yellowCards(participant.yellowCards())
                 .redCards(participant.redCards())
                 .offside(participant.offside())
+                .matchEndType(participant.matchEndType())
+                .systemPause(participant.systemPause())
                 .build();
 
         MatchDetail detail = MatchDetail.of(match, participant.ouid(), participant.opponentOuid(),
@@ -83,8 +96,8 @@ public class MatchIngestionService {
                 SquadEntry.of(detail, entry.spId(), entry.spPosition(), entry.goal(), entry.assist(),
                         entry.save(), entry.tackle(), entry.intercept(), entry.block(),
                         entry.shootTotal(), entry.effectiveShoot(), entry.passTry(), entry.passSuccess(),
-                        entry.dribbleTry(), entry.dribbleSuccess(), entry.aerialTry(), entry.aerialSuccess(),
-                        entry.rating())));
+                        entry.dribbleTry(), entry.dribbleSuccess(), entry.dribbleDistance(),
+                        entry.aerialTry(), entry.aerialSuccess(), entry.rating())));
 
         return detail;
     }

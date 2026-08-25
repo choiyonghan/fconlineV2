@@ -9,6 +9,7 @@ package com.fconline.app.record.dto;
 public record TopPlayerResponse(String spId, String playerName, int appearances,
                                  int goals, int assists, int saves, int tackles, int intercepts, int blocks,
                                  int shootTotal, int effectiveShoot, int passTry, int passSuccess,
-                                 int dribbleTry, int dribbleSuccess, int aerialTry, int aerialSuccess,
+                                 int dribbleTry, int dribbleSuccess, int dribbleDistance,
+                                 int aerialTry, int aerialSuccess,
                                  Double avgRating, double contributionScore, double xg) {
 }

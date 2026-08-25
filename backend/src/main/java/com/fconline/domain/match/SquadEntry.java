@@ -83,6 +83,9 @@ public class SquadEntry {
     @Column(name = "dribble_success", nullable = false)
     private int dribbleSuccess;
 
+    @Column(name = "dribble_distance", nullable = false)
+    private int dribbleDistance;
+
     @Column(name = "aerial_try", nullable = false)
     private int aerialTry;
 
@@ -96,8 +99,8 @@ public class SquadEntry {
     public static SquadEntry of(MatchDetail matchDetail, String spId, int spPosition,
                                  int goal, int assist, int save, int tackle, int intercept, int block,
                                  int shootTotal, int effectiveShoot, int passTry, int passSuccess,
-                                 int dribbleTry, int dribbleSuccess, int aerialTry, int aerialSuccess,
-                                 Double rating) {
+                                 int dribbleTry, int dribbleSuccess, int dribbleDistance,
+                                 int aerialTry, int aerialSuccess, Double rating) {
         SquadEntry entry = new SquadEntry();
         entry.matchDetail = matchDetail;
         entry.spId = spId;
@@ -115,6 +118,7 @@ public class SquadEntry {
         entry.passSuccess = passSuccess;
         entry.dribbleTry = dribbleTry;
         entry.dribbleSuccess = dribbleSuccess;
+        entry.dribbleDistance = dribbleDistance;
         entry.aerialTry = aerialTry;
         entry.aerialSuccess = aerialSuccess;
         entry.rating = rating;

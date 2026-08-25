@@ -8,6 +8,7 @@ package com.fconline.domain.match.vo;
 public record TopPlayerStat(String spId, int appearances, int goals, int assists, int saves,
                              int tackles, int intercepts, int blocks,
                              int shootTotal, int effectiveShoot, int passTry, int passSuccess,
-                             int dribbleTry, int dribbleSuccess, int aerialTry, int aerialSuccess,
+                             int dribbleTry, int dribbleSuccess, int dribbleDistance,
+                             int aerialTry, int aerialSuccess,
                              Double avgRating, double contributionScore) {
 }

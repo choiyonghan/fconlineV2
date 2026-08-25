@@ -21,6 +21,20 @@ public record OverallRecordResponse(
         long cleanSheets,
         long multiConcededGames,
         long highPossessionGames,
-        long lowPossessionGames
+        long lowPossessionGames,
+        /** "더티 플레이" 성향(게임 일시정지 횟수) — 표본 전체 합산. foul/yellowCards/redCards는 위에 이미 있다. */
+        long systemPauseTotal,
+        /** "패스 성향" 카드용 — 표본 전체 합산(전체/숏/롱 패스 시도·성공). */
+        long passTryTotal,
+        long passSuccessTotal,
+        long shortPassTryTotal,
+        long shortPassSuccessTotal,
+        long longPassTryTotal,
+        long longPassSuccessTotal,
+        /** "수비 성향" 카드용 — 표본 전체 합산(태클/블락 시도·성공). */
+        long tackleTryTotal,
+        long tackleSuccessTotal,
+        long blockTryTotal,
+        long blockSuccessTotal
 ) {
 }

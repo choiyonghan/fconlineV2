@@ -118,7 +118,8 @@ public class RecordFacade {
                         stat.goals(), stat.assists(), stat.saves(),
                         stat.tackles(), stat.intercepts(), stat.blocks(),
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
-                        stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
+                        stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
+                        stat.aerialTry(), stat.aerialSuccess(),
                         stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
 
@@ -138,7 +139,18 @@ public class RecordFacade {
                 statsSummary.cleanSheets(),
                 statsSummary.multiConcededGames(),
                 statsSummary.highPossessionGames(),
-                statsSummary.lowPossessionGames()
+                statsSummary.lowPossessionGames(),
+                statsSummary.systemPauseTotal(),
+                statsSummary.passTryTotal(),
+                statsSummary.passSuccessTotal(),
+                statsSummary.shortPassTryTotal(),
+                statsSummary.shortPassSuccessTotal(),
+                statsSummary.longPassTryTotal(),
+                statsSummary.longPassSuccessTotal(),
+                statsSummary.tackleTryTotal(),
+                statsSummary.tackleSuccessTotal(),
+                statsSummary.blockTryTotal(),
+                statsSummary.blockSuccessTotal()
         );
     }
 
@@ -175,7 +187,8 @@ public class RecordFacade {
                         stat.goals(), stat.assists(), stat.saves(),
                         stat.tackles(), stat.intercepts(), stat.blocks(),
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
-                        stat.dribbleTry(), stat.dribbleSuccess(), stat.aerialTry(), stat.aerialSuccess(),
+                        stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
+                        stat.aerialTry(), stat.aerialSuccess(),
                         stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
     }

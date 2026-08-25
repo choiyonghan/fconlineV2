@@ -582,8 +582,11 @@
     mini('고점유(55%↑)', s.highPossessionGames + '경기', Math.round(s.highPossessionPct) + '%');
     mini('균형점유(46~54%)', s.balancedPossessionGames + '경기', Math.round(s.balancedPossessionPct) + '%');
     mini('평균점유율', Math.round(s.avgPossession) + '%');
-    mini('총 패스시도', s.totalPassTry != null ? fmt(s.totalPassTry) : '-');
-    mini('총 패스성공', s.totalPassSuccess != null ? fmt(s.totalPassSuccess) : '-');
+    // 이 그리드는 나머지 전부 "경기당 평균"이라 패스만 총합으로 튀어 보였다(요청) — totalPassTry/
+    // totalPassSuccess(표본 전체 합계)를 games로 나눠 다른 칸들과 같은 평균 기준으로 맞춘다.
+    mini('평균 패스시도', s.totalPassTry != null ? fmt1(s.totalPassTry / s.games) : '-');
+    mini('평균 패스성공', s.totalPassSuccess != null ? fmt1(s.totalPassSuccess / s.games) : '-');
+    mini('패스 성공률', (s.totalPassTry) ? Math.round(s.totalPassSuccess / s.totalPassTry * 100) + '%' : '-');
     container.appendChild(grid);
 
     var comboBox = el('div', 'dashboard-combo');
@@ -1310,16 +1313,23 @@
 
   /**
    * squad는 양팀 스쿼드를 합친 목록이다 — 각 항목에 team:'mine'|'opponent'가 붙어 있다(openMatchModal
-   * 참고, 상대가 추적 대상이 아니면 'mine'만 옴). MOM/Worst는 양팀 통틀어 뽑는다(요청).
+   * 참고, 상대가 추적 대상이 아니면 'mine'만 옴). 승리팀/패배팀을 나눠 각각 베스트·워스트를 따로
+   * 뽑는다(요청) — matchResult('승'/'무'/'패', 내 팀 기준)로 어느 team이 이겼는지 판정한다.
+   * 무승부는 승/패 구분이 없으니 예전처럼 양팀 통합 베스트·워스트 1쌍만 보여준다.
    */
-  function buildMomWorstSection(container, squad) {
+  function buildMomWorstSection(container, squad, matchResult) {
     container.replaceChildren();
     // rating이 정확히 0인 선수는 "출전은 등록됐지만 실제로 안 뛴" 경우다 — Worst로 뽑히면 안 된다.
     var candidates = squad.filter(function (s) { return s.rating != null && s.rating > 0; });
     if (!candidates.length) return; // 평점 결측이면 조용히 생략(칸을 비우지 않고 아예 안 만듦)
 
-    var mom = candidates.reduce(function (a, b) { return b.rating > a.rating ? b : a; });
-    var worst = candidates.reduce(function (a, b) { return b.rating < a.rating ? b : a; });
+    function bestWorstOf(list) {
+      if (!list.length) return null;
+      return {
+        best: list.reduce(function (a, b) { return b.rating > a.rating ? b : a; }),
+        worst: list.reduce(function (a, b) { return b.rating < a.rating ? b : a; })
+      };
+    }
 
     function card(icon, label, entry, isMom) {
       var box = el('div', 'mom-card ' + (isMom ? 'mom-card-best' : 'mom-card-worst'));
@@ -1334,8 +1344,27 @@
       return box;
     }
 
-    container.appendChild(card('🏆', 'Man of the Match', mom, true));
-    if (worst !== mom) container.appendChild(card('🥶', 'Worst Player', worst, false));
+    if (matchResult !== '승' && matchResult !== '패') {
+      var overall = bestWorstOf(candidates);
+      if (!overall) return;
+      container.appendChild(card('🏆', 'Man of the Match', overall.best, true));
+      if (overall.worst !== overall.best) container.appendChild(card('🥶', 'Worst Player', overall.worst, false));
+      return;
+    }
+
+    var winningTeam = matchResult === '승' ? 'mine' : 'opponent';
+    var losingTeam = matchResult === '승' ? 'opponent' : 'mine';
+    var winBW = bestWorstOf(candidates.filter(function (s) { return s.team === winningTeam; }));
+    var loseBW = bestWorstOf(candidates.filter(function (s) { return s.team === losingTeam; }));
+
+    if (winBW) {
+      container.appendChild(card('🏆', '승리팀 베스트', winBW.best, true));
+      if (winBW.worst !== winBW.best) container.appendChild(card('😓', '승리팀 워스트', winBW.worst, false));
+    }
+    if (loseBW) {
+      container.appendChild(card('💪', '패배팀 베스트', loseBW.best, true));
+      if (loseBW.worst !== loseBW.best) container.appendChild(card('🥶', '패배팀 워스트', loseBW.worst, false));
+    }
   }
 
   /**
@@ -1926,6 +1955,13 @@
       ? apiGet('/api/v1/records/match-stats', { ouid: m.opponentOuid, matchType: state.matchType, matchId: m.matchId })
           .catch(function () { return null; })
       : Promise.resolve(null);
+    // 카드 강화 배지(playerGradeMap)는 loadSelection이 state.ouid 기준으로만 채워둔다 — 득점
+    // 타임라인 등 모달 안에서 상대 선수 이름에 배지를 붙이려면 상대 ouid 몫도 따로 받아와
+    // 병합해야 한다(그동안 "가끔 상대 선수만 강화 배지가 안 뜨는" 버그의 원인).
+    var oppGradesPromise = opponentTracked
+      ? apiGet('/api/v1/records/player-grades', { ouid: m.opponentOuid, matchType: state.matchType, seasonId: state.seasonId })
+          .catch(function () { return []; })
+      : Promise.resolve([]);
 
     // xG값 행은 match-shots(별도 요청, 아래)가 끝나야 채워진다 — 어느 쪽이 먼저 끝나든 서로
     // 기다리지 않고 준비되는 대로 반영하기 위한 작은 상태 저장소.
@@ -1935,11 +1971,12 @@
       if (compareRefs && compareXgState.ready) compareRefs.setXg(compareXgState.for, compareXgState.against);
     }
 
-    Promise.all([mySquadPromise, oppSquadPromise, oppStatsPromise])
+    Promise.all([mySquadPromise, oppSquadPromise, oppStatsPromise, oppGradesPromise])
       .then(function (results) {
         if (seq !== modalRequestSeq) return;
-        var mySquad = results[0], oppSquad = results[1], oppStats = results[2];
-        buildMomWorstSection(momSection, mySquad.concat(oppSquad));
+        var mySquad = results[0], oppSquad = results[1], oppStats = results[2], oppGrades = results[3];
+        oppGrades.forEach(function (g) { playerGradeMap[g.spId] = g.grade; });
+        buildMomWorstSection(momSection, mySquad.concat(oppSquad), m.result);
         compareRefs = buildCompareSection(compareSection, m, oppStats, mySquad, oppSquad);
         applyCompareXg();
       })
@@ -1964,9 +2001,17 @@
     bottomRow.appendChild(xgRaceSection);
     modalBody.appendChild(bottomRow);
 
-    apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
-      .then(function (result) {
+    // oppGradesPromise도 같이 기다린다 — 득점 타임라인(goalTimelineRow)이 상대 선수 이름에
+    // 강화 배지를 붙이려면 playerGradeMap에 상대 몫이 먼저 병합돼 있어야 한다. 두 요청 중
+    // 어느 게 먼저 끝나든(경쟁 상태) 여기서 항상 병합 후에 렌더링하도록 순서를 고정한다.
+    Promise.all([
+      apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId }),
+      oppGradesPromise
+    ])
+      .then(function (all) {
+        var result = all[0], oppGrades = all[1];
         if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
+        oppGrades.forEach(function (g) { playerGradeMap[g.spId] = g.grade; });
         renderModalShots(timelineSection, commentarySection, pitchSection, xgRaceSection,
           result.myShots, result.concededShots);
 
@@ -2354,8 +2399,15 @@
       { key: 'effectiveShoot', label: '유효슈팅', numeric: true },
       { key: 'shootAccuracy', label: '슛정확', numeric: true },
       { key: 'passAccuracy', label: '패스', numeric: true },
+      { key: 'passTry', label: '패스시도', numeric: true },
+      { key: 'passSuccess', label: '패스성공', numeric: true },
       { key: 'dribbleRate', label: '드리블', numeric: true },
+      { key: 'dribbleTry', label: '드리블시도', numeric: true },
+      { key: 'dribbleSuccess', label: '드리블성공', numeric: true },
+      { key: 'dribbleDistance', label: '드리블거리', numeric: true },
       { key: 'aerialRate', label: '공중볼', numeric: true },
+      { key: 'aerialTry', label: '공중볼시도', numeric: true },
+      { key: 'aerialSuccess', label: '공중볼성공', numeric: true },
       { key: 'tackles', label: '태클', numeric: true },
       { key: 'intercepts', label: '인터셉트', numeric: true },
       { key: 'blocks', label: '블록', numeric: true },
@@ -2423,8 +2475,15 @@
       tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
       tr.appendChild(el('td', 'num', pct(p.shootAccuracy)));
       tr.appendChild(el('td', 'num', pct(p.passAccuracy)));
+      tr.appendChild(el('td', 'num', fmt(p.passTry)));
+      tr.appendChild(el('td', 'num', fmt(p.passSuccess)));
       tr.appendChild(el('td', 'num', pct(p.dribbleRate)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleTry)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleSuccess)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleDistance)));
       tr.appendChild(el('td', 'num', pct(p.aerialRate)));
+      tr.appendChild(el('td', 'num', fmt(p.aerialTry)));
+      tr.appendChild(el('td', 'num', fmt(p.aerialSuccess)));
       tr.appendChild(el('td', 'num', fmt(p.tackles)));
       tr.appendChild(el('td', 'num', fmt(p.intercepts)));
       tr.appendChild(el('td', 'num', fmt(p.blocks)));
@@ -2570,7 +2629,7 @@
 
   function round1(n) { return Math.round(n * 10) / 10; }
 
-  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches, players) {
+  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches) {
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
     var passContainer = document.getElementById('playstyle-pass');
@@ -2630,19 +2689,30 @@
       '상대 실제 득점 − 실점 xG값 (양수면 상대가 기대 이상)');
     statMini(defenseContainer, '클린시트', fmt(overall.cleanSheets) + '경기', pctOf(overall.cleanSheets, totalGames) + '%');
     statMini(defenseContainer, '다실점 경기(3실점↑)', fmt(overall.multiConcededGames) + '경기', pctOf(overall.multiConcededGames, totalGames) + '%');
+    // 태클/블락 시도-성공(매치 단위 팀 합계, MatchStats 기반) — 성공률도 같이.
+    var tackleRate = overall.tackleTryTotal ? Math.round(overall.tackleSuccessTotal / overall.tackleTryTotal * 100) + '%' : '-';
+    var blockRate = overall.blockTryTotal ? Math.round(overall.blockSuccessTotal / overall.blockTryTotal * 100) + '%' : '-';
+    statMini(defenseContainer, '태클 시도/성공', fmt(overall.tackleTryTotal) + ' / ' + fmt(overall.tackleSuccessTotal), '성공률 ' + tackleRate);
+    statMini(defenseContainer, '블락 시도/성공', fmt(overall.blockTryTotal) + ' / ' + fmt(overall.blockSuccessTotal), '성공률 ' + blockRate);
+    // "더티 플레이" 성향 — 게임 일시정지·파울·경고·퇴장.
+    statMini(defenseContainer, '게임 일시정지', fmt(overall.systemPauseTotal) + '회', '표본 전체 합계');
+    statMini(defenseContainer, '파울', fmt(overall.foulTotal) + '회', '표본 전체 합계');
+    statMini(defenseContainer, '경고(옐로카드)', fmt(overall.yellowCards) + '장', '표본 전체 합계');
+    statMini(defenseContainer, '퇴장(레드카드)', fmt(overall.redCards) + '장', '표본 전체 합계');
     statMini(defenseContainer, '표본', fmt(totalGames) + '경기', '이번 조회 기준');
 
-    // 패스 성향 — 팀 전체(선수단 합산) 패스 시도/성공. 실패(미스)는 시도-성공.
-    players = players || [];
-    var totalPassTry = players.reduce(function (s, p) { return s + (p.passTry || 0); }, 0);
-    var totalPassSuccess = players.reduce(function (s, p) { return s + (p.passSuccess || 0); }, 0);
-    var passRate = totalPassTry > 0 ? (totalPassSuccess / totalPassTry * 100) : null;
-    statMini(passContainer, '평균 패스시도', fmt1(totalPassTry / totalGames), '경기당 시도');
-    statMini(passContainer, '평균 패스성공', fmt1(totalPassSuccess / totalGames), '경기당 성공');
-    statMini(passContainer, '패스 성공률', passRate == null ? '-' : Math.round(passRate) + '%', '표본 전체 기준');
-    statMini(passContainer, '총 패스시도', fmt(totalPassTry), '표본 전체 합계');
-    statMini(passContainer, '총 패스성공', fmt(totalPassSuccess), '표본 전체 합계');
-    statMini(passContainer, '패스 미스', fmt(totalPassTry - totalPassSuccess), '시도 − 성공');
+    // 패스 성향 — 매치 단위 팀 합계(MatchStats, 전체/숏/롱 패스 각각 시도-성공-성공률). 미스(시도-성공)는
+    // 성공률과 중복 정보라 빼고, 대신 숏/롱 세부 유형을 보여준다(요청).
+    function passRateOf(t, s) { return t ? Math.round(s / t * 100) + '%' : '-'; }
+    statMini(passContainer, '패스 시도수', fmt(overall.passTryTotal), '표본 전체 합계');
+    statMini(passContainer, '패스 성공수', fmt(overall.passSuccessTotal), '표본 전체 합계');
+    statMini(passContainer, '패스 성공률', passRateOf(overall.passTryTotal, overall.passSuccessTotal), '표본 전체 기준');
+    statMini(passContainer, '숏패스 시도수', fmt(overall.shortPassTryTotal), '표본 전체 합계');
+    statMini(passContainer, '숏패스 성공수', fmt(overall.shortPassSuccessTotal), '표본 전체 합계');
+    statMini(passContainer, '숏패스 성공률', passRateOf(overall.shortPassTryTotal, overall.shortPassSuccessTotal), '표본 전체 기준');
+    statMini(passContainer, '롱패스 시도수', fmt(overall.longPassTryTotal), '표본 전체 합계');
+    statMini(passContainer, '롱패스 성공수', fmt(overall.longPassSuccessTotal), '표본 전체 합계');
+    statMini(passContainer, '롱패스 성공률', passRateOf(overall.longPassTryTotal, overall.longPassSuccessTotal), '표본 전체 기준');
 
     // ---- 경기별 추이 라인차트 (최근 몇 경기가 아니라 표본 전체, 과거->최신 순) ----
     // API는 최신순으로 내려주므로 왼쪽(과거)->오른쪽(최신)이 되도록 뒤집는다.
@@ -2654,26 +2724,16 @@
       return labels;
     }
 
-    // 매치별 xG값 — shot-heatmap 포인트를 matchId로 묶어서 계산한다.
-    var xgByMatch = groupExpectedGoalsByMatch(points);
+    // 득점/실점 추이 — xG값 라인은 뺐다(요청). 실점은 이제 xG 복원 가능 여부와 무관하게(goalsAgainst는
+    // 상대 추적 여부와 상관없이 항상 있는 값) 표본 전체 경기를 그대로 보여준다.
     lineChart(attackChart, [
-      { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) },
-      { label: 'xG값', color: 'var(--series-2)', values: chronological.map(function (m) { return round1(xgByMatch[m.matchId] || 0); }) }
-    ], { labels: matchIndexLabels(chronological.length), unit: '골', yMin: 0, ariaLabel: '경기별 득점 대 xG값 추이' });
+      { label: '득점', color: 'var(--series-1)', values: chronological.map(function (m) { return m.goalsFor; }) }
+    ], { labels: matchIndexLabels(chronological.length), unit: '골', yMin: 0, ariaLabel: '경기별 득점 추이' });
 
-    // "실점" 라인은 상대도 추적 대상이라 xG값을 복원할 수 있는 경기만 골라 같은 x축에 맞춘다
-    // (그래야 실점 선과 실점 xG값 선이 같은 경기끼리 비교된다).
-    var concededXgByMatch = groupExpectedGoalsByMatch(concededPoints);
-    var concededMatchIds = {};
-    concededPoints.forEach(function (p) { concededMatchIds[p.matchId] = true; });
-    var defenseMatches = chronological.filter(function (m) { return concededMatchIds[m.matchId]; });
-    document.getElementById('defense-trend-caption').textContent = defenseMatches.length
-      ? '상대도 추적 대상인 ' + defenseMatches.length + '경기만 표시'
-      : '표시할 경기가 없습니다.';
+    document.getElementById('defense-trend-caption').textContent = '표본 전체 ' + chronological.length + '경기';
     lineChart(defenseChart, [
-      { label: '실점', color: 'var(--series-2)', values: defenseMatches.map(function (m) { return m.goalsAgainst; }) },
-      { label: '실점 xG값', color: 'var(--series-3)', values: defenseMatches.map(function (m) { return round1(concededXgByMatch[m.matchId] || 0); }) }
-    ], { labels: matchIndexLabels(defenseMatches.length), unit: '골', yMin: 0, ariaLabel: '경기별 실점 대 실점 xG값 추이' });
+      { label: '실점', color: 'var(--series-2)', values: chronological.map(function (m) { return m.goalsAgainst; }) }
+    ], { labels: matchIndexLabels(chronological.length), unit: '골', yMin: 0, ariaLabel: '경기별 실점 추이' });
 
     // 경기별 패스 시도 vs 성공 추이 — "최근 경기" 목록이 이미 매치당 passTry/passSuccess를 갖고 있다.
     lineChart(passChart, [
@@ -2912,7 +2972,7 @@
     d.concededHeatmap.points.forEach(function (p) { concededMatchIdSet[p.matchId] = true; });
     var concededSampleGames = Object.keys(concededMatchIdSet).length;
 
-    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches, d.allPlayers);
+    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches);
     renderBiorhythm(overall, d.matches, d.heatmap.points, totalGames);
 
     // heatmap (전체 슈팅 + xG값) — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은

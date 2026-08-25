@@ -43,15 +43,15 @@ class MatchDetailTopPlayersVsOpponentTest {
         entityManager.persist(matchVsC);
 
         MatchDetail detailVsB = MatchDetail.of(matchVsB, "A", "B", "상대B", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         MatchDetail detailVsC = MatchDetail.of(matchVsC, "A", "C", "상대C", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         // B전: sp-1이 2골, C전: sp-1이 5골 — opponentOuid="B"로 필터링하면 2골만 나와야 한다.
         detailVsB.addSquadEntry(SquadEntry.of(detailVsB, "sp-1", 1,
-                2, 0, 0, 0, 0, 0, 3, 2, 10, 8, 0, 0, 0, 0, 7.5));
+                2, 0, 0, 0, 0, 0, 3, 2, 10, 8, 0, 0, 0, 0, 0, 7.5));
         detailVsC.addSquadEntry(SquadEntry.of(detailVsC, "sp-1", 1,
-                5, 0, 0, 0, 0, 0, 6, 5, 12, 10, 0, 0, 0, 0, 8.5));
+                5, 0, 0, 0, 0, 0, 6, 5, 12, 10, 0, 0, 0, 0, 0, 8.5));
 
         matchDetailRepository.save(detailVsB);
         matchDetailRepository.save(detailVsC);

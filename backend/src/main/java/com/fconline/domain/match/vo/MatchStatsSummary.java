@@ -8,7 +8,17 @@ package com.fconline.domain.match.vo;
 public record MatchStatsSummary(double averageRating, double averagePossession,
                                  long foulTotal, long yellowCards, long redCards,
                                  long cleanSheets, long multiConcededGames,
-                                 long highPossessionGames, long lowPossessionGames) {
+                                 long highPossessionGames, long lowPossessionGames,
+                                 /** "더티 플레이" 성향(플레이 성향 카드)용 — 표본 전체 합산. */
+                                 long systemPauseTotal,
+                                 /** "패스 성향" 카드용 — 표본 전체 합산(전체/숏/롱 패스). */
+                                 long passTryTotal, long passSuccessTotal,
+                                 long shortPassTryTotal, long shortPassSuccessTotal,
+                                 long longPassTryTotal, long longPassSuccessTotal,
+                                 /** "수비 성향" 카드용 — 표본 전체 합산(태클/블락). */
+                                 long tackleTryTotal, long tackleSuccessTotal,
+                                 long blockTryTotal, long blockSuccessTotal) {
 
-    public static final MatchStatsSummary EMPTY = new MatchStatsSummary(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public static final MatchStatsSummary EMPTY =
+            new MatchStatsSummary(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

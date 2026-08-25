@@ -104,7 +104,13 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         Tuple result = queryFactory
                 .select(md.stats.averageRating.avg(), md.stats.possession.avg(),
                         md.stats.foul.sumAggregate(), md.stats.yellowCards.sumAggregate(), md.stats.redCards.sumAggregate(),
-                        cleanSheetCount, multiConcededCount, highPossessionCount, lowPossessionCount)
+                        cleanSheetCount, multiConcededCount, highPossessionCount, lowPossessionCount,
+                        md.stats.systemPause.sumAggregate(),
+                        md.stats.passTry.sumAggregate(), md.stats.passSuccess.sumAggregate(),
+                        md.stats.shortPassTry.sumAggregate(), md.stats.shortPassSuccess.sumAggregate(),
+                        md.stats.longPassTry.sumAggregate(), md.stats.longPassSuccess.sumAggregate(),
+                        md.stats.tackleTry.sumAggregate(), md.stats.tackleSuccess.sumAggregate(),
+                        md.stats.blockTry.sumAggregate(), md.stats.blockSuccess.sumAggregate())
                 .from(md)
                 .join(md.match, m)
                 .where(baseWhere(md, m, ouid, matchType, from, to))
@@ -126,7 +132,18 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 nz(result.get(cleanSheetCount)),
                 nz(result.get(multiConcededCount)),
                 nz(result.get(highPossessionCount)),
-                nz(result.get(lowPossessionCount))
+                nz(result.get(lowPossessionCount)),
+                nz(result.get(md.stats.systemPause.sumAggregate())),
+                nz(result.get(md.stats.passTry.sumAggregate())),
+                nz(result.get(md.stats.passSuccess.sumAggregate())),
+                nz(result.get(md.stats.shortPassTry.sumAggregate())),
+                nz(result.get(md.stats.shortPassSuccess.sumAggregate())),
+                nz(result.get(md.stats.longPassTry.sumAggregate())),
+                nz(result.get(md.stats.longPassSuccess.sumAggregate())),
+                nz(result.get(md.stats.tackleTry.sumAggregate())),
+                nz(result.get(md.stats.tackleSuccess.sumAggregate())),
+                nz(result.get(md.stats.blockTry.sumAggregate())),
+                nz(result.get(md.stats.blockSuccess.sumAggregate()))
         );
     }
 
@@ -148,7 +165,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                         se.tackle.sumAggregate(), se.intercept.sumAggregate(), se.block.sumAggregate(),
                         se.shootTotal.sumAggregate(), se.effectiveShoot.sumAggregate(),
                         se.passTry.sumAggregate(), se.passSuccess.sumAggregate(),
-                        se.dribbleTry.sumAggregate(), se.dribbleSuccess.sumAggregate(),
+                        se.dribbleTry.sumAggregate(), se.dribbleSuccess.sumAggregate(), se.dribbleDistance.sumAggregate(),
                         se.aerialTry.sumAggregate(), se.aerialSuccess.sumAggregate(),
                         se.rating.avg())
                 .from(se)
@@ -173,13 +190,14 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                     int passSuccess = nz(row.get(se.passSuccess.sumAggregate()));
                     int dribbleTry = nz(row.get(se.dribbleTry.sumAggregate()));
                     int dribbleSuccess = nz(row.get(se.dribbleSuccess.sumAggregate()));
+                    int dribbleDistance = nz(row.get(se.dribbleDistance.sumAggregate()));
                     int aerialTry = nz(row.get(se.aerialTry.sumAggregate()));
                     int aerialSuccess = nz(row.get(se.aerialSuccess.sumAggregate()));
                     Double avgRating = row.get(se.rating.avg());
                     double score = (goals * 3.0) + (assists * 2.0) + (tackles + intercepts + blocks + saves) * 0.5;
                     return new TopPlayerStat(row.get(se.spId), appearances, goals, assists, saves, tackles,
                             intercepts, blocks, shootTotal, effectiveShoot, passTry, passSuccess,
-                            dribbleTry, dribbleSuccess, aerialTry, aerialSuccess, avgRating, score);
+                            dribbleTry, dribbleSuccess, dribbleDistance, aerialTry, aerialSuccess, avgRating, score);
                 })
                 .sorted(Comparator.comparingDouble(TopPlayerStat::contributionScore).reversed())
                 .limit(limit)
@@ -487,7 +505,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
-                .where(opponentWhere.and(se.x.isNotNull()).and(se.y.isNotNull()))
+                .where(opponentWhere.and(opp.stats.matchEndType.eq(0)).and(se.x.isNotNull()).and(se.y.isNotNull()))
                 .fetch().stream()
                 .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
                         row.get(oppMatch.matchId)))
@@ -536,7 +554,8 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
-                .where(opponentWhere.and(se.result.eq(ShootResult.GOAL)).and(se.goalTimeMinutes.isNotNull()))
+                .where(opponentWhere.and(opp.stats.matchEndType.eq(0))
+                        .and(se.result.eq(ShootResult.GOAL)).and(se.goalTimeMinutes.isNotNull()))
                 .fetch().stream()
                 .map(row -> new GoalTimeRaw(row.get(se.goalTimeMinutes), row.get(se.period)))
                 .toList();
@@ -733,6 +752,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .where(opp.ouid.eq(opponentOuid)
                         .and(oppMatch.matchType.eq(matchType))
                         .and(oppMatch.matchId.in(matchIds))
+                        .and(opp.stats.matchEndType.eq(0))
                         .and(oppSe.result.eq(ShootResult.GOAL)))
                 .fetch().stream()
                 .map(row -> new MatchGoalEvent(row.get(oppMatch.matchId), row.get(oppSe.goalTimeMinutes),
@@ -740,12 +760,18 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .toList();
     }
 
-    /** from은 포함(>=), to는 배제(<) — Season.endInstantExclusiveOrNull()과 짝을 이루는 규약. */
+    /**
+     * from은 포함(>=), to는 배제(<) — Season.endInstantExclusiveOrNull()과 짝을 이루는 규약.
+     * matchEndType=0(정상 종료)만 쓴다는 요청에 따라 여기서 전부 걸러낸다 — 거의 모든 집계
+     * 메서드가 이 메서드를 거치므로 이 한 곳만 고치면 대부분 다 반영된다(V12 마이그레이션 주석의
+     * 한계: raw_participant가 없는 예전 경기는 match_end_type이 NULL이라 여기서 자연히 빠진다).
+     */
     private BooleanBuilder baseWhere(QMatchDetail md, QMatch m, String ouid, MatchType matchType,
                                       Instant from, Instant to) {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(md.ouid.eq(ouid));
         builder.and(m.matchType.eq(matchType));
+        builder.and(md.stats.matchEndType.eq(0));
         if (from != null) {
             builder.and(m.matchDate.goe(from));
         }

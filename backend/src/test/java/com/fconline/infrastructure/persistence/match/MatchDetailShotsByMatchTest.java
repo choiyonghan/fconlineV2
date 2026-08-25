@@ -45,12 +45,12 @@ class MatchDetailShotsByMatchTest {
         entityManager.persist(otherMatch);
 
         MatchDetail target = MatchDetail.of(targetMatch, "A", "B", "상대", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         MatchDetail other = MatchDetail.of(otherMatch, "A", "B", "상대", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         // 미끼 — 같은 매치라도 "상대 자신의" 참가자 행(ouid=B)은 섞이면 안 된다.
         MatchDetail opponentsOwnRow = MatchDetail.of(targetMatch, "B", "A", "나", MatchResult.LOSE,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         target.addShootEvent(ShootEvent.of(target, ShootType.FINESSE, ShootResult.GOAL,
                 23, 1, "sp-scorer", 7, null, false, 0.8, 0.5, true, "sp-assister", 0.6, 0.4, false, true));

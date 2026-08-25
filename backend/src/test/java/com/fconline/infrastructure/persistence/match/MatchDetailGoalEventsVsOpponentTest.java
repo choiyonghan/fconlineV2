@@ -43,9 +43,9 @@ class MatchDetailGoalEventsVsOpponentTest {
         entityManager.persist(match);
 
         MatchDetail mine = MatchDetail.of(match, "A", "B", "상대", MatchResult.LOSE,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         MatchDetail opponentsOwnRow = MatchDetail.of(match, "B", "A", "나", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         // 내 골: 후반(2) 10분 = 절대 55분
         mine.addShootEvent(ShootEvent.of(mine, ShootType.FINESSE, ShootResult.GOAL,

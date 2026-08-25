@@ -46,8 +46,8 @@ class MatchDetailRecentMatchesTest {
         entityManager.persist(match1);
         entityManager.persist(match2);
 
-        MatchStats stats1 = MatchStats.builder().goalsFor(2).goalsAgainst(1).averageRating(7.5).possession(55).build();
-        MatchStats stats2 = MatchStats.builder().goalsFor(3).goalsAgainst(0).averageRating(8.2).possession(60).build();
+        MatchStats stats1 = MatchStats.builder().goalsFor(2).goalsAgainst(1).averageRating(7.5).possession(55).matchEndType(0).build();
+        MatchStats stats2 = MatchStats.builder().goalsFor(3).goalsAgainst(0).averageRating(8.2).possession(60).matchEndType(0).build();
 
         MatchDetail detail1 = MatchDetail.of(match1, "A", "B", "상대1", MatchResult.WIN, stats1,
                 "{\"raw\":\"shoot-detail-blob\"}", "{\"raw\":\"player-squad-blob\"}", "{\"raw\":\"participant-blob\"}");

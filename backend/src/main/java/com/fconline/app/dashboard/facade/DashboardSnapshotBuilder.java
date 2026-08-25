@@ -139,8 +139,10 @@ public class DashboardSnapshotBuilder {
         List<AssistChainResponse> chains = recordFacade.getAssistChains(ouid, matchType, seasonId, ASSIST_CHAIN_LIMIT);
         List<TopPlayerResponse> players = recordFacade.getAllPlayers(ouid, matchType, seasonId);
         int totalShotsOnTarget = players.stream().mapToInt(TopPlayerResponse::effectiveShoot).sum();
-        int totalPassTry = players.stream().mapToInt(TopPlayerResponse::passTry).sum();
-        int totalPassSuccess = players.stream().mapToInt(TopPlayerResponse::passSuccess).sum();
+        // 선수단 합산 대신 overall(MatchStats 기반, 매치당 팀 합계) 값을 쓴다 — report.js
+        // 개인 리포트 페이지의 패스 성향 카드와 같은 소스로 맞춘 것(이전엔 여기만 선수 합산이었다).
+        int totalPassTry = (int) overall.passTryTotal();
+        int totalPassSuccess = (int) overall.passSuccessTotal();
 
         return new DashboardScopeSummary(
                 games, overall.tally().win(), overall.tally().draw(), overall.tally().lose(),

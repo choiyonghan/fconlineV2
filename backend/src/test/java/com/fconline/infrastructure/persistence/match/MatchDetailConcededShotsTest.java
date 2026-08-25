@@ -45,9 +45,9 @@ class MatchDetailConcededShotsTest {
         entityManager.persist(match);
 
         MatchDetail mine = MatchDetail.of(match, "A", "B", "비상대", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
         MatchDetail opponentsOwnRow = MatchDetail.of(match, "B", "A", "나", MatchResult.LOSE,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         ShootEvent shotAgainstMe = ShootEvent.of(opponentsOwnRow, ShootType.FINESSE, ShootResult.GOAL,
                 20, 1, "sp-1", null, null, null, 0.9, 0.5, false, null, null, null, null, true);
@@ -57,7 +57,7 @@ class MatchDetailConcededShotsTest {
         Match otherMatch = Match.of("match-2", matchDate, MatchType.CUSTOM);
         entityManager.persist(otherMatch);
         MatchDetail vsUntracked = MatchDetail.of(otherMatch, "A", "C", "비추적유저", MatchResult.WIN,
-                MatchStats.builder().build(), null, null, null);
+                MatchStats.builder().matchEndType(0).build(), null, null, null);
 
         matchDetailRepository.save(mine);
         matchDetailRepository.save(opponentsOwnRow);
