@@ -31,6 +31,8 @@ public record DashboardScopeSummary(
         int totalGoalsAgainst,
         int totalShots,
         int totalShotsOnTarget,
+        int totalPassTry,
+        int totalPassSuccess,
         double totalXgFor,
         Double totalXgAgainst,
         int cleanSheets,

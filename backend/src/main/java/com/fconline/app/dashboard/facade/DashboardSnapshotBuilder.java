@@ -139,6 +139,8 @@ public class DashboardSnapshotBuilder {
         List<AssistChainResponse> chains = recordFacade.getAssistChains(ouid, matchType, seasonId, ASSIST_CHAIN_LIMIT);
         List<TopPlayerResponse> players = recordFacade.getAllPlayers(ouid, matchType, seasonId);
         int totalShotsOnTarget = players.stream().mapToInt(TopPlayerResponse::effectiveShoot).sum();
+        int totalPassTry = players.stream().mapToInt(TopPlayerResponse::passTry).sum();
+        int totalPassSuccess = players.stream().mapToInt(TopPlayerResponse::passSuccess).sum();
 
         return new DashboardScopeSummary(
                 games, overall.tally().win(), overall.tally().draw(), overall.tally().lose(),
@@ -150,7 +152,7 @@ public class DashboardSnapshotBuilder {
                 concededSampleGames == 0 ? null : expectedGoalsAgainst / concededSampleGames,
                 concededSampleGames,
                 (int) overall.tally().goalsFor(), (int) overall.tally().goalsAgainst(),
-                points.size(), totalShotsOnTarget, expectedGoalsFor,
+                points.size(), totalShotsOnTarget, totalPassTry, totalPassSuccess, expectedGoalsFor,
                 concededSampleGames == 0 ? null : expectedGoalsAgainst,
                 (int) overall.cleanSheets(), pct(overall.cleanSheets(), games),
                 (int) overall.multiConcededGames(), pct(overall.multiConcededGames(), games),

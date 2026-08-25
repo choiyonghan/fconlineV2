@@ -724,7 +724,7 @@
   @media (max-width: 640px) {
     .modal-top-row { flex-direction: column; gap: 14px; }
   }
-  .modal-top-row .modal-timeline-section { margin-top: 0; }
+  .modal-top-row > .modal-shots-section { margin-top: 0; }
 
   /* ⚖️ 상대 팀 비교 — 나=파랑(--series-1), 상대=빨강(--status-critical). 값이 큰 쪽 색이 더 넓게 채워진다. */
   .compare-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
@@ -733,8 +733,8 @@
   }
   .compare-row-bar { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
   .compare-value {
-    flex: 0 0 44px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px;
-    color: var(--text-primary);
+    flex: 0 0 auto; min-width: 44px; font-variant-numeric: tabular-nums; font-weight: 600; font-size: 13px;
+    color: var(--text-primary); white-space: nowrap;
   }
   .compare-value-mine { text-align: right; }
   .compare-value-opp { text-align: left; }
