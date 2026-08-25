@@ -47,24 +47,26 @@
   <div id="user-report-content">
   <section class="tiles" id="tiles" aria-label="종합 스탯"></section>
 
-  <div class="card" style="margin-bottom:14px;">
-    <p class="card-title">🤖 AI에게 물어보기</p>
-    <p class="card-caption">지금 선택한 유저·매치타입·시즌 기준으로 데이터를 근거로 답해드려요.</p>
-    <form class="ai-ask-row" id="ai-ask-form">
-      <textarea id="ai-question" class="ai-question-input" maxlength="500" rows="2"
-        placeholder="예: 최근 폼이 어때? 어떤 상대를 조심해야 해?"></textarea>
-      <button type="submit" class="ai-ask-btn" id="ai-ask-btn">질문하기</button>
-    </form>
-    <div class="ai-answer-box" id="ai-answer-box" hidden>
-      <div class="ai-answer-text" id="ai-answer-text"></div>
+  <div class="grid-2" style="margin-bottom:14px;">
+    <div class="card">
+      <p class="card-title">🤖 AI에게 물어보기</p>
+      <p class="card-caption">지금 선택한 유저·매치타입·시즌 기준으로 데이터를 근거로 답해드려요.</p>
+      <form class="ai-ask-row" id="ai-ask-form">
+        <textarea id="ai-question" class="ai-question-input" maxlength="500" rows="2"
+          placeholder="예: 최근 폼이 어때? 어떤 상대를 조심해야 해?"></textarea>
+        <button type="submit" class="ai-ask-btn" id="ai-ask-btn">질문하기</button>
+      </form>
+      <div class="ai-answer-box" id="ai-answer-box" hidden>
+        <div class="ai-answer-text" id="ai-answer-text"></div>
+      </div>
     </div>
-  </div>
 
-  <div class="card" style="margin-bottom:14px;">
-    <p class="card-title">🌊 바이오리듬</p>
-    <p class="card-caption" id="biorhythm-caption"></p>
-    <div class="stat-mini-grid" id="biorhythm-summary"></div>
-    <div id="chart-biorhythm"></div>
+    <div class="card">
+      <p class="card-title">🌊 바이오리듬</p>
+      <p class="card-caption" id="biorhythm-caption"></p>
+      <div class="stat-mini-grid" id="biorhythm-summary"></div>
+      <div id="chart-biorhythm"></div>
+    </div>
   </div>
 
   <div class="grid-2">

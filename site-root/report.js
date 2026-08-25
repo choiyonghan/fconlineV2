@@ -1371,26 +1371,25 @@
       return box;
     }
 
-    if (matchResult !== '승' && matchResult !== '패') {
-      var overall = bestWorstOf(candidates);
-      if (!overall) return;
-      container.appendChild(card('🏆', 'Man of the Match', overall.best, true));
-      if (overall.worst !== overall.best) container.appendChild(card('🥶', 'Worst Player', overall.worst, false));
-      return;
-    }
+    // 항상 "팀 A vs 팀 B" 2x2를 시도한다(요청) — 승/패 경기는 승리팀/패배팀으로, 무승부는
+    // 이길팀/질팀이 없으니 내 팀/상대 팀으로 나눈다. 상대가 추적 대상이 아니면 상대 쪽 데이터
+    // 자체가 없어서(oppSquad가 빈 배열) 이 경우엔 어쩔 수 없이 내 팀 카드 2장만 나온다 —
+    // 레이아웃 문제가 아니라 상대 스쿼드를 복원할 방법이 없는 데이터 한계다.
+    var groupA, groupB, labelA, labelB;
+    if (matchResult === '승') { groupA = 'mine'; groupB = 'opponent'; labelA = '승리팀'; labelB = '패배팀'; }
+    else if (matchResult === '패') { groupA = 'opponent'; groupB = 'mine'; labelA = '승리팀'; labelB = '패배팀'; }
+    else { groupA = 'mine'; groupB = 'opponent'; labelA = '내 팀'; labelB = '상대 팀'; }
 
-    var winningTeam = matchResult === '승' ? 'mine' : 'opponent';
-    var losingTeam = matchResult === '승' ? 'opponent' : 'mine';
-    var winBW = bestWorstOf(candidates.filter(function (s) { return s.team === winningTeam; }));
-    var loseBW = bestWorstOf(candidates.filter(function (s) { return s.team === losingTeam; }));
+    var bwA = bestWorstOf(candidates.filter(function (s) { return s.team === groupA; }));
+    var bwB = bestWorstOf(candidates.filter(function (s) { return s.team === groupB; }));
 
-    if (winBW) {
-      container.appendChild(card('🏆', '승리팀 베스트', winBW.best, true));
-      if (winBW.worst !== winBW.best) container.appendChild(card('😓', '승리팀 워스트', winBW.worst, false));
+    if (bwA) {
+      container.appendChild(card('🏆', labelA + ' 베스트', bwA.best, true));
+      if (bwA.worst !== bwA.best) container.appendChild(card('😓', labelA + ' 워스트', bwA.worst, false));
     }
-    if (loseBW) {
-      container.appendChild(card('💪', '패배팀 베스트', loseBW.best, true));
-      if (loseBW.worst !== loseBW.best) container.appendChild(card('🥶', '패배팀 워스트', loseBW.worst, false));
+    if (bwB) {
+      container.appendChild(card('💪', labelB + ' 베스트', bwB.best, true));
+      if (bwB.worst !== bwB.best) container.appendChild(card('🥶', labelB + ' 워스트', bwB.worst, false));
     }
   }
 
@@ -2610,8 +2609,12 @@
   }
 
   // ---------------- 플레이 성향 ----------------
-  /** tooltip은 문자열(1줄) 또는 문자열 배열(여러 줄) — 있으면 hover/focus 시 showTip으로 보여준다. */
-  function statMini(container, label, value, sub, tooltip) {
+  /**
+   * tooltip은 문자열(1줄) 또는 문자열 배열(여러 줄) — 있으면 hover/focus 시 showTip으로 보여준다.
+   * onClick을 주면 박스 자체도 버튼처럼 클릭/엔터 가능해진다(바이오리듬 스탯 박스를 눌러도
+   * 그래프의 해당 축이 활성화되도록 하는 용도 — 그동안 아래 범례만 눌러야 했던 것 개선).
+   */
+  function statMini(container, label, value, sub, tooltip, onClick) {
     var box = el('div', 'stat-mini');
     box.appendChild(el('p', 'stat-mini-label', label));
     box.appendChild(el('div', 'stat-mini-value', value));
@@ -2627,7 +2630,17 @@
       box.addEventListener('focus', showFn);
       box.addEventListener('blur', hideTip);
     }
+    if (onClick) {
+      box.classList.add('stat-mini-clickable');
+      box.tabIndex = 0;
+      box.setAttribute('role', 'button');
+      box.addEventListener('click', onClick);
+      box.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+      });
+    }
     container.appendChild(box);
+    return box;
   }
 
   /**
@@ -2715,23 +2728,25 @@
     var onTarget = points.filter(function (p) { return p.result !== 'OFF_TARGET'; }).length;
     var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
 
-    statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점');
-    statMini(attackContainer, '평균 득점 xG값', fmt1(expectedGoals / totalGames), '경기당 기대 득점');
+    // 서브텍스트에 총 수량을 작은 글씨로 같이 보여준다(요청) — 패스 성향 탭과 같은 방식.
+    statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점 · 총 ' + fmt(overall.tally.goalsFor) + '골');
+    statMini(attackContainer, '평균 득점 xG값', fmt1(expectedGoals / totalGames), '경기당 기대 득점 · 총 ' + fmt1(expectedGoals) + '골');
     statMini(attackContainer, '결정력',
       (actualGoals - expectedGoals >= 0 ? '+' : '') + fmt1(actualGoals - expectedGoals),
       '실제 득점 − xG값 (양수면 기대 이상)');
-    statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%', '유효슛 비율');
+    statMini(attackContainer, '슈팅 정확도', shotAccuracy == null ? '-' : Math.round(shotAccuracy) + '%',
+      '유효슛 비율 · 총 ' + fmt(points.length) + '슈팅');
     statMini(attackContainer, '평균 평점', fmt1(overall.averageRating), '팀 스쿼드 평균');
-    statMini(attackContainer, '경기당 슈팅', fmt1(points.length / totalGames), '표본 전체 평균');
+    statMini(attackContainer, '경기당 슈팅', fmt1(points.length / totalGames), '표본 전체 평균 · 총 ' + fmt(points.length) + '슈팅');
 
     // 수비 성향 — "평균 실점 xG값"/"상대 결정력"은 상대도 추적 대상 유저인 매치만 반영된다.
     // 상대 결정력은 평균 실점 xG값 바로 다음에 나오도록 순서 조정(요청).
     var concededExpectedGoals = expectedGoalsOf(concededPoints);
     var concededActualGoals = concededPoints.filter(function (p) { return p.goal; }).length;
-    statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점');
+    statMini(defenseContainer, '평균 실점', fmt1(overall.tally.goalsAgainst / totalGames), '경기당 실제 실점 · 총 ' + fmt(overall.tally.goalsAgainst) + '골');
     statMini(defenseContainer, '평균 실점 xG값',
       concededSampleGames ? fmt1(concededExpectedGoals / concededSampleGames) : '-',
-      concededSampleGames ? concededSampleGames + '경기' : '데이터 없음');
+      concededSampleGames ? concededSampleGames + '경기 표본 · 총 ' + fmt1(concededExpectedGoals) + '골' : '데이터 없음');
     statMini(defenseContainer, '상대 결정력',
       concededSampleGames
         ? (concededActualGoals - concededExpectedGoals >= 0 ? '+' : '') + fmt1(concededActualGoals - concededExpectedGoals)
@@ -2897,15 +2912,30 @@
       return labels;
     }
 
-    statMini(summary, '🏃 피지컬', latestPhysical + '점', '평점 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['피지컬']);
-    statMini(summary, '🧠 멘탈', latestMental + '점', '승무패 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['멘탈']);
-    statMini(summary, '🎯 지능', latestIntellect + '점', '결정력(득점−xG값) 흐름 · 시즌 내 상대적 위치', BIORHYTHM_TOOLTIPS['지능']);
-    statMini(summary, '🌊 종합 컨디션', overallScore + '점', biorhythmMoodLabel(overallScore), BIORHYTHM_TOOLTIPS['종합']);
+    // 차트는 "클릭한 축 하나만 활성화, 나머지는 흐리게" 방식(요청) — 기본은 피지컬, 스탯 박스
+    // 자체를 눌러도(아래 범례뿐 아니라) 활성화되게 한다. "종합"을 누르면 특정 축 없이 전체를
+    // 고르게 보여준다(activeLabel=null). biorhythmActiveAxis는 모듈 전역이라 유저/시즌을
+    // 바꿔도 선택이 유지된다.
+    function setActiveAxis(label) { biorhythmActiveAxis = label; drawBiorhythmChart(); }
 
-    // 차트는 "클릭한 축 하나만 활성화, 나머지는 흐리게" 방식(요청) — 기본은 피지컬.
-    // biorhythmActiveAxis는 모듈 전역이라 유저/시즌을 바꿔도 선택이 유지된다.
+    var physicalBox = statMini(summary, '🏃 피지컬', latestPhysical + '점', '평점 흐름 · 시즌 내 상대적 위치',
+      BIORHYTHM_TOOLTIPS['피지컬'], function () { setActiveAxis('피지컬'); });
+    var mentalBox = statMini(summary, '🧠 멘탈', latestMental + '점', '승무패 흐름 · 시즌 내 상대적 위치',
+      BIORHYTHM_TOOLTIPS['멘탈'], function () { setActiveAxis('멘탈'); });
+    var intellectBox = statMini(summary, '🎯 지능', latestIntellect + '점', '결정력(득점−xG값) 흐름 · 시즌 내 상대적 위치',
+      BIORHYTHM_TOOLTIPS['지능'], function () { setActiveAxis('지능'); });
+    var overallBox = statMini(summary, '🌊 종합 컨디션', overallScore + '점', biorhythmMoodLabel(overallScore),
+      BIORHYTHM_TOOLTIPS['종합'], function () { setActiveAxis(null); });
+    var axisBoxes = { '피지컬': physicalBox, '멘탈': mentalBox, '지능': intellectBox };
+    var axisColors = { '피지컬': 'var(--series-1)', '멘탈': 'var(--series-2)', '지능': 'var(--series-3)' };
+    Object.keys(axisBoxes).forEach(function (key) { axisBoxes[key].style.setProperty('--stat-active-color', axisColors[key]); });
+
     var labels = matchIndexLabels(chronological.length);
     function drawBiorhythmChart() {
+      Object.keys(axisBoxes).forEach(function (key) {
+        axisBoxes[key].classList.toggle('stat-mini-active', key === biorhythmActiveAxis);
+      });
+      overallBox.classList.toggle('stat-mini-active', biorhythmActiveAxis == null);
       lineChart(chart, [
         { label: '피지컬', color: 'var(--series-1)', values: physical },
         { label: '멘탈', color: 'var(--series-2)', values: mental },
@@ -2915,7 +2945,7 @@
         ariaLabel: '시즌 전체 바이오리듬 추이',
         activeLabel: biorhythmActiveAxis,
         legendTooltips: BIORHYTHM_TOOLTIPS,
-        onLegendClick: function (label) { biorhythmActiveAxis = label; drawBiorhythmChart(); }
+        onLegendClick: setActiveAxis
       });
     }
     drawBiorhythmChart();
