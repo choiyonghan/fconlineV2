@@ -102,6 +102,12 @@ public interface MatchDetailRepositoryCustom {
                                             String opponentOuid);
 
     /**
+     * "실점 시간대 분포"용 — findConcededShotPoints와 같은 원리(상대 본인 관점 shoot_events)로
+     * 전체 상대 합산 실점의 득점 시각만 가져온다. 상대가 추적 대상이 아닌 매치는 조용히 빠진다.
+     */
+    List<GoalTimeRaw> findConcededGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to);
+
+    /**
      * 특정 매치 1건의 슛 이벤트 전체(위치/유형/결과/득점 시각/어시스트 여부) — 매치 상세 모달에서
      * "누가 골, 누가 어시, 어디서 슛했는지"를 보여줄 때 쓴다. matchId+ouid+matchType으로 정확히
      * 한 참가자 시점의 슛 목록만 가져온다(같은 matchId라도 참가자마다 각자의 shoot_events 행이

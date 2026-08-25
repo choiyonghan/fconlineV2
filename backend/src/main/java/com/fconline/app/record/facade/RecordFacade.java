@@ -102,6 +102,10 @@ public class RecordFacade {
                 .goalTimeDistribution(ouid, matchType, from, to).stream()
                 .map(gt -> new GoalTimeBucketResponse(gt.bucketLabel(), gt.count()))
                 .toList();
+        List<GoalTimeBucketResponse> concededGoalTimeDistribution = matchDomainService
+                .concededGoalTimeDistribution(ouid, matchType, from, to).stream()
+                .map(gt -> new GoalTimeBucketResponse(gt.bucketLabel(), gt.count()))
+                .toList();
 
         Map<String, String> playerNames = playerNamesOf(topPlayers);
         Map<String, Double> xgBySpId = xgBySpId(ouid, matchType, from, to, null);
@@ -130,6 +134,7 @@ public class RecordFacade {
                 topPlayerResponses,
                 goalTypeDistribution,
                 goalTimeDistribution,
+                concededGoalTimeDistribution,
                 statsSummary.cleanSheets(),
                 statsSummary.multiConcededGames(),
                 statsSummary.highPossessionGames(),

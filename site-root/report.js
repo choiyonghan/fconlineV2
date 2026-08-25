@@ -889,6 +889,79 @@
   }
 
   /**
+   * verticalBarChart의 대칭(득점/실점 대비) 버전 — 같은 시간대 버킷 축을 위/아래로 공유한다.
+   * upRows(득점, 파란색)는 기준선 위로, downRows(실점, 빨간색)는 기준선 아래로 자란다.
+   * 두 배열은 백엔드에서 같은 버킷 로직(bucketLabelFor)으로 만들어져 라벨 순서가 항상 같다고
+   * 가정한다. 눈으로 크기를 바로 비교할 수 있게 위/아래 막대는 같은 max(공통 최댓값) 기준으로 그린다.
+   */
+  function divergingBarChart(container, upRows, downRows) {
+    container.replaceChildren();
+    var hasUp = upRows.some(function (r) { return r.value > 0; });
+    var hasDown = downRows.some(function (r) { return r.value > 0; });
+    if (!upRows.length || (!hasUp && !hasDown)) {
+      container.appendChild(el('p', 'card-empty', '표시할 득점/실점 데이터가 없습니다.'));
+      return;
+    }
+    var wrap = el('div', 'vbars-diverging');
+    var allValues = upRows.map(function (r) { return r.value; }).concat(downRows.map(function (r) { return r.value; }));
+    var max = Math.max.apply(null, allValues.concat([1]));
+    upRows.forEach(function (r, i) {
+      var d = downRows[i] || { label: r.label, value: 0 };
+      var col = el('div', 'vbar-col-diverging');
+
+      var upBox = el('div', 'vbar-half vbar-half-up');
+      var upValue = el('div', 'vbar-value', r.value > 0 ? fmt(r.value) : '');
+      var upFill = el('div', 'vbar-fill vbar-fill-up');
+      var upH = Math.max((r.value / max) * 72, r.value > 0 ? 4 : 0);
+      upFill.style.height = upH + 'px';
+      upFill.tabIndex = 0;
+      var showUp = function (evt) { showTip(evt, [r.label + '분', r.value + '득점']); };
+      upFill.addEventListener('pointerenter', showUp);
+      upFill.addEventListener('pointermove', moveTip);
+      upFill.addEventListener('pointerleave', hideTip);
+      upFill.addEventListener('focus', showUp);
+      upFill.addEventListener('blur', hideTip);
+      upBox.appendChild(upValue);
+      upBox.appendChild(upFill);
+
+      var downBox = el('div', 'vbar-half vbar-half-down');
+      var downFill = el('div', 'vbar-fill vbar-fill-conceded');
+      var downH = Math.max((d.value / max) * 72, d.value > 0 ? 4 : 0);
+      downFill.style.height = downH + 'px';
+      downFill.tabIndex = 0;
+      var showDown = function (evt) { showTip(evt, [d.label + '분', d.value + '실점']); };
+      downFill.addEventListener('pointerenter', showDown);
+      downFill.addEventListener('pointermove', moveTip);
+      downFill.addEventListener('pointerleave', hideTip);
+      downFill.addEventListener('focus', showDown);
+      downFill.addEventListener('blur', hideTip);
+      var downValue = el('div', 'vbar-value', d.value > 0 ? fmt(d.value) : '');
+      downBox.appendChild(downFill);
+      downBox.appendChild(downValue);
+
+      col.appendChild(upBox);
+      col.appendChild(el('div', 'vbar-label', r.label));
+      col.appendChild(downBox);
+      wrap.appendChild(col);
+    });
+    container.appendChild(wrap);
+    var legend = el('div', 'legend');
+    legend.style.marginTop = '4px';
+    legend.style.justifyContent = 'center';
+    function legendItem(label, color) {
+      var item = el('div', 'legend-item');
+      var sw = el('span', 'legend-swatch');
+      sw.style.background = color;
+      item.appendChild(sw);
+      item.appendChild(document.createTextNode(label));
+      legend.appendChild(item);
+    }
+    legendItem('득점', 'var(--series-1)');
+    legendItem('실점', 'var(--status-critical)');
+    container.appendChild(legend);
+  }
+
+  /**
    * 최근 경기 추이용 꺾은선 그래프. seriesList: [{label, color, values:[...]}] — 전부 같은 길이,
    * opts.labels[i]가 각 포인트의 x축 라벨(날짜 등). 단일/복수 시리즈 둘 다 지원(복수면 범례 표시).
    */
@@ -1437,12 +1510,12 @@
    * 목록을 그대로 적용해달라는 요청에 따른 것이고, 실제 방향과 다를 수 있다.
    */
   var ZONE18_LABELS = [
-    '좌측 수비 측면 구역', '수비 중앙 구역', '우측 수비 측면 구역',
-    '좌측 수비 전개 구역', '후방 미드필더 구역', '우측 중앙선 측면 구역',
-    '좌측 중앙선 측면 구역', '중앙 미드필더 구역', '우측 중앙선 공격 전개 구역',
-    '좌측 공격 하프스페이스 구역', '상대 3선 중앙 구역', '우측 공격 하프스페이스 구역',
-    '좌측 박스 침투 구역', '골든 존', '우측 박스 침투 구역',
-    '좌측 골라인 컷백 구역', '골마우스 (6야드 박스 정면)', '우측 골라인 컷백 구역'
+    '좌측 수비 측면', '수비 중앙', '우측 수비 측면',
+    '좌측 수비 전개', '후방 미드필더', '우측 중앙선 측면',
+    '좌측 중앙선 측면', '중앙 미드필더', '우측 중앙선 공격 전개',
+    '좌측 공격 하프스페이스', '상대 3선 중앙', '우측 공격 하프스페이스',
+    '좌측 박스 침투', '페널티 박스 정면', '우측 박스 침투',
+    '좌측 골라인 컷백', '골키퍼 바로 앞', '우측 골라인 컷백'
   ];
   function zone18(x, y) {
     if (x == null || y == null) return null;
@@ -1667,12 +1740,12 @@
   function cumulativeXgSeries(shots) {
     var points = shots
       .filter(function (p) { return p.x != null && p.y != null; })
-      .map(function (p) { return { minute: absoluteMinuteOf(p.goalTimeMinutes, p.period), xg: calcXg(p.x, p.y) }; })
+      .map(function (p) { return { minute: absoluteMinuteOf(p.goalTimeMinutes, p.period), xg: calcXg(p.x, p.y), goal: !!p.isGoal }; })
       .filter(function (p) { return p.minute != null; })
       .sort(function (a, b) { return a.minute - b.minute; });
-    var series = [{ minute: 0, cum: 0 }];
+    var series = [{ minute: 0, cum: 0, goal: false }];
     var cum = 0;
-    points.forEach(function (p) { cum += p.xg; series.push({ minute: p.minute, cum: cum }); });
+    points.forEach(function (p) { cum += p.xg; series.push({ minute: p.minute, cum: cum, goal: p.goal }); });
     return series;
   }
 
@@ -1760,8 +1833,24 @@
       poly.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(poly);
     }
+    // 골이 터진 지점엔 축구공 이모지 마커를 얹는다 — 계단이 오르는 순간(누적 xG가 그 슛의 xg만큼
+    // 뛴 지점)을 눈으로 바로 짚을 수 있게.
+    function drawGoalMarkers(series) {
+      series.forEach(function (p) {
+        if (!p.goal) return;
+        var mark = document.createElementNS(svgNS, 'text');
+        mark.setAttribute('x', xAt(p.minute));
+        mark.setAttribute('y', yAt(p.cum) - 6);
+        mark.setAttribute('text-anchor', 'middle');
+        mark.setAttribute('font-size', '12');
+        mark.textContent = '⚽';
+        svg.appendChild(mark);
+      });
+    }
     drawSeries(mine, 'var(--series-1)');
     if (opp) drawSeries(opp, 'var(--status-critical)');
+    drawGoalMarkers(mine);
+    if (opp) drawGoalMarkers(opp);
 
     container.appendChild(svg);
 
@@ -2609,6 +2698,92 @@
     ], { labels: matchIndexLabels(chronological.length), unit: '%', yMin: 0, yMax: 100, refLines: [45, 55], ariaLabel: '점유율 추이' });
   }
 
+  var BIORHYTHM_WINDOW = 5; // 이동평균 폭 — 값 자체는 시즌 전체 경기를 다 쓰고, 곡선만 부드럽게 다듬는 용도.
+  var BIORHYTHM_RESULT_POINT = { '승': 3, '무': 1, '패': 0 };
+
+  /** i번째까지의 최근 WINDOW경기 평균(앞부분은 있는 만큼만) — 시즌 시작부터 곡선이 나오게 확장형으로 처리. */
+  function biorhythmRollingAvg(rawValues) {
+    return rawValues.map(function (_, i) {
+      var slice = rawValues.slice(Math.max(0, i - BIORHYTHM_WINDOW + 1), i + 1);
+      var sum = slice.reduce(function (s, v) { return s + v; }, 0);
+      return sum / slice.length;
+    });
+  }
+
+  /** 시즌 표본 안에서의 상대적 위치로 0~100 환산(최저=0, 최고=100) — 재미용 지표라 절대치보다 흐름이 중요하다. */
+  function biorhythmNormalize(values) {
+    var min = Math.min.apply(null, values);
+    var max = Math.max.apply(null, values);
+    if (max === min) return values.map(function () { return 50; });
+    return values.map(function (v) { return Math.round(((v - min) / (max - min)) * 100); });
+  }
+
+  function biorhythmMoodLabel(score) {
+    if (score >= 75) return '🔥 물올랐다';
+    if (score >= 50) return '🙂 평범한 흐름';
+    if (score >= 25) return '😐 살짝 침체기';
+    return '🥶 바닥 찍는 중';
+  }
+
+  /**
+   * "바이오리듬" — 실제 생년월일 기반 유사과학이 아니라, 시즌 전체 경기를 이동평균으로 다듬어
+   * 피지컬(평점)/멘탈(승무패)/지능(결정력=득점−xG값) 3축의 상대적 컨디션 흐름을 보여주는 재미용 지표.
+   * "최근 몇 경기"가 아니라 이번에 조회된 시즌의 전 경기(최대 TREND_SAMPLE_SIZE)를 표본으로 쓴다.
+   */
+  function renderBiorhythm(overall, matches, points, totalGames) {
+    var summary = document.getElementById('biorhythm-summary');
+    var caption = document.getElementById('biorhythm-caption');
+    var chart = document.getElementById('chart-biorhythm');
+    summary.replaceChildren();
+
+    matches = matches || [];
+    if (!totalGames || !matches.length) {
+      caption.textContent = '표시할 경기가 없습니다.';
+      chart.replaceChildren();
+      return;
+    }
+    caption.textContent = '이번 시즌 전체 ' + matches.length + '경기 기준, ' + BIORHYTHM_WINDOW + '경기 이동평균으로 흐름만 부드럽게 봅니다(실제 능력치가 아니라 재미용 지표예요).';
+
+    var chronological = matches.slice().reverse();
+    var xgByMatch = groupExpectedGoalsByMatch(points);
+
+    var physicalRaw = chronological.map(function (m) {
+      return m.averageRating != null ? m.averageRating : (overall.averageRating != null ? overall.averageRating : 0);
+    });
+    var mentalRaw = chronological.map(function (m) {
+      return BIORHYTHM_RESULT_POINT[m.result] != null ? BIORHYTHM_RESULT_POINT[m.result] : 0;
+    });
+    var intellectRaw = chronological.map(function (m) {
+      return m.goalsFor - (xgByMatch[m.matchId] || 0);
+    });
+
+    var physical = biorhythmNormalize(biorhythmRollingAvg(physicalRaw));
+    var mental = biorhythmNormalize(biorhythmRollingAvg(mentalRaw));
+    var intellect = biorhythmNormalize(biorhythmRollingAvg(intellectRaw));
+
+    var latestPhysical = physical[physical.length - 1];
+    var latestMental = mental[mental.length - 1];
+    var latestIntellect = intellect[intellect.length - 1];
+    var overallScore = Math.round((latestPhysical + latestMental + latestIntellect) / 3);
+
+    function matchIndexLabels(n) {
+      var labels = [];
+      for (var i = 1; i <= n; i++) labels.push(String(i));
+      return labels;
+    }
+
+    statMini(summary, '🏃 피지컬', latestPhysical + '점', '평점 흐름 · 시즌 내 상대적 위치');
+    statMini(summary, '🧠 멘탈', latestMental + '점', '승무패 흐름 · 시즌 내 상대적 위치');
+    statMini(summary, '🎯 지능', latestIntellect + '점', '결정력(득점−xG값) 흐름 · 시즌 내 상대적 위치');
+    statMini(summary, '🌊 종합 컨디션', overallScore + '점', biorhythmMoodLabel(overallScore));
+
+    lineChart(chart, [
+      { label: '피지컬', color: 'var(--series-1)', values: physical },
+      { label: '멘탈', color: 'var(--series-2)', values: mental },
+      { label: '지능', color: 'var(--series-3)', values: intellect }
+    ], { labels: matchIndexLabels(chronological.length), unit: '점', yMin: 0, yMax: 100, refLines: [50], ariaLabel: '시즌 전체 바이오리듬 추이' });
+  }
+
   // ---------------- 선택 변경 시 데이터 로딩 ----------------
   var loadSeq = 0;
   function loadSelection() {
@@ -2727,7 +2902,8 @@
 
     // goal time distribution
     var timeRows = overall.goalTimeDistribution.map(function (t) { return { label: t.periodLabel, value: t.count }; });
-    verticalBarChart(document.getElementById('chart-goaltime'), timeRows);
+    var concededTimeRows = (overall.concededGoalTimeDistribution || []).map(function (t) { return { label: t.periodLabel, value: t.count }; });
+    divergingBarChart(document.getElementById('chart-goaltime'), timeRows, concededTimeRows);
 
     // 플레이 성향 (공격/수비 성향 + 점유율 분포)
     // "평균 실점 xG값"의 표본 경기 수 — conceded-shot-heatmap 포인트에 matchId가 있으니
@@ -2737,6 +2913,7 @@
     var concededSampleGames = Object.keys(concededMatchIdSet).length;
 
     renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches, d.allPlayers);
+    renderBiorhythm(overall, d.matches, d.heatmap.points, totalGames);
 
     // heatmap (전체 슈팅 + xG값) — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
     // 180도 반전해서 좌측(내 골대 방향)에 함께 표시한다(매치 상세 모달과 동일한 방식).

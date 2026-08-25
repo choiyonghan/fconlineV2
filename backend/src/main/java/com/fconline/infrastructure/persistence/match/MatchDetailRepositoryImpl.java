@@ -494,6 +494,54 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .toList();
     }
 
+    /**
+     * "실점 시간대 분포"용 — findConcededShotPoints와 완전히 같은 2단계 원리(내 관점 매치들의
+     * (상대 ouid, matchId) 목록 → 상대 자신의 관점 shoot_events에서 골만)를 좌표 대신 득점 시각으로
+     * 좁힌 버전. 전체 상대 합산만 필요해 opponentOuid 파라미터는 두지 않는다(findGoalEventsVsOpponent의
+     * findOpponentGoalsOnly는 상대 1명 전용이라 재사용 불가 — 이 메서드가 그 전체-합산 버전).
+     */
+    @Override
+    public List<GoalTimeRaw> findConcededGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+
+        List<Tuple> myMatches = queryFactory
+                .select(md.opponentOuid, m.matchId)
+                .from(md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to))
+                .fetch();
+        if (myMatches.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Set<String>> matchIdsByOpponent = new HashMap<>();
+        for (Tuple row : myMatches) {
+            matchIdsByOpponent
+                    .computeIfAbsent(row.get(md.opponentOuid), key -> new HashSet<>())
+                    .add(row.get(m.matchId));
+        }
+
+        QMatchDetail opp = new QMatchDetail("concededGoalOpponentDetail");
+        QMatch oppMatch = new QMatch("concededGoalOpponentMatch");
+        QShootEvent se = new QShootEvent("concededGoalShootEvent");
+
+        BooleanBuilder opponentWhere = new BooleanBuilder();
+        for (Map.Entry<String, Set<String>> entry : matchIdsByOpponent.entrySet()) {
+            opponentWhere.or(opp.ouid.eq(entry.getKey()).and(oppMatch.matchId.in(entry.getValue())));
+        }
+
+        return queryFactory
+                .select(se.goalTimeMinutes, se.period)
+                .from(se)
+                .join(se.matchDetail, opp)
+                .join(opp.match, oppMatch)
+                .where(opponentWhere.and(se.result.eq(ShootResult.GOAL)).and(se.goalTimeMinutes.isNotNull()))
+                .fetch().stream()
+                .map(row -> new GoalTimeRaw(row.get(se.goalTimeMinutes), row.get(se.period)))
+                .toList();
+    }
+
     @Override
     public List<MatchShotDetail> findShotsByMatch(String ouid, MatchType matchType, String matchId) {
         QMatchDetail md = QMatchDetail.matchDetail;

@@ -422,6 +422,15 @@
   .vbar-fill { width: 100%; max-width: 30px; border-radius: 4px 4px 0 0; }
   .vbar-label { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; white-space: nowrap; }
 
+  /* diverging vertical bars (goal vs conceded time distribution) */
+  .vbars-diverging { display: flex; align-items: stretch; gap: 6px; padding-top: 4px; }
+  .vbar-col-diverging { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .vbar-half { width: 100%; display: flex; flex-direction: column; align-items: center; height: 92px; }
+  .vbar-half-up { justify-content: flex-end; }
+  .vbar-half-down { justify-content: flex-start; }
+  .vbar-fill-up { background: var(--series-1); }
+  .vbar-fill-conceded { background: var(--status-critical); border-radius: 0 0 4px 4px; }
+
   /* ---------- pitch heatmap ---------- */
   .pitch-wrap { display: flex; justify-content: center; }
   svg.pitch { width: 100%; max-width: 640px; height: auto; }

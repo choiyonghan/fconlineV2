@@ -94,6 +94,27 @@ public class MatchDomainService {
                 .toList();
     }
 
+    /** goalTimeDistribution의 실점판 — findConcededGoalMinutes(전체 상대 합산)로 같은 버킷을 채운다. */
+    public List<GoalTimeCount> concededGoalTimeDistribution(String ouid, MatchType matchType, Instant from, Instant to) {
+        List<GoalTimeRaw> raws = matchDetailRepository.findConcededGoalMinutes(ouid, matchType, from, to);
+
+        Map<String, Long> counts = new LinkedHashMap<>();
+        for (int upper : BUCKET_UPPER_BOUNDS) {
+            counts.put(bucketLabel(upper), 0L);
+        }
+        counts.put(EXTRA_TIME_LABEL, 0L);
+
+        for (GoalTimeRaw raw : raws) {
+            int absoluteMinute = raw.minute() + periodOffset(raw.period());
+            String label = bucketLabelFor(absoluteMinute);
+            counts.merge(label, 1L, Long::sum);
+        }
+
+        return counts.entrySet().stream()
+                .map(e -> new GoalTimeCount(e.getKey(), e.getValue()))
+                .toList();
+    }
+
     private int periodOffset(Integer period) {
         if (period == null || period < 1 || period >= PERIOD_OFFSET_MINUTES.length) {
             return 0;
