@@ -690,11 +690,21 @@
    * data.ranking(ouid+nickname)에서 뽑는다. 스냅샷 자체가 없으면(첫 배치 전 등) 그때만
    * ensureLiveData()로 폴백해 칩을 채운다 — 그래도 첫 화면이 완전히 안 뜨는 것보단 낫다.
    */
+  // "전체" 기본 화면은 백엔드를 거치지 않지만(대시보드 스냅샷만 읽음), 백엔드가 잠들어 있으면
+  // 나중에 실제 유저 칩을 눌렀을 때 콜드 스타트를 그대로 겪는다 — 화면엔 안 보이게 조용히
+  // 한 번 깨워둔다(응답을 기다리지도, 실패해도 아무것도 안 함). /actuator/health는 CORS 허용
+  // 목록(WebConfig의 /api/**)에 없어 브라우저 콘솔에 CORS 에러가 찍혀서, 대신 이미 CORS가
+  // 열려있는 가장 가벼운 API(유저 목록)로 깨운다.
+  function wakeBackendSilently() {
+    fetch(BASE_URL + '/api/v1/users').catch(function () { /* 그냥 깨우기만 하는 용도라 결과 무시 */ });
+  }
+
   function init() {
     state.ouid = ALL_OUID;
     showAllMode(true);
     setStatus(null);
     dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
+    wakeBackendSilently();
 
     fetchDashboardSnapshot().then(function (data) {
       renderDashboardSummary(data);
@@ -1166,7 +1176,7 @@
 
   /**
    * 게이지 바 1행 — 왼쪽=나, 오른쪽=상대(요청: "내가 높으면 A색, 상대가 높으면 B색"). 값이 큰
-   * 쪽 색(--series-1=나/파랑, --series-3=상대/청록)이 그만큼 넓게 채워져서 우세가 한눈에 보인다.
+   * 쪽 색(--series-1=나/파랑, --status-critical=상대/빨강)이 그만큼 넓게 채워져서 우세가 한눈에 보인다.
    * mineVal/oppVal이 undefined면 "계산 중…"(비동기로 나중에 채워질 값, xG값 행 전용),
    * null이면 "-"(데이터 자체가 없음)로 구분한다.
    */
@@ -1223,8 +1233,6 @@
       container.appendChild(el('p', 'card-empty', '상대가 추적 대상이 아니라서 비교할 수 없어요.'));
       return { setXg: function () {} };
     }
-    container.appendChild(el('p', 'card-caption', '왼쪽 = 나, 오른쪽 = 상대. 값이 큰 쪽 색이 더 넓게 채워집니다.'));
-
     var mySaves = mySquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
     var oppSaves = oppSquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
     var myShotAcc = mine.shootTotal > 0 ? (mine.effectiveShoot / mine.shootTotal * 100) : null;
@@ -1488,14 +1496,20 @@
   }
 
   /**
-   * 매치 상세 모달의 "⏱️ 득점 타임라인" / "🎯 슈팅 위치" / "📝 해설" 세 줄 섹션 — 각각
-   * 전체 폭을 차지하는 별도 줄로 위아래로 쌓는다. concededShots가 비어 있으면(상대가 추적
-   * 대상이 아니면) 실점은 조용히 빠지고 내 득점만 나온다.
+   * 매치 상세 모달의 "⏱️ 득점 타임라인"(상단 오른쪽) / "📝 해설" / "🎯 슈팅 위치" / "📈 xG 추이"
+   * (이 순서로 하단에 각각 전체 폭 줄) 네 섹션 — 컨테이너를 따로 받는다(openMatchModal이
+   * 득점 타임라인은 "⚖️ 상대 팀 비교"와 나란히, 나머지 셋은 그 아래 순서대로 배치하기 위함).
+   * concededShots가 비어 있으면(상대가 추적 대상이 아니면) 실점은 조용히 빠지고 내 득점만 나온다.
    */
-  function renderModalShots(container, myShots, concededShots) {
-    container.replaceChildren();
+  function renderModalShots(timelineContainer, commentaryContainer, pitchContainer, xgRaceContainer,
+                             myShots, concededShots) {
+    timelineContainer.replaceChildren();
+    commentaryContainer.replaceChildren();
+    pitchContainer.replaceChildren();
+    xgRaceContainer.replaceChildren();
+
     if (!myShots.length && !concededShots.length) {
-      container.appendChild(el('p', 'card-empty', '기록된 슈팅이 없습니다.'));
+      pitchContainer.appendChild(el('p', 'card-empty', '기록된 슈팅이 없습니다.'));
       return;
     }
 
@@ -1515,46 +1529,34 @@
     });
 
     // 피치를 먼저 만들어 컨트롤러를 얻어둔다 — 득점 타임라인 행을 클릭했을 때 슈팅 위치에서
-    // 그 골만 활성화하기 위함. 세 줄(타임라인/피치/해설)은 항상 이 순서로 위아래에 쌓인다.
+    // 그 골만 활성화하기 위함.
     var pitchWrap = el('div', 'pitch-wrap');
     var pitchController = renderInteractiveMatchPitch(pitchWrap, myShots, concededShots);
 
-    var body = el('div', 'modal-shots-body');
-
-    var timelineCol = el('div', 'modal-shots-col');
     if (timeline.length) {
-      timelineCol.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
-      timelineCol.appendChild(el('p', 'card-caption', '클릭하면 아래 슈팅 위치·해설에서 그 골만 활성화됩니다.'));
+      timelineContainer.appendChild(el('p', 'card-title', '⏱️ 득점 타임라인'));
+      timelineContainer.appendChild(el('p', 'card-caption', '클릭하면 아래 슈팅 위치·해설에서 그 골만 활성화됩니다.'));
       var tl = el('div', 'goal-timeline');
       timeline.forEach(function (g) {
         goalTimelineRow(tl, g, function () { pitchController.selectGoal(g); });
       });
-      timelineCol.appendChild(tl);
+      timelineContainer.appendChild(tl);
     }
-    body.appendChild(timelineCol);
 
-    var pitchCol = el('div', 'modal-shots-col');
-    pitchCol.appendChild(el('p', 'card-title', '🎯 슈팅 위치'));
+    commentaryContainer.appendChild(el('p', 'card-title', '📝 해설'));
+    commentaryContainer.appendChild(pitchController.commentaryEl);
+
+    pitchContainer.appendChild(el('p', 'card-title', '🎯 슈팅 위치'));
     if (concededShots.length) {
-      pitchCol.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
+      pitchContainer.appendChild(el('p', 'card-caption', '좌측: 상대가 쏜 슛(내 골대 방향) · 우측: 내가 쏜 슛(상대 골대 방향)'));
     }
-    pitchCol.appendChild(pitchWrap);
-    body.appendChild(pitchCol);
+    pitchContainer.appendChild(pitchWrap);
 
-    var xgRaceCol = el('div', 'modal-shots-col');
-    xgRaceCol.appendChild(el('p', 'card-title', '📈 xG 추이'));
-    xgRaceCol.appendChild(el('p', 'card-caption', '슛이 나온 시각마다 xG값이 누적됩니다 — 선이 더 가파르게 올라간 쪽이 그 시간대에 우세했다는 뜻이에요.'));
+    xgRaceContainer.appendChild(el('p', 'card-title', '📈 xG 추이'));
+    xgRaceContainer.appendChild(el('p', 'card-caption', '슛이 나온 시각마다 xG값이 누적됩니다 — 선이 더 가파르게 올라간 쪽이 그 시간대에 우세했다는 뜻이에요.'));
     var xgRaceChartEl = el('div', '');
-    xgRaceCol.appendChild(xgRaceChartEl);
-    body.appendChild(xgRaceCol);
+    xgRaceContainer.appendChild(xgRaceChartEl);
     renderXgRaceChart(xgRaceChartEl, myShots, concededShots);
-
-    var commentaryCol = el('div', 'modal-shots-col');
-    commentaryCol.appendChild(el('p', 'card-title', '📝 해설'));
-    commentaryCol.appendChild(pitchController.commentaryEl);
-    body.appendChild(commentaryCol);
-
-    container.appendChild(body);
 
     // 아무것도 안 고르면 해설 칸이 계속 비어 보인다는 피드백 — 기본으로 첫 골(없으면 첫 슛)을 선택해둔다.
     if (timeline.length) pitchController.selectGoal(timeline[0]);
@@ -1659,7 +1661,7 @@
       svg.appendChild(poly);
     }
     drawSeries(mine, 'var(--series-1)');
-    if (opp) drawSeries(opp, 'var(--series-3)');
+    if (opp) drawSeries(opp, 'var(--status-critical)');
 
     container.appendChild(svg);
 
@@ -1675,7 +1677,7 @@
       legend.appendChild(item);
     }
     legendItem('나 (누적 xG ' + round1(mine[mine.length - 1].cum) + ')', 'var(--series-1)');
-    if (opp) legendItem('상대 (누적 xG ' + round1(opp[opp.length - 1].cum) + ')', 'var(--series-3)');
+    if (opp) legendItem('상대 (누적 xG ' + round1(opp[opp.length - 1].cum) + ')', 'var(--status-critical)');
     container.appendChild(legend);
     if (!hasOpp) {
       container.appendChild(el('p', 'card-caption', '상대가 추적 대상이 아니라 상대 쪽 xG 추이는 표시할 수 없어요.'));
@@ -1688,7 +1690,10 @@
     modalLastFocus = document.activeElement;
     var seq = ++modalRequestSeq;
     var d = new Date(m.matchDate);
-    modalTitle.textContent = 'vs ' + m.opponentNickname + ' · ' + d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    var myUser = allUsers.filter(function (u) { return u.ouid === state.ouid; })[0];
+    var myNickname = myUser ? myUser.nickname : '나';
+    modalTitle.textContent = myNickname + ' vs ' + m.opponentNickname + ' · ' +
+      d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
     modalBody.replaceChildren();
     var resultLine = el('div', '');
@@ -1706,8 +1711,14 @@
     var momSection = el('div', 'mom-worst-section');
     modalBody.appendChild(momSection);
 
+    // 상단 줄: 왼쪽 "⚖️ 상대 팀 비교", 오른쪽 "⏱️ 득점 타임라인"(요청) — 그 아래로 해설 →
+    // 슈팅 위치 → xG 추이 순서로 전체 폭 줄이 이어진다.
+    var topRow = el('div', 'modal-top-row');
     var compareSection = el('div', 'match-compare-section');
-    modalBody.appendChild(compareSection);
+    var timelineSection = el('div', 'modal-shots-section modal-timeline-section');
+    topRow.appendChild(compareSection);
+    topRow.appendChild(timelineSection);
+    modalBody.appendChild(topRow);
 
     // MOM/Worst·상대 스탯 비교는 둘 다 상대도 추적 대상이어야 가능하다(concededShots와 같은 제약,
     // allUsers로 확인). 하나의 Promise.all로 스쿼드(양팀) + 상대 팀 스탯을 같이 불러온다.
@@ -1743,18 +1754,26 @@
       })
       .catch(function () { /* MOM/Worst·비교는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
-    // ⚽ 득점 상세 / 🥅 실점 상세(누가 골, 누가 어시, xG값) + 🎯 슈팅 위치 — 매치 1건의 슛 이벤트를
-    // 그때 불러온다. concededShots는 상대도 추적 대상이어야 채워진다(아니면 조용히 생략).
-    // 예전엔 여기서 평점/점유율/슈팅/패스/태클/파울/카드/xG값을 표(모달-스탯-그리드)로 따로
-    // 보여줬는데, "⚖️ 상대 팀 비교"가 같은 정보를 상대와 나란히 더 잘 보여줘서 뺐다(요청).
-    var shotSection = el('div', 'modal-shots-section');
-    shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오는 중…'));
-    modalBody.appendChild(shotSection);
+    // ⚽ 득점 상세 / 🥅 실점 상세(누가 골, 누가 어시, xG값) — 매치 1건의 슛 이벤트를 그때 불러온다.
+    // concededShots는 상대도 추적 대상이어야 채워진다(아니면 조용히 생략). 예전엔 여기서
+    // 평점/점유율/슈팅/패스/태클/파울/카드/xG값을 표(모달-스탯-그리드)로 따로 보여줬는데,
+    // "⚖️ 상대 팀 비교"가 같은 정보를 상대와 나란히 더 잘 보여줘서 뺐다(요청).
+    timelineSection.appendChild(el('p', 'card-empty', '불러오는 중…'));
+    var commentarySection = el('div', 'modal-shots-section modal-commentary-section');
+    var pitchSection = el('div', 'modal-shots-section modal-pitch-section');
+    var xgRaceSection = el('div', 'modal-shots-section modal-xgrace-section');
+    commentarySection.appendChild(el('p', 'card-empty', '불러오는 중…'));
+    pitchSection.appendChild(el('p', 'card-empty', '불러오는 중…'));
+    xgRaceSection.appendChild(el('p', 'card-empty', '불러오는 중…'));
+    modalBody.appendChild(commentarySection);
+    modalBody.appendChild(pitchSection);
+    modalBody.appendChild(xgRaceSection);
 
     apiGet('/api/v1/records/match-shots', { ouid: state.ouid, matchType: state.matchType, matchId: m.matchId })
       .then(function (result) {
         if (seq !== modalRequestSeq) return; // 응답 도착 전에 모달이 다른 매치로 다시 열린 경우
-        renderModalShots(shotSection, result.myShots, result.concededShots);
+        renderModalShots(timelineSection, commentarySection, pitchSection, xgRaceSection,
+          result.myShots, result.concededShots);
 
         compareXgState.for = expectedGoalsOf(result.myShots);
         compareXgState.against = result.concededShots.length ? expectedGoalsOf(result.concededShots) : null;
@@ -1763,8 +1782,11 @@
       })
       .catch(function () {
         if (seq !== modalRequestSeq) return;
-        shotSection.replaceChildren();
-        shotSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오지 못했습니다.'));
+        timelineSection.replaceChildren();
+        commentarySection.replaceChildren();
+        pitchSection.replaceChildren();
+        xgRaceSection.replaceChildren();
+        pitchSection.appendChild(el('p', 'card-empty', '슛 상세를 불러오지 못했습니다.'));
       });
 
     var idLine = el('p', 'card-caption', '매치 ID ' + m.matchId);

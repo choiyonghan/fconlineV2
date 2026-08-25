@@ -718,8 +718,15 @@
   .mom-card-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
   .mom-card-team { font-size: 12px; font-weight: 400; color: var(--text-muted); }
 
-  /* ⚖️ 상대 팀 비교 — 왼쪽=나(--series-1), 오른쪽=상대(--series-3). 값이 큰 쪽 색이 더 넓게 채워진다. */
-  .match-compare-section { margin-bottom: 14px; }
+  /* 상단 줄 — 왼쪽 "⚖️ 상대 팀 비교", 오른쪽 "⏱️ 득점 타임라인". 좁은 화면에서는 위아래로 쌓인다. */
+  .modal-top-row { display: flex; gap: 18px; align-items: flex-start; margin-top: 14px; }
+  .modal-top-row > div { flex: 1 1 0; min-width: 0; }
+  @media (max-width: 640px) {
+    .modal-top-row { flex-direction: column; gap: 14px; }
+  }
+  .modal-top-row .modal-timeline-section { margin-top: 0; }
+
+  /* ⚖️ 상대 팀 비교 — 나=파랑(--series-1), 상대=빨강(--status-critical). 값이 큰 쪽 색이 더 넓게 채워진다. */
   .compare-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
   .compare-row-label {
     flex: 0 0 74px; font-size: 12px; color: var(--text-muted); margin: 0; text-align: right;
@@ -737,16 +744,13 @@
   }
   .compare-fill { height: 100%; transition: width 0.2s; }
   .compare-fill-mine { background: var(--series-1); }
-  .compare-fill-opp { background: var(--series-3); }
+  .compare-fill-opp { background: var(--status-critical); }
   .mom-card-reason { font-size: 13px; color: var(--text-secondary); margin: 0; }
 
+  /* 해설 / 슈팅 위치 / xG 추이 — 이 순서로 각자 전체 폭 한 줄씩 위아래로 쌓인다(요청). */
   .modal-shots-section { margin-top: 14px; }
-  .modal-shots-section .card-title { margin-top: 0; margin-bottom: 8px; }
-
-  /* 득점 타임라인 / 슈팅 위치 / 해설 — 세 칸 다 각자 전체 폭 한 줄씩 위아래로 쌓는다. */
-  .modal-shots-body { display: flex; flex-direction: column; gap: 16px; }
-  .modal-shots-col .card-title { margin-top: 0; margin-bottom: 4px; }
-  .modal-shots-col .card-caption { margin-top: 0; margin-bottom: 8px; }
+  .modal-shots-section .card-title { margin-top: 0; margin-bottom: 4px; }
+  .modal-shots-section .card-caption { margin-top: 0; margin-bottom: 8px; }
 
   /* ⏱️ 득점 타임라인 — 내 득점/실점을 시간 순으로 한 줄씩, 왼쪽 색 테두리로 구분 */
   .goal-timeline { display: flex; flex-direction: column; gap: 8px; }
