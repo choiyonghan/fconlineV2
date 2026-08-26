@@ -13,4 +13,7 @@ public interface UserTeamPeriodRepository extends JpaRepository<UserTeamPeriod, 
      * 받아둬야 혹시 데이터 입력 실수로 기간이 겹치더라도 항상 더 이른(원래) 쪽이 먼저 매칭된다.
      */
     List<UserTeamPeriod> findByOuidInOrderByStartDateAsc(Collection<String> ouids);
+
+    /** "사용한 팀" 필터 칩 UI용 — 이 유저의 기간 목록을 시간순으로. */
+    List<UserTeamPeriod> findByOuidOrderByStartDateAsc(String ouid);
 }

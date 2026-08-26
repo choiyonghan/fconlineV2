@@ -1,6 +1,7 @@
 package com.fconline.app.opponent.facade;
 
 import com.fconline.app.common.SeasonRangeResolver;
+import com.fconline.app.common.TeamPeriodRangeResolver;
 import com.fconline.app.common.dto.MatchTallyResponse;
 import com.fconline.app.common.dto.StreakBadgeResponse;
 import com.fconline.app.opponent.dto.OpponentMatchResponse;
@@ -30,16 +31,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class OpponentFacade {
 
     private final SeasonRangeResolver seasonRangeResolver;
+    private final TeamPeriodRangeResolver teamPeriodRangeResolver;
     private final MatchDomainService matchDomainService;
     private final MatchDetailRepository matchDetailRepository;
     private final OpponentStreakRepository opponentStreakRepository;
     private final ScoreCalculationService scoreCalculationService;
 
-    public OpponentFacade(SeasonRangeResolver seasonRangeResolver, MatchDomainService matchDomainService,
+    public OpponentFacade(SeasonRangeResolver seasonRangeResolver, TeamPeriodRangeResolver teamPeriodRangeResolver,
+                           MatchDomainService matchDomainService,
                            MatchDetailRepository matchDetailRepository,
                            OpponentStreakRepository opponentStreakRepository,
                            ScoreCalculationService scoreCalculationService) {
         this.seasonRangeResolver = seasonRangeResolver;
+        this.teamPeriodRangeResolver = teamPeriodRangeResolver;
         this.matchDomainService = matchDomainService;
         this.matchDetailRepository = matchDetailRepository;
         this.opponentStreakRepository = opponentStreakRepository;
@@ -48,13 +52,20 @@ public class OpponentFacade {
 
     @Transactional(readOnly = true)
     public List<OpponentSummaryResponse> listOpponents(String ouid, MatchType matchType, Long seasonId) {
+        return listOpponents(ouid, matchType, seasonId, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public List<OpponentSummaryResponse> listOpponents(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         if (matchType == MatchType.OFFICIAL) {
             return List.of();
         }
 
         Season season = seasonRangeResolver.resolve(seasonId);
-        var from = season.startInstant();
-        var to = season.endInstantExclusiveOrNull();
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
+        var from = range.from();
+        var to = range.to();
 
         List<OpponentTally> tallies = matchDomainService.opponentTallies(ouid, matchType, from, to);
 
@@ -84,10 +95,18 @@ public class OpponentFacade {
     @Transactional(readOnly = true)
     public Page<OpponentMatchResponse> listOpponentMatches(String ouid, String opponentOuid, MatchType matchType,
                                                             Long seasonId, Pageable pageable) {
+        return listOpponentMatches(ouid, opponentOuid, matchType, seasonId, null, pageable);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public Page<OpponentMatchResponse> listOpponentMatches(String ouid, String opponentOuid, MatchType matchType,
+                                                            Long seasonId, Long teamPeriodId, Pageable pageable) {
         Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
 
         Page<RecentMatchRaw> page = matchDetailRepository.findByOuidAndOpponent(
-                ouid, opponentOuid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), pageable);
+                ouid, opponentOuid, matchType, range.from(), range.to(), pageable);
 
         return page.map(this::toMatchResponse);
     }

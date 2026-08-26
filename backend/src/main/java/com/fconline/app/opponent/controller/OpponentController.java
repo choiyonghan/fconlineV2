@@ -27,8 +27,9 @@ public class OpponentController {
     @GetMapping
     public List<OpponentSummaryResponse> listOpponents(@RequestParam String ouid,
                                                          @RequestParam MatchType matchType,
-                                                         @RequestParam(required = false) Long seasonId) {
-        return opponentFacade.listOpponents(ouid, matchType, seasonId);
+                                                         @RequestParam(required = false) Long seasonId,
+                                                         @RequestParam(required = false) Long teamPeriodId) {
+        return opponentFacade.listOpponents(ouid, matchType, seasonId, teamPeriodId);
     }
 
     @GetMapping("/{opponentOuid}/matches")
@@ -36,9 +37,10 @@ public class OpponentController {
                                                             @RequestParam String ouid,
                                                             @RequestParam MatchType matchType,
                                                             @RequestParam(required = false) Long seasonId,
+                                                            @RequestParam(required = false) Long teamPeriodId,
                                                             @RequestParam(defaultValue = "0") int page,
                                                             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return opponentFacade.listOpponentMatches(ouid, opponentOuid, matchType, seasonId, pageable);
+        return opponentFacade.listOpponentMatches(ouid, opponentOuid, matchType, seasonId, teamPeriodId, pageable);
     }
 }

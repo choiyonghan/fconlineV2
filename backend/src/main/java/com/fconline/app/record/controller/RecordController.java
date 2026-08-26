@@ -32,8 +32,9 @@ public class RecordController {
     @GetMapping("/overall")
     public OverallRecordResponse getOverall(@RequestParam String ouid,
                                              @RequestParam MatchType matchType,
-                                             @RequestParam(required = false) Long seasonId) {
-        return recordFacade.getOverallRecord(ouid, matchType, seasonId);
+                                             @RequestParam(required = false) Long seasonId,
+                                             @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getOverallRecord(ouid, matchType, seasonId, teamPeriodId);
     }
 
     /**
@@ -45,8 +46,9 @@ public class RecordController {
                                                @RequestParam MatchType matchType,
                                                @RequestParam(required = false) Long seasonId,
                                                @RequestParam(required = false) String opponentOuid,
-                                               @RequestParam(required = false, defaultValue = "false") boolean goalsOnly) {
-        return recordFacade.getShotHeatmap(ouid, matchType, seasonId, opponentOuid, goalsOnly);
+                                               @RequestParam(required = false, defaultValue = "false") boolean goalsOnly,
+                                               @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getShotHeatmap(ouid, matchType, seasonId, opponentOuid, goalsOnly, teamPeriodId);
     }
 
     /**
@@ -57,8 +59,9 @@ public class RecordController {
     public ShotHeatmapResponse getConcededShotHeatmap(@RequestParam String ouid,
                                                         @RequestParam MatchType matchType,
                                                         @RequestParam(required = false) Long seasonId,
-                                                        @RequestParam(required = false) String opponentOuid) {
-        return recordFacade.getConcededShotHeatmap(ouid, matchType, seasonId, opponentOuid);
+                                                        @RequestParam(required = false) String opponentOuid,
+                                                        @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getConcededShotHeatmap(ouid, matchType, seasonId, opponentOuid, teamPeriodId);
     }
 
     /**
@@ -100,8 +103,9 @@ public class RecordController {
     public List<AssistChainResponse> getAssistChains(@RequestParam String ouid,
                                                        @RequestParam MatchType matchType,
                                                        @RequestParam(required = false) Long seasonId,
-                                                       @RequestParam(required = false) Integer limit) {
-        return recordFacade.getAssistChains(ouid, matchType, seasonId, limit);
+                                                       @RequestParam(required = false) Integer limit,
+                                                       @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getAssistChains(ouid, matchType, seasonId, limit, teamPeriodId);
     }
 
     /**
@@ -112,8 +116,9 @@ public class RecordController {
     public List<TopPlayerResponse> getAllPlayers(@RequestParam String ouid,
                                                   @RequestParam MatchType matchType,
                                                   @RequestParam(required = false) Long seasonId,
-                                                  @RequestParam(required = false) String opponentOuid) {
-        return recordFacade.getAllPlayers(ouid, matchType, seasonId, opponentOuid);
+                                                  @RequestParam(required = false) String opponentOuid,
+                                                  @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getAllPlayers(ouid, matchType, seasonId, opponentOuid, teamPeriodId);
     }
 
     /**
@@ -123,8 +128,9 @@ public class RecordController {
     @GetMapping("/player-grades")
     public List<PlayerGradeResponse> getPlayerGrades(@RequestParam String ouid,
                                                        @RequestParam MatchType matchType,
-                                                       @RequestParam(required = false) Long seasonId) {
-        return recordFacade.getPlayerGrades(ouid, matchType, seasonId);
+                                                       @RequestParam(required = false) Long seasonId,
+                                                       @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getPlayerGrades(ouid, matchType, seasonId, teamPeriodId);
     }
 
     /** 상대 무관, 이 유저의 진짜 최신 경기 목록(매치 날짜 내림차순, 더보기 페이징). */
@@ -132,9 +138,10 @@ public class RecordController {
     public Page<RecentMatchResponse> getRecentMatches(@RequestParam String ouid,
                                                         @RequestParam MatchType matchType,
                                                         @RequestParam(required = false) Long seasonId,
+                                                        @RequestParam(required = false) Long teamPeriodId,
                                                         @RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return recordFacade.getRecentMatches(ouid, matchType, seasonId, pageable);
+        return recordFacade.getRecentMatches(ouid, matchType, seasonId, teamPeriodId, pageable);
     }
 }

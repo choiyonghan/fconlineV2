@@ -543,6 +543,8 @@
   }
   tbody tr:last-child td { border-bottom: none; }
   tbody td.name-cell { color: var(--text-primary); font-weight: 600; font-variant-numeric: normal; }
+  /* "닉네임(팀)"에서 팀 이름 부분만 작게 — 닉네임과 시각적으로 구분되게(요청). */
+  .team-name-tag { font-size: 0.78em; font-weight: 400; color: var(--text-muted); margin-left: 2px; }
   tbody tr:hover td { background: var(--page-plane); }
 
   /* 선수 카드 등급/시즌 배지 — TOP7 차트, 환상의 콤비, 전체 선수 스탯 등 선수 이름이 나오는 곳 공용 */

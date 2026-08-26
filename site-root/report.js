@@ -42,7 +42,7 @@
     return scoreFromTally(mirrored, isWook(o.opponentOuid));
   }
 
-  var state = { ouid: null, matchType: 'CUSTOM', seasonId: null };
+  var state = { ouid: null, matchType: 'CUSTOM', seasonId: null, teamPeriodId: null };
   var playersGridSort = { col: 'overall', dir: 'desc' };
 
   var savedSelection = {};
@@ -78,8 +78,15 @@
   function hideTip() { tooltip.classList.remove('show'); }
 
   var YARD_TO_METER = 0.9144; // Nexon 드리블 거리 원본이 야드 단위라 표시 시점에 미터로 환산한다.
-  /** "닉네임(팀)" — team이 없으면(그 시점 기간 데이터가 없으면) 닉네임만(요청: 서울쥐(첼시) vs 내혀를가져가(맨유)). */
-  function nameWithTeam(nickname, team) { return team ? nickname + '(' + team + ')' : nickname; }
+  /**
+   * "닉네임" + 작은 글씨로 "(팀)" — team이 없으면(그 시점 기간 데이터가 없으면) 닉네임만
+   * (요청: 서울쥐(첼시) vs 내혀를가져가(맨유), 팀 이름은 구분되게 폰트를 작게). DOM 조각을
+   * 반환하므로 호출부에서 el(...)의 텍스트 3번째 인자 대신 appendChild로 붙여야 한다.
+   */
+  function appendNameWithTeam(container, nickname, team) {
+    container.appendChild(document.createTextNode(nickname));
+    if (team) container.appendChild(el('span', 'team-name-tag', '(' + team + ')'));
+  }
   function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
   function fmt1(n) { return Number(n).toFixed(1); }
 
@@ -222,6 +229,8 @@
   // ---------------- static chrome ----------------
   var userChipRow = document.getElementById('user-select');
   var seasonChipRow = document.getElementById('season-select');
+  var teamChipRow = document.getElementById('team-select');
+  var teamFilterGroup = document.getElementById('team-filter-group');
   var loadStatus = document.getElementById('load-status');
   var loadingOverlay = document.getElementById('loading-overlay');
   var loadingText = document.getElementById('loading-text');
@@ -909,6 +918,32 @@
     return liveDataPromise;
   }
 
+  /**
+   * "사용한 팀" 필터 칩 — 매치타입/시즌 아래, 유저별로 다르다(요청). 유저를 바꿀 때마다 다시
+   * 불러오고 선택은 항상 "전체"로 리셋한다(이전 유저의 팀 기간 id가 새 유저에 잘못 남지 않게).
+   * 이 유저에 팀 기간 데이터가 아예 없으면(user_team_periods에 행 없음) 필터 자체를 숨긴다.
+   */
+  function loadTeamPeriods(ouid) {
+    state.teamPeriodId = null;
+    return apiGet('/api/v1/users/team-periods', { ouid: ouid }).then(function (periods) {
+      if (!periods.length) {
+        teamFilterGroup.hidden = true;
+        return;
+      }
+      teamFilterGroup.hidden = false;
+      var items = [{ id: 'ALL', teamName: '전체' }].concat(periods);
+      buildChips(teamChipRow, items,
+        function (p) { return p.id; },
+        function (p) { return p.teamName; },
+        function (value) {
+          state.teamPeriodId = value === 'ALL' ? null : Number(value);
+          persist();
+          loadSelection();
+        });
+      setActiveChip(teamChipRow, 'ALL');
+    }).catch(function () { teamFilterGroup.hidden = true; });
+  }
+
   function selectUser(value) {
     state.ouid = value;
     persist();
@@ -919,8 +954,10 @@
     }
     showAllMode(false);
     ensureLiveData().then(function () {
+      return loadTeamPeriods(value);
+    }).then(function () {
       loadSelection();
-    }).catch(function () { /* ensureLiveData가 이미 에러 상태를 보여줬다 */ });
+    }).catch(function () { /* ensureLiveData/loadTeamPeriods가 이미 에러 상태를 보여줬다 */ });
   }
 
   function buildUserChips(items) {
@@ -1003,7 +1040,11 @@
       tr.setAttribute('aria-label', m.__nickname + ' vs ' + m.opponentNickname + ' 경기 상세 보기');
       var d = new Date(m.matchDate);
       tr.appendChild(el('td', '', fmtDateTime(d, false)));
-      tr.appendChild(el('td', 'name-cell', nameWithTeam(m.__nickname, m.team) + ' vs ' + nameWithTeam(m.opponentNickname, m.opponentTeam)));
+      var vsTd = el('td', 'name-cell');
+      appendNameWithTeam(vsTd, m.__nickname, m.team);
+      vsTd.appendChild(document.createTextNode(' vs '));
+      appendNameWithTeam(vsTd, m.opponentNickname, m.opponentTeam);
+      tr.appendChild(vsTd);
       var resTd = document.createElement('td');
       resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
       tr.appendChild(resTd);
@@ -2189,7 +2230,11 @@
     // allUsers는 "전체" 화면에선 비어있을 수 있다(백엔드를 안 거쳐서) — 대시보드 최근 경기
     // 피드에서 연 경우 m.__nickname(그 매치를 미리 붙일 때 넣어둔 값)으로 대신한다.
     var myNickname = myUser ? myUser.nickname : (m.__nickname || '나');
-    modalTitle.textContent = nameWithTeam(myNickname, m.team) + ' vs ' + nameWithTeam(m.opponentNickname, m.opponentTeam) + ' · ' + fmtDateTime(d, true);
+    modalTitle.replaceChildren();
+    appendNameWithTeam(modalTitle, myNickname, m.team);
+    modalTitle.appendChild(document.createTextNode(' vs '));
+    appendNameWithTeam(modalTitle, m.opponentNickname, m.opponentTeam);
+    modalTitle.appendChild(document.createTextNode(' · ' + fmtDateTime(d, true)));
 
     modalBody.replaceChildren();
     var resultLine = el('div', '');
@@ -2333,7 +2378,9 @@
     if (withDate) {
       var d = new Date(m.matchDate);
       tr.appendChild(el('td', '', fmtDateTime(d, false)));
-      tr.appendChild(el('td', 'name-cell', nameWithTeam(m.opponentNickname, m.opponentTeam)));
+      var oppTd = el('td', 'name-cell');
+      appendNameWithTeam(oppTd, m.opponentNickname, m.opponentTeam);
+      tr.appendChild(oppTd);
     }
     var resTd = document.createElement('td');
     resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
@@ -2419,21 +2466,21 @@
           loaded = true;
           inner.replaceChildren();
           inner.appendChild(el('p', 'card-empty', '불러오는 중…'));
-          var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId };
+          var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId, teamPeriodId: state.teamPeriodId };
           Promise.all([
             apiGet('/api/v1/opponents/' + encodeURIComponent(o.opponentOuid) + '/matches',
-              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: OPPONENT_SAMPLE_SIZE })
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, page: 0, size: OPPONENT_SAMPLE_SIZE })
               .then(function (page) { return page.content; }),
             // 이 상대전 선수 기여도 TOP3(득점/도움/선방/수비)용 — 실패해도 나머지 표시는 막지 않는다.
             apiGet('/api/v1/records/players',
-              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid })
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid })
               .catch(function () { return []; }),
             // 이 상대전 평균 득점/실점 xG값용 — 실패해도 나머지 표시는 막지 않는다.
             apiGet('/api/v1/records/shot-heatmap',
-              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid, goalsOnly: false })
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid, goalsOnly: false })
               .catch(function () { return { points: [] }; }),
             apiGet('/api/v1/records/conceded-shot-heatmap',
-              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, opponentOuid: o.opponentOuid })
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid })
               .catch(function () { return { points: [] }; })
           ]).then(function (results) {
               var matches = results[0];
@@ -2563,7 +2610,7 @@
     setMoreBtnLoading(true);
     var seq = loadSeq;
     return apiGet('/api/v1/records/recent-matches', {
-      ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId,
+      ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId, teamPeriodId: state.teamPeriodId,
       page: recentMatchesState.page, size: recentMatchesState.size
     }).then(function (result) {
       recentMatchesState.loading = false;
@@ -3218,7 +3265,7 @@
     document.getElementById('page-title').textContent = user.nickname + ' — 매치 리포트';
     setStatus('데이터를 불러오는 중입니다…');
 
-    var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId };
+    var qs = { ouid: state.ouid, matchType: state.matchType, seasonId: state.seasonId, teamPeriodId: state.teamPeriodId };
     // 플레이 성향 추이 차트는 "최근 몇 경기"가 아니라 표본 전체를 쓴다 — 한 번에 크게 받아온다
     // (더보기 페이징을 쓰는 "최근 경기" 표와는 별개 용도).
     var TREND_SAMPLE_SIZE = 1000;
@@ -3228,10 +3275,10 @@
       apiGet('/api/v1/records/players', qs),
       // limit을 넉넉하게(100) 요청 — "합쳐서 TOP5"(양방향 조합 합산)를 정확히 계산하려면
       // 방향별 상위 몇 건만으론 부족할 수 있다(한쪽 방향이 밀려나면 합산이 과소해짐).
-      apiGet('/api/v1/records/assist-chains', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, limit: 100 }),
-      apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, goalsOnly: false }),
+      apiGet('/api/v1/records/assist-chains', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, limit: 100 }),
+      apiGet('/api/v1/records/shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, goalsOnly: false }),
       apiGet('/api/v1/records/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; }),
-      apiGet('/api/v1/records/recent-matches', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, page: 0, size: TREND_SAMPLE_SIZE })
+      apiGet('/api/v1/records/recent-matches', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, page: 0, size: TREND_SAMPLE_SIZE })
         .then(function (page) { return page.content; })
         .catch(function () { return []; }),
       // 카드 강화 단계 배지용 — 실패해도 나머지 화면 표시를 막으면 안 되니 조용히 빈 목록 폴백.

@@ -1,6 +1,7 @@
 package com.fconline.app.record.facade;
 
 import com.fconline.app.common.SeasonRangeResolver;
+import com.fconline.app.common.TeamPeriodRangeResolver;
 import com.fconline.app.common.dto.MatchTallyResponse;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.GoalTimeBucketResponse;
@@ -73,16 +74,19 @@ public class RecordFacade {
 
     private final TrackedUserRepository trackedUserRepository;
     private final SeasonRangeResolver seasonRangeResolver;
+    private final TeamPeriodRangeResolver teamPeriodRangeResolver;
     private final MatchDomainService matchDomainService;
     private final PlayerMetaRepository playerMetaRepository;
     private final MatchDetailRepository matchDetailRepository;
     private final UserTeamPeriodRepository userTeamPeriodRepository;
 
     public RecordFacade(TrackedUserRepository trackedUserRepository, SeasonRangeResolver seasonRangeResolver,
+                         TeamPeriodRangeResolver teamPeriodRangeResolver,
                          MatchDomainService matchDomainService, PlayerMetaRepository playerMetaRepository,
                          MatchDetailRepository matchDetailRepository, UserTeamPeriodRepository userTeamPeriodRepository) {
         this.trackedUserRepository = trackedUserRepository;
         this.seasonRangeResolver = seasonRangeResolver;
+        this.teamPeriodRangeResolver = teamPeriodRangeResolver;
         this.matchDomainService = matchDomainService;
         this.playerMetaRepository = playerMetaRepository;
         this.matchDetailRepository = matchDetailRepository;
@@ -91,12 +95,19 @@ public class RecordFacade {
 
     @Transactional(readOnly = true)
     public OverallRecordResponse getOverallRecord(String ouid, MatchType matchType, Long seasonId) {
+        return getOverallRecord(ouid, matchType, seasonId, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public OverallRecordResponse getOverallRecord(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         TrackedUser user = trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
-        var from = season.startInstant();
-        var to = season.endInstantExclusiveOrNull();
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
+        var from = range.from();
+        var to = range.to();
 
         MatchTally tally = matchDomainService.overallTally(ouid, matchType, from, to);
         MatchStatsSummary statsSummary = matchDomainService.statsSummary(ouid, matchType, from, to);
@@ -164,7 +175,7 @@ public class RecordFacade {
     /** 화면: 정렬 가능한 "전체 선수 스탯" 그리드, 최다 세이브 등 top-3 밖의 통계. */
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId) {
-        return getAllPlayers(ouid, matchType, seasonId, null);
+        return getAllPlayers(ouid, matchType, seasonId, null, null);
     }
 
     /**
@@ -174,12 +185,20 @@ public class RecordFacade {
      */
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId, String opponentOuid) {
+        return getAllPlayers(ouid, matchType, seasonId, opponentOuid, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
+                                                  Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
-        var from = season.startInstant();
-        var to = season.endInstantExclusiveOrNull();
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
+        var from = range.from();
+        var to = range.to();
         List<TopPlayerStat> players = matchDomainService.topPlayers(
                 ouid, matchType, from, to, opponentOuid, ALL_PLAYERS_LIMIT);
 
@@ -219,19 +238,27 @@ public class RecordFacade {
     /** 좌표 히트맵(화면: 슛/득점 위치 시각화). goalsOnly=true면 득점한 슛만 반환한다. */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, boolean goalsOnly) {
-        return getShotHeatmap(ouid, matchType, seasonId, null, goalsOnly);
+        return getShotHeatmap(ouid, matchType, seasonId, null, goalsOnly, null);
     }
 
     /** opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 득점 xG값 계산용). */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
                                                boolean goalsOnly) {
+        return getShotHeatmap(ouid, matchType, seasonId, opponentOuid, goalsOnly, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
+                                               boolean goalsOnly, Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
         List<ShotPoint> points = matchDomainService.shotHeatmap(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid, goalsOnly);
+                ouid, matchType, range.from(), range.to(), opponentOuid, goalsOnly);
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
@@ -247,19 +274,27 @@ public class RecordFacade {
      */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId) {
-        return getConcededShotHeatmap(ouid, matchType, seasonId, null);
+        return getConcededShotHeatmap(ouid, matchType, seasonId, null, null);
     }
 
     /** opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 실점 xG값 계산용). */
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId,
                                                         String opponentOuid) {
+        return getConcededShotHeatmap(ouid, matchType, seasonId, opponentOuid, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId,
+                                                        String opponentOuid, Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
         List<ShotPoint> points = matchDomainService.concededShotHeatmap(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), opponentOuid);
+                ouid, matchType, range.from(), range.to(), opponentOuid);
 
         List<ShotPointResponse> pointResponses = points.stream()
                 .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
@@ -349,7 +384,7 @@ public class RecordFacade {
     /** 어시스트 체인(화면: 누가 누구에게 어시스트해서 득점했는지). 상위 {@value #ASSIST_CHAIN_LIMIT}건. */
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId) {
-        return getAssistChains(ouid, matchType, seasonId, null);
+        return getAssistChains(ouid, matchType, seasonId, null, null);
     }
 
     /**
@@ -359,6 +394,13 @@ public class RecordFacade {
      */
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId, Integer limit) {
+        return getAssistChains(ouid, matchType, seasonId, limit, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId, Integer limit,
+                                                       Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
@@ -367,8 +409,9 @@ public class RecordFacade {
                 : Math.max(1, Math.min(limit, ASSIST_CHAIN_MAX_LIMIT));
 
         Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
         List<AssistChainCount> chains = matchDomainService.assistChains(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), effectiveLimit);
+                ouid, matchType, range.from(), range.to(), effectiveLimit);
 
         Map<String, String> playerNames = playerNamesOfChains(chains);
 
@@ -387,12 +430,18 @@ public class RecordFacade {
      */
     @Transactional(readOnly = true)
     public List<PlayerGradeResponse> getPlayerGrades(String ouid, MatchType matchType, Long seasonId) {
+        return getPlayerGrades(ouid, matchType, seasonId, null);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public List<PlayerGradeResponse> getPlayerGrades(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
-        return matchDomainService.latestSpGrades(
-                        ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull())
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
+        return matchDomainService.latestSpGrades(ouid, matchType, range.from(), range.to())
                 .stream()
                 .map(g -> new PlayerGradeResponse(g.spId(), g.grade()))
                 .toList();
@@ -411,17 +460,27 @@ public class RecordFacade {
                 .map(r -> new MatchPlayerRatingResponse(r.matchId(), r.spId(), r.rating()))
                 .toList();
     }
+    // 대시보드 배치(전체 9명 풀링)에서만 쓰는 메서드라 teamPeriodId는 아직 안 받는다 —
+    // 필요해지면 위 다른 메서드들과 같은 패턴(오버로드 추가)으로 확장.
 
     /** 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). */
     @Transactional(readOnly = true)
     public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
                                                         Pageable pageable) {
+        return getRecentMatches(ouid, matchType, seasonId, null, pageable);
+    }
+
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    @Transactional(readOnly = true)
+    public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
+                                                        Long teamPeriodId, Pageable pageable) {
         trackedUserRepository.findById(ouid)
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
 
         Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
         Page<RecentMatchRaw> page = matchDetailRepository.findRecentByOuid(
-                ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), pageable);
+                ouid, matchType, range.from(), range.to(), pageable);
 
         Set<String> ouidsNeeded = new HashSet<>();
         ouidsNeeded.add(ouid);
