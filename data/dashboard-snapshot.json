@@ -1,5 +1,5 @@
 {
-  "generatedAt" : "2026-08-25T09:35:29.278026533Z",
+  "generatedAt" : "2026-08-26T01:06:06.584795804Z",
   "currentSeasonName" : "시즌2",
   "aiRankingFailed" : true,
   "aiRankingNote" : "AI 랭킹 호출에 실패해 승률·득실차 기준 자동 집계로 대체했습니다.",
@@ -10,43 +10,43 @@
     "nickname" : "D로쏘네리",
     "displayName" : "D로쏘네리(설동민)",
     "rank" : 1,
-    "reason" : "18전 14승 1무 3패 (승률 77.8%) | 득실 +17.0 | 평균 평점 8.59 — 승률 미친 포스로 리그 최고존엄 후보에 등극! 패배보다 승리가 압도적으로 많은 고고한 신선의 영역입니다."
+    "reason" : "17전 13승 1무 3패 (승률 76.5%) | 득실 +17.0 | 평균 평점 8.64 — 승률 미친 포스로 리그 최고존엄 후보에 등극! 패배보다 승리가 압도적으로 많은 고고한 신선의 영역입니다."
   }, {
     "ouid" : "2a27e3732d7ea05e453ac8a41f39b134",
     "nickname" : "아기블루스",
     "displayName" : "아기블루스(설동민)",
     "rank" : 2,
-    "reason" : "23전 16승 2무 5패 (승률 69.6%) | 득실 +24.0 | 평균 평점 8.78 — 혼자 리그를 씹어먹는 중입니다! 득실차가 전체 유저 중 가장 화끈한 폭격기 성능을 보여줬네요."
-  }, {
-    "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
-    "nickname" : "내눈을가져가",
-    "displayName" : "내눈을가져가(최용한)",
-    "rank" : 3,
-    "reason" : "16전 9승 3무 4패 (승률 56.3%) | 득실 +13.0 | 평균 평점 8.46 — 눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."
+    "reason" : "21전 15승 2무 4패 (승률 71.4%) | 득실 +24.0 | 평균 평점 8.91 — 혼자 리그를 씹어먹는 중입니다! 득실차가 전체 유저 중 가장 화끈한 폭격기 성능을 보여줬네요."
   }, {
     "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
     "nickname" : "내혀를가져가",
     "displayName" : "내혀를가져가(최용한)",
+    "rank" : 3,
+    "reason" : "40전 24승 3무 13패 (승률 60.0%) | 득실 +45.0 | 평균 평점 8.54 — 무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."
+  }, {
+    "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
+    "nickname" : "내눈을가져가",
+    "displayName" : "내눈을가져가(최용한)",
     "rank" : 4,
-    "reason" : "41전 22승 3무 16패 (승률 53.7%) | 득실 +31.0 | 평균 평점 8.07 — 무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."
+    "reason" : "20전 11승 3무 6패 (승률 55.0%) | 득실 +13.0 | 평균 평점 8.47 — 눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."
   }, {
     "ouid" : "6dfa509e08e020945f9a208216aad98d",
     "nickname" : "ST반니스텔로이",
     "displayName" : "ST반니스텔로이(김정현)",
     "rank" : 5,
-    "reason" : "12전 6승 0무 6패 (승률 50.0%) | 득실 +4.0 | 평균 평점 8.37 — 정확히 반반! 승리와 패배의 완벽한 황금 비율을 자랑하는 리그의 인간 반반치킨입니다."
+    "reason" : "11전 6승 0무 5패 (승률 54.5%) | 득실 +4.0 | 평균 평점 8.46 — 정확히 반반! 승리와 패배의 완벽한 황금 비율을 자랑하는 리그의 인간 반반치킨입니다."
   }, {
     "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
     "nickname" : "서울쥐",
     "displayName" : "서울쥐(김상기)",
     "rank" : 6,
-    "reason" : "27전 13승 4무 10패 (승률 48.1%) | 득실 +12.0 | 평균 평점 8.34 — 살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."
+    "reason" : "24전 12승 4무 8패 (승률 50.0%) | 득실 +6.0 | 평균 평점 8.33 — 살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."
   }, {
     "ouid" : "1894adb89b4a7953381bdd5671ce7610",
     "nickname" : "지린성에사는욱구",
     "displayName" : "지린성에사는욱구(전승욱)",
     "rank" : 7,
-    "reason" : "55전 7승 7무 41패 (승률 12.7%) | 득실 -90.0 | 평균 평점 7.76 — 이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"
+    "reason" : "59전 9승 7무 43패 (승률 15.3%) | 득실 -95.0 | 평균 평점 7.82 — 이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"
   }, {
     "ouid" : "7f3fabc284ffe4b6bedf702a307f0f2e",
     "nickname" : "욱냥0I",
@@ -65,37 +65,37 @@
       "ouid" : "c4f8613f9995dc79c5413cc61fa1d6f2",
       "nickname" : "D로쏘네리",
       "summary" : {
-        "games" : 18,
-        "wins" : 14,
+        "games" : 17,
+        "wins" : 13,
         "draws" : 1,
         "losses" : 3,
-        "avgGoalsFor" : 2.4444444444444446,
-        "avgGoalsForXg" : 2.789542828221784,
-        "finishing" : -6.211770907992111,
-        "shotsPerGame" : 6.222222222222222,
-        "avgGoalsAgainst" : 1.5,
+        "avgGoalsFor" : 2.588235294117647,
+        "avgGoalsForXg" : 2.933257713426803,
+        "finishing" : -5.865381128255656,
+        "shotsPerGame" : 6.529411764705882,
+        "avgGoalsAgainst" : 1.588235294117647,
         "avgGoalsAgainstXg" : 2.2457858059204607,
         "concededSampleGames" : 17,
         "totalGoalsFor" : 44,
         "totalGoalsAgainst" : 27,
-        "totalShots" : 112,
+        "totalShots" : 111,
         "totalShotsOnTarget" : 81,
-        "totalPassTry" : 2090,
-        "totalPassSuccess" : 1882,
-        "totalXgFor" : 50.21177090799211,
+        "totalPassTry" : 2072,
+        "totalPassSuccess" : 1865,
+        "totalXgFor" : 49.865381128255656,
         "totalXgAgainst" : 38.178358700647834,
-        "cleanSheets" : 4,
-        "cleanSheetPct" : 22.22222222222222,
+        "cleanSheets" : 3,
+        "cleanSheetPct" : 17.647058823529413,
         "multiConcededGames" : 3,
-        "multiConcededPct" : 16.666666666666668,
+        "multiConcededPct" : 17.647058823529413,
         "lowPossessionGames" : 0,
         "lowPossessionPct" : 0.0,
         "balancedPossessionGames" : 11,
-        "balancedPossessionPct" : 61.111111111111114,
-        "highPossessionGames" : 7,
-        "highPossessionPct" : 38.888888888888886,
-        "avgPossession" : 54.77777777777778,
-        "avgRating" : 8.59320888888888,
+        "balancedPossessionPct" : 64.70588235294117,
+        "highPossessionGames" : 6,
+        "highPossessionPct" : 35.294117647058826,
+        "avgPossession" : 53.294117647058826,
+        "avgRating" : 8.64117529411764,
         "combo" : {
           "playerAName" : "에르난 크레스포",
           "playerBName" : "카카",
@@ -157,37 +157,37 @@
       "ouid" : "6dfa509e08e020945f9a208216aad98d",
       "nickname" : "ST반니스텔로이",
       "summary" : {
-        "games" : 12,
+        "games" : 11,
         "wins" : 6,
         "draws" : 0,
-        "losses" : 6,
-        "avgGoalsFor" : 2.25,
-        "avgGoalsForXg" : 2.5940398079439775,
+        "losses" : 5,
+        "avgGoalsFor" : 2.4545454545454546,
+        "avgGoalsForXg" : 2.829861608666157,
         "finishing" : -4.128477695327728,
-        "shotsPerGame" : 5.75,
-        "avgGoalsAgainst" : 1.9166666666666667,
+        "shotsPerGame" : 6.2727272727272725,
+        "avgGoalsAgainst" : 2.090909090909091,
         "avgGoalsAgainstXg" : 2.798517718408711,
         "concededSampleGames" : 11,
         "totalGoalsFor" : 27,
         "totalGoalsAgainst" : 23,
         "totalShots" : 69,
         "totalShotsOnTarget" : 50,
-        "totalPassTry" : 1252,
-        "totalPassSuccess" : 1127,
+        "totalPassTry" : 1265,
+        "totalPassSuccess" : 1139,
         "totalXgFor" : 31.128477695327728,
         "totalXgAgainst" : 30.78369490249582,
-        "cleanSheets" : 2,
-        "cleanSheetPct" : 16.666666666666668,
+        "cleanSheets" : 1,
+        "cleanSheetPct" : 9.090909090909092,
         "multiConcededGames" : 4,
-        "multiConcededPct" : 33.333333333333336,
+        "multiConcededPct" : 36.36363636363637,
         "lowPossessionGames" : 2,
-        "lowPossessionPct" : 16.666666666666668,
+        "lowPossessionPct" : 18.181818181818183,
         "balancedPossessionGames" : 8,
-        "balancedPossessionPct" : 66.66666666666667,
-        "highPossessionGames" : 2,
-        "highPossessionPct" : 16.666666666666668,
-        "avgPossession" : 51.916666666666664,
-        "avgRating" : 8.37037166666666,
+        "balancedPossessionPct" : 72.72727272727273,
+        "highPossessionGames" : 1,
+        "highPossessionPct" : 9.090909090909092,
+        "avgPossession" : 51.27272727272727,
+        "avgRating" : 8.46464727272728,
         "combo" : {
           "playerAName" : "호베르투 카를루스",
           "playerBName" : "뤼트 반니스텔로이",
@@ -246,37 +246,37 @@
       "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
       "nickname" : "내눈을가져가",
       "summary" : {
-        "games" : 16,
-        "wins" : 9,
+        "games" : 20,
+        "wins" : 11,
         "draws" : 3,
-        "losses" : 4,
-        "avgGoalsFor" : 3.8125,
-        "avgGoalsForXg" : 3.685059273224774,
-        "finishing" : 2.0390516284036195,
-        "shotsPerGame" : 7.1875,
-        "avgGoalsAgainst" : 3.0,
-        "avgGoalsAgainstXg" : 3.2355721912938042,
-        "concededSampleGames" : 16,
-        "totalGoalsFor" : 61,
-        "totalGoalsAgainst" : 48,
-        "totalShots" : 115,
-        "totalShotsOnTarget" : 94,
-        "totalPassTry" : 1545,
-        "totalPassSuccess" : 1354,
-        "totalXgFor" : 58.96094837159638,
-        "totalXgAgainst" : 51.76915506070087,
+        "losses" : 6,
+        "avgGoalsFor" : 3.75,
+        "avgGoalsForXg" : 3.7562145151517314,
+        "finishing" : -0.12429030303462696,
+        "shotsPerGame" : 7.65,
+        "avgGoalsAgainst" : 3.1,
+        "avgGoalsAgainstXg" : 3.2305862798280045,
+        "concededSampleGames" : 20,
+        "totalGoalsFor" : 75,
+        "totalGoalsAgainst" : 62,
+        "totalShots" : 153,
+        "totalShotsOnTarget" : 124,
+        "totalPassTry" : 1936,
+        "totalPassSuccess" : 1704,
+        "totalXgFor" : 75.12429030303463,
+        "totalXgAgainst" : 64.61172559656009,
         "cleanSheets" : 0,
         "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 8,
-        "multiConcededPct" : 50.0,
+        "multiConcededGames" : 11,
+        "multiConcededPct" : 55.0,
         "lowPossessionGames" : 5,
-        "lowPossessionPct" : 31.25,
-        "balancedPossessionGames" : 11,
-        "balancedPossessionPct" : 68.75,
+        "lowPossessionPct" : 25.0,
+        "balancedPossessionGames" : 15,
+        "balancedPossessionPct" : 75.0,
         "highPossessionGames" : 0,
         "highPossessionPct" : 0.0,
-        "avgPossession" : 47.25,
-        "avgRating" : 8.45694375,
+        "avgPossession" : 47.65,
+        "avgRating" : 8.468333,
         "combo" : {
           "playerAName" : "라우타로",
           "playerBName" : "루이스 피구",
@@ -284,53 +284,53 @@
         },
         "topGoals" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 21
+          "value" : 25
         }, {
-          "playerName" : "라우타로",
-          "value" : 14
-        }, {
-          "playerName" : "루이스 피구",
+          "playerName" : "사뮈엘 에토",
           "value" : 10
+        }, {
+          "playerName" : "마이콘",
+          "value" : 4
         } ],
         "topAssists" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 13
+          "value" : 14
         }, {
-          "playerName" : "루이스 피구",
-          "value" : 10
+          "playerName" : "마이콘",
+          "value" : 4
         }, {
-          "playerName" : "에덴 아자르",
-          "value" : 7
+          "playerName" : "호베르투 카를루스",
+          "value" : 4
         } ],
         "topAttackPoints" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 34
+          "value" : 39
         }, {
-          "playerName" : "라우타로",
-          "value" : 20
+          "playerName" : "사뮈엘 에토",
+          "value" : 12
         }, {
-          "playerName" : "루이스 피구",
-          "value" : 20
+          "playerName" : "마이콘",
+          "value" : 8
         } ],
         "topDefense" : [ {
           "playerName" : "파트리크 비에이라",
-          "value" : 21
-        }, {
-          "playerName" : "마이콘",
-          "value" : 17
+          "value" : 29
         }, {
           "playerName" : "덴젤 둠프리스",
-          "value" : 17
+          "value" : 24
+        }, {
+          "playerName" : "에스테반 캄비아소",
+          "value" : 20
         } ],
         "topSaves" : [ {
-          "playerName" : "티보 쿠르투아",
-          "value" : 21
-        }, {
           "playerName" : "M. 디 그레고리오",
-          "value" : 19
+          "value" : 35
         }, {
-          "playerName" : "I. 라두",
-          "value" : 13
+          "playerName" : "덴젤 둠프리스",
+          "value" : 2
+        }, {
+          "playerName" : "파트리크 비에이라",
+          "value" : 1
         } ]
       }
     },
@@ -338,91 +338,91 @@
       "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
       "nickname" : "내혀를가져가",
       "summary" : {
-        "games" : 41,
-        "wins" : 22,
+        "games" : 40,
+        "wins" : 24,
         "draws" : 3,
-        "losses" : 16,
-        "avgGoalsFor" : 3.024390243902439,
-        "avgGoalsForXg" : 3.290442808635095,
-        "finishing" : -10.908155154038894,
-        "shotsPerGame" : 7.073170731707317,
-        "avgGoalsAgainst" : 2.268292682926829,
-        "avgGoalsAgainstXg" : 2.1532950343715513,
+        "losses" : 13,
+        "avgGoalsFor" : 3.4,
+        "avgGoalsForXg" : 3.598930344431635,
+        "finishing" : -7.957213777265395,
+        "shotsPerGame" : 7.775,
+        "avgGoalsAgainst" : 2.275,
+        "avgGoalsAgainstXg" : 2.208179699076415,
         "concededSampleGames" : 40,
-        "totalGoalsFor" : 124,
-        "totalGoalsAgainst" : 93,
-        "totalShots" : 290,
-        "totalShotsOnTarget" : 234,
-        "totalPassTry" : 3755,
-        "totalPassSuccess" : 3258,
-        "totalXgFor" : 134.9081551540389,
-        "totalXgAgainst" : 86.13180137486205,
+        "totalGoalsFor" : 136,
+        "totalGoalsAgainst" : 91,
+        "totalShots" : 311,
+        "totalShotsOnTarget" : 250,
+        "totalPassTry" : 3908,
+        "totalPassSuccess" : 3391,
+        "totalXgFor" : 143.9572137772654,
+        "totalXgAgainst" : 88.32718796305659,
         "cleanSheets" : 3,
-        "cleanSheetPct" : 7.317073170731708,
-        "multiConcededGames" : 18,
-        "multiConcededPct" : 43.90243902439025,
-        "lowPossessionGames" : 12,
-        "lowPossessionPct" : 29.26829268292683,
-        "balancedPossessionGames" : 29,
-        "balancedPossessionPct" : 70.73170731707317,
+        "cleanSheetPct" : 7.5,
+        "multiConcededGames" : 17,
+        "multiConcededPct" : 42.5,
+        "lowPossessionGames" : 9,
+        "lowPossessionPct" : 22.5,
+        "balancedPossessionGames" : 31,
+        "balancedPossessionPct" : 77.5,
         "highPossessionGames" : 0,
         "highPossessionPct" : 0.0,
-        "avgPossession" : 45.41463414634146,
-        "avgRating" : 8.06883414634146,
+        "avgPossession" : 48.025,
+        "avgRating" : 8.5352775,
         "combo" : {
           "playerAName" : "로빈 반페르시",
           "playerBName" : "조지 베스트",
-          "goals" : 19
+          "goals" : 21
         },
         "topGoals" : [ {
           "playerName" : "로빈 반페르시",
-          "value" : 39
+          "value" : 42
         }, {
           "playerName" : "마커스 래시포드",
-          "value" : 28
+          "value" : 33
         }, {
           "playerName" : "조지 베스트",
-          "value" : 26
+          "value" : 27
         } ],
         "topAssists" : [ {
-          "playerName" : "로빈 반페르시",
-          "value" : 23
-        }, {
           "playerName" : "조지 베스트",
-          "value" : 23
+          "value" : 27
+        }, {
+          "playerName" : "로빈 반페르시",
+          "value" : 26
         }, {
           "playerName" : "마커스 래시포드",
-          "value" : 20
+          "value" : 22
         } ],
         "topAttackPoints" : [ {
           "playerName" : "로빈 반페르시",
-          "value" : 62
-        }, {
-          "playerName" : "조지 베스트",
-          "value" : 49
+          "value" : 68
         }, {
           "playerName" : "마커스 래시포드",
-          "value" : 48
+          "value" : 55
+        }, {
+          "playerName" : "조지 베스트",
+          "value" : 54
         } ],
         "topDefense" : [ {
           "playerName" : "네마냐 비디치",
-          "value" : 86
+          "value" : 96
         }, {
           "playerName" : "스콧 맥토미니",
-          "value" : 83
+          "value" : 87
         }, {
           "playerName" : "리오 퍼디난드",
-          "value" : 83
+          "value" : 86
         } ],
         "topSaves" : [ {
           "playerName" : "팀 하워드",
-          "value" : 116
+          "value" : 120
         }, {
           "playerName" : "리오 퍼디난드",
           "value" : 4
         }, {
-          "playerName" : "앙드레 오나나",
-          "value" : 4
+          "playerName" : "스콧 맥토미니",
+          "value" : 3
         } ]
       }
     },
@@ -430,55 +430,55 @@
       "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
       "nickname" : "서울쥐",
       "summary" : {
-        "games" : 27,
-        "wins" : 13,
+        "games" : 24,
+        "wins" : 12,
         "draws" : 4,
-        "losses" : 10,
-        "avgGoalsFor" : 3.185185185185185,
-        "avgGoalsForXg" : 3.2542891602230672,
-        "finishing" : -1.8658073260228178,
-        "shotsPerGame" : 8.0,
-        "avgGoalsAgainst" : 2.740740740740741,
+        "losses" : 8,
+        "avgGoalsFor" : 3.3333333333333335,
+        "avgGoalsForXg" : 3.370818675010002,
+        "finishing" : -0.8996482002400512,
+        "shotsPerGame" : 8.208333333333334,
+        "avgGoalsAgainst" : 3.0833333333333335,
         "avgGoalsAgainstXg" : 3.1268633494999545,
         "concededSampleGames" : 24,
-        "totalGoalsFor" : 86,
+        "totalGoalsFor" : 80,
         "totalGoalsAgainst" : 74,
-        "totalShots" : 216,
-        "totalShotsOnTarget" : 166,
-        "totalPassTry" : 2489,
-        "totalPassSuccess" : 2207,
-        "totalXgFor" : 87.86580732602282,
+        "totalShots" : 197,
+        "totalShotsOnTarget" : 149,
+        "totalPassTry" : 2376,
+        "totalPassSuccess" : 2112,
+        "totalXgFor" : 80.89964820024005,
         "totalXgAgainst" : 75.04472038799891,
-        "cleanSheets" : 5,
-        "cleanSheetPct" : 18.51851851851852,
+        "cleanSheets" : 2,
+        "cleanSheetPct" : 8.333333333333334,
         "multiConcededGames" : 14,
-        "multiConcededPct" : 51.851851851851855,
-        "lowPossessionGames" : 2,
-        "lowPossessionPct" : 7.407407407407407,
+        "multiConcededPct" : 58.333333333333336,
+        "lowPossessionGames" : 1,
+        "lowPossessionPct" : 4.166666666666667,
         "balancedPossessionGames" : 14,
-        "balancedPossessionPct" : 51.851851851851855,
-        "highPossessionGames" : 11,
-        "highPossessionPct" : 40.74074074074074,
-        "avgPossession" : 50.55555555555556,
-        "avgRating" : 8.34362222222222,
+        "balancedPossessionPct" : 58.333333333333336,
+        "highPossessionGames" : 9,
+        "highPossessionPct" : 37.5,
+        "avgPossession" : 52.208333333333336,
+        "avgRating" : 8.32963,
         "combo" : {
           "playerAName" : "디디에 드로그바",
           "playerBName" : "세스크 파브레가스",
-          "goals" : 15
+          "goals" : 14
         },
         "topGoals" : [ {
           "playerName" : "디디에 드로그바",
-          "value" : 25
+          "value" : 23
         }, {
           "playerName" : "프란체스코 토티",
-          "value" : 18
+          "value" : 17
         }, {
           "playerName" : "세스크 파브레가스",
           "value" : 11
         } ],
         "topAssists" : [ {
           "playerName" : "세스크 파브레가스",
-          "value" : 15
+          "value" : 14
         }, {
           "playerName" : "프란체스코 토티",
           "value" : 7
@@ -488,32 +488,32 @@
         } ],
         "topAttackPoints" : [ {
           "playerName" : "디디에 드로그바",
-          "value" : 28
-        }, {
-          "playerName" : "세스크 파브레가스",
           "value" : 26
         }, {
-          "playerName" : "프란체스코 토티",
+          "playerName" : "세스크 파브레가스",
           "value" : 25
+        }, {
+          "playerName" : "프란체스코 토티",
+          "value" : 24
         } ],
         "topDefense" : [ {
           "playerName" : "에반 은디카",
-          "value" : 57
+          "value" : 55
         }, {
           "playerName" : "칼리두 쿨리발리",
-          "value" : 50
+          "value" : 44
         }, {
           "playerName" : "마르키뉴스",
-          "value" : 43
+          "value" : 39
         } ],
         "topSaves" : [ {
           "playerName" : "보이치에흐 슈체스니",
-          "value" : 48
+          "value" : 44
         }, {
           "playerName" : "티보 쿠르투아",
           "value" : 25
         }, {
-          "playerName" : "리스 제임스",
+          "playerName" : "애슐리 콜",
           "value" : 2
         } ]
       }
@@ -522,37 +522,37 @@
       "ouid" : "2a27e3732d7ea05e453ac8a41f39b134",
       "nickname" : "아기블루스",
       "summary" : {
-        "games" : 23,
-        "wins" : 16,
+        "games" : 21,
+        "wins" : 15,
         "draws" : 2,
-        "losses" : 5,
-        "avgGoalsFor" : 2.652173913043478,
-        "avgGoalsForXg" : 2.615609073991641,
+        "losses" : 4,
+        "avgGoalsFor" : 2.9047619047619047,
+        "avgGoalsForXg" : 2.8647147000860826,
         "finishing" : 0.8409912981922645,
-        "shotsPerGame" : 5.956521739130435,
-        "avgGoalsAgainst" : 1.608695652173913,
+        "shotsPerGame" : 6.523809523809524,
+        "avgGoalsAgainst" : 1.7619047619047619,
         "avgGoalsAgainstXg" : 2.7292936393586795,
         "concededSampleGames" : 21,
         "totalGoalsFor" : 61,
         "totalGoalsAgainst" : 37,
         "totalShots" : 137,
         "totalShotsOnTarget" : 98,
-        "totalPassTry" : 2554,
-        "totalPassSuccess" : 2345,
+        "totalPassTry" : 2586,
+        "totalPassSuccess" : 2375,
         "totalXgFor" : 60.159008701807736,
         "totalXgAgainst" : 57.31516642653227,
-        "cleanSheets" : 2,
-        "cleanSheetPct" : 8.695652173913043,
+        "cleanSheets" : 0,
+        "cleanSheetPct" : 0.0,
         "multiConcededGames" : 3,
-        "multiConcededPct" : 13.043478260869565,
-        "lowPossessionGames" : 1,
-        "lowPossessionPct" : 4.3478260869565215,
+        "multiConcededPct" : 14.285714285714286,
+        "lowPossessionGames" : 0,
+        "lowPossessionPct" : 0.0,
         "balancedPossessionGames" : 14,
-        "balancedPossessionPct" : 60.869565217391305,
-        "highPossessionGames" : 8,
-        "highPossessionPct" : 34.78260869565217,
-        "avgPossession" : 52.869565217391305,
-        "avgRating" : 8.784054782608695,
+        "balancedPossessionPct" : 66.66666666666667,
+        "highPossessionGames" : 7,
+        "highPossessionPct" : 33.333333333333336,
+        "avgPossession" : 52.95238095238095,
+        "avgRating" : 8.91481142857143,
         "combo" : {
           "playerAName" : "리오넬 메시",
           "playerBName" : "크바라츠헬리아",
@@ -650,87 +650,48 @@
           "playerBName" : "요한 크루이프",
           "goals" : 2
         },
-        "topGoals" : [ {
-          "playerName" : "요한 크루이프",
-          "value" : 4
-        }, {
-          "playerName" : "헨릭 라르손",
-          "value" : 1
-        } ],
-        "topAssists" : [ {
-          "playerName" : "리오넬 메시",
-          "value" : 2
-        }, {
-          "playerName" : "뤼도비크 지울리",
-          "value" : 2
-        }, {
-          "playerName" : "야야 투레",
-          "value" : 1
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "요한 크루이프",
-          "value" : 4
-        }, {
-          "playerName" : "리오넬 메시",
-          "value" : 2
-        }, {
-          "playerName" : "뤼도비크 지울리",
-          "value" : 2
-        } ],
-        "topDefense" : [ {
-          "playerName" : "마르코스 알론소",
-          "value" : 9
-        }, {
-          "playerName" : "세르지 로베르토",
-          "value" : 8
-        }, {
-          "playerName" : "일카이 귄도안",
-          "value" : 6
-        } ],
-        "topSaves" : [ {
-          "playerName" : "야스퍼르 실러선",
-          "value" : 6
-        }, {
-          "playerName" : "보이치에흐 슈체스니",
-          "value" : 4
-        } ]
+        "topGoals" : [ ],
+        "topAssists" : [ ],
+        "topAttackPoints" : [ ],
+        "topDefense" : [ ],
+        "topSaves" : [ ]
       }
     },
     "1894adb89b4a7953381bdd5671ce7610" : {
       "ouid" : "1894adb89b4a7953381bdd5671ce7610",
       "nickname" : "지린성에사는욱구",
       "summary" : {
-        "games" : 55,
-        "wins" : 7,
+        "games" : 59,
+        "wins" : 9,
         "draws" : 7,
-        "losses" : 41,
-        "avgGoalsFor" : 1.8363636363636364,
-        "avgGoalsForXg" : 2.278854930232966,
-        "finishing" : -24.33702116281313,
-        "shotsPerGame" : 5.290909090909091,
-        "avgGoalsAgainst" : 3.4727272727272727,
-        "avgGoalsAgainstXg" : 3.6542416106087945,
-        "concededSampleGames" : 54,
-        "totalGoalsFor" : 101,
-        "totalGoalsAgainst" : 191,
-        "totalShots" : 291,
-        "totalShotsOnTarget" : 207,
-        "totalPassTry" : 4879,
-        "totalPassSuccess" : 4249,
-        "totalXgFor" : 125.33702116281313,
-        "totalXgAgainst" : 197.3290469728749,
-        "cleanSheets" : 3,
-        "cleanSheetPct" : 5.454545454545454,
-        "multiConcededGames" : 39,
-        "multiConcededPct" : 70.9090909090909,
-        "lowPossessionGames" : 10,
-        "lowPossessionPct" : 18.181818181818183,
-        "balancedPossessionGames" : 39,
-        "balancedPossessionPct" : 70.9090909090909,
-        "highPossessionGames" : 6,
-        "highPossessionPct" : 10.909090909090908,
-        "avgPossession" : 50.0,
-        "avgRating" : 7.762222545454548,
+        "losses" : 43,
+        "avgGoalsFor" : 2.0677966101694913,
+        "avgGoalsForXg" : 2.4310346833377303,
+        "finishing" : -21.431046316926086,
+        "shotsPerGame" : 5.627118644067797,
+        "avgGoalsAgainst" : 3.6779661016949152,
+        "avgGoalsAgainstXg" : 3.6997451974928746,
+        "concededSampleGames" : 59,
+        "totalGoalsFor" : 122,
+        "totalGoalsAgainst" : 217,
+        "totalShots" : 332,
+        "totalShotsOnTarget" : 242,
+        "totalPassTry" : 5353,
+        "totalPassSuccess" : 4663,
+        "totalXgFor" : 143.43104631692609,
+        "totalXgAgainst" : 218.2849666520796,
+        "cleanSheets" : 1,
+        "cleanSheetPct" : 1.694915254237288,
+        "multiConcededGames" : 45,
+        "multiConcededPct" : 76.27118644067797,
+        "lowPossessionGames" : 9,
+        "lowPossessionPct" : 15.254237288135593,
+        "balancedPossessionGames" : 45,
+        "balancedPossessionPct" : 76.27118644067797,
+        "highPossessionGames" : 5,
+        "highPossessionPct" : 8.474576271186441,
+        "avgPossession" : 49.355932203389834,
+        "avgRating" : 7.822410847457626,
         "combo" : {
           "playerAName" : "로멜루 루카쿠",
           "playerBName" : "웨인 루니",
@@ -743,8 +704,8 @@
           "playerName" : "로멜루 루카쿠",
           "value" : 22
         }, {
-          "playerName" : "스콧 맥토미니",
-          "value" : 9
+          "playerName" : "레반도프스키",
+          "value" : 17
         } ],
         "topAssists" : [ {
           "playerName" : "웨인 루니",
@@ -763,15 +724,15 @@
           "playerName" : "로멜루 루카쿠",
           "value" : 33
         }, {
-          "playerName" : "스콧 맥토미니",
-          "value" : 20
+          "playerName" : "레반도프스키",
+          "value" : 24
         } ],
         "topDefense" : [ {
           "playerName" : "리오 퍼디난드",
-          "value" : 115
+          "value" : 110
         }, {
           "playerName" : "야프 스탐",
-          "value" : 96
+          "value" : 94
         }, {
           "playerName" : "데이비드 베컴",
           "value" : 64
@@ -780,11 +741,11 @@
           "playerName" : "데헤아",
           "value" : 71
         }, {
-          "playerName" : "페터 슈마이켈",
-          "value" : 58
+          "playerName" : "주안 가르시아",
+          "value" : 57
         }, {
-          "playerName" : "에드윈 반데르사르",
-          "value" : 43
+          "playerName" : "페터 슈마이켈",
+          "value" : 48
         } ]
       }
     },
@@ -828,44 +789,11 @@
           "playerBName" : "데니스 베르캄프",
           "goals" : 1
         },
-        "topGoals" : [ {
-          "playerName" : "데니스 베르캄프",
-          "value" : 1
-        }, {
-          "playerName" : "레안드로 트로사르",
-          "value" : 1
-        } ],
-        "topAssists" : [ {
-          "playerName" : "부카요 사카",
-          "value" : 1
-        }, {
-          "playerName" : "알렉상드르 라카제트",
-          "value" : 1
-        } ],
-        "topAttackPoints" : [ {
-          "playerName" : "데니스 베르캄프",
-          "value" : 1
-        }, {
-          "playerName" : "부카요 사카",
-          "value" : 1
-        }, {
-          "playerName" : "레안드로 트로사르",
-          "value" : 1
-        } ],
-        "topDefense" : [ {
-          "playerName" : "가브리엘 마갈량이스",
-          "value" : 5
-        }, {
-          "playerName" : "위리엔 팀버",
-          "value" : 3
-        }, {
-          "playerName" : "윌리암 살리바",
-          "value" : 3
-        } ],
-        "topSaves" : [ {
-          "playerName" : "다비드 라야",
-          "value" : 7
-        } ]
+        "topGoals" : [ ],
+        "topAssists" : [ ],
+        "topAttackPoints" : [ ],
+        "topDefense" : [ ],
+        "topSaves" : [ ]
       }
     }
   }
