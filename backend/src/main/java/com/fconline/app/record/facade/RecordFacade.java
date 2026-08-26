@@ -459,7 +459,7 @@ public class RecordFacade {
 
     /** user_team_periods를 한 번에 읽어 ouid별로 묶는다 — 목록 한 페이지마다 DB를 다시 안 친다. */
     private Map<String, List<UserTeamPeriod>> teamPeriodsByOuid(Set<String> ouids) {
-        return userTeamPeriodRepository.findByOuidIn(ouids).stream()
+        return userTeamPeriodRepository.findByOuidInOrderByStartDateAsc(ouids).stream()
                 .collect(Collectors.groupingBy(UserTeamPeriod::getOuid));
     }
 
