@@ -899,6 +899,7 @@
             function (s) { return s.name; },
             function (value) {
               state.seasonId = Number(value);
+              refreshTeamChips(); // 시즌마다 실제로 뛴 적 있는 팀만 다시 골라 보여준다(요청).
               persist();
               loadSelection();
             });
@@ -923,25 +924,51 @@
    * 불러오고 선택은 항상 "전체"로 리셋한다(이전 유저의 팀 기간 id가 새 유저에 잘못 남지 않게).
    * 이 유저에 팀 기간 데이터가 아예 없으면(user_team_periods에 행 없음) 필터 자체를 숨긴다.
    */
+  var rawTeamPeriods = []; // 현재 선택된 유저의 팀 기간 전체(시즌 필터 전) — 시즌 바뀔 때 재요청 없이 재사용.
+
+  /** ISO 날짜 문자열(YYYY-MM-DD)은 사전식 비교가 곧 날짜 비교라 Date로 안 바꾸고 그대로 비교한다. */
+  function periodOverlapsSeason(period, season) {
+    var periodEndOk = period.endDate == null || period.endDate >= season.startDate;
+    var seasonEndOk = season.endDate == null || season.endDate >= period.startDate;
+    return periodEndOk && seasonEndOk;
+  }
+
+  /**
+   * 시즌1/시즌2에 실제로 쓰인 적 없는 팀은 노출하지 않는다(요청 — 예: 서울쥐의 "한국"은
+   * 시즌1에서만 뛰어서 시즌2를 보고 있을 땐 칩 자체가 안 보여야 함). 유저를 바꿀 때뿐 아니라
+   * 시즌을 바꿀 때도 다시 불러온다(rawTeamPeriods는 그대로 두고 필터링만 다시).
+   */
+  function refreshTeamChips() {
+    var season = allSeasons.filter(function (s) { return String(s.id) === String(state.seasonId); })[0];
+    var visible = season ? rawTeamPeriods.filter(function (p) { return periodOverlapsSeason(p, season); }) : rawTeamPeriods;
+
+    if (!visible.length) {
+      teamFilterGroup.hidden = true;
+      state.teamPeriodId = null;
+      return;
+    }
+    teamFilterGroup.hidden = false;
+    var items = [{ id: 'ALL', teamName: '전체' }].concat(visible);
+    buildChips(teamChipRow, items,
+      function (p) { return p.id; },
+      function (p) { return p.teamName; },
+      function (value) {
+        state.teamPeriodId = value === 'ALL' ? null : Number(value);
+        persist();
+        loadSelection();
+      });
+    // 이전에 고른 팀이 이 시즌엔 없으면(위 필터에서 빠짐) "전체"로 되돌린다.
+    var stillValid = visible.some(function (p) { return String(p.id) === String(state.teamPeriodId); });
+    if (!stillValid) state.teamPeriodId = null;
+    setActiveChip(teamChipRow, state.teamPeriodId == null ? 'ALL' : state.teamPeriodId);
+  }
+
   function loadTeamPeriods(ouid) {
     state.teamPeriodId = null;
     return apiGet('/api/v1/users/team-periods', { ouid: ouid }).then(function (periods) {
-      if (!periods.length) {
-        teamFilterGroup.hidden = true;
-        return;
-      }
-      teamFilterGroup.hidden = false;
-      var items = [{ id: 'ALL', teamName: '전체' }].concat(periods);
-      buildChips(teamChipRow, items,
-        function (p) { return p.id; },
-        function (p) { return p.teamName; },
-        function (value) {
-          state.teamPeriodId = value === 'ALL' ? null : Number(value);
-          persist();
-          loadSelection();
-        });
-      setActiveChip(teamChipRow, 'ALL');
-    }).catch(function () { teamFilterGroup.hidden = true; });
+      rawTeamPeriods = periods;
+      refreshTeamChips();
+    }).catch(function () { rawTeamPeriods = []; teamFilterGroup.hidden = true; });
   }
 
   function selectUser(value) {
