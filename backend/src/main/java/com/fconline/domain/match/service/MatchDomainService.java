@@ -8,6 +8,7 @@ import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.PlayerShotPoint;
 import com.fconline.domain.match.vo.MatchGoalEvent;
+import com.fconline.domain.match.vo.MatchPlayerRating;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.MatchTally;
 import com.fconline.domain.match.vo.MatchType;
@@ -74,6 +75,10 @@ public class MatchDomainService {
     }
 
     /** 득점 시각(분) 원시값을 절대 누적 분으로 환산해 15분 단위 버킷으로 집계한다. */
+    public List<MatchPlayerRating> matchPlayerRatings(String ouid, MatchType matchType, Instant from, Instant to) {
+        return matchDetailRepository.findMatchPlayerRatings(ouid, matchType, from, to);
+    }
+
     public List<GoalTimeCount> goalTimeDistribution(String ouid, MatchType matchType, Instant from, Instant to) {
         List<GoalTimeRaw> raws = matchDetailRepository.findGoalMinutes(ouid, matchType, from, to);
 

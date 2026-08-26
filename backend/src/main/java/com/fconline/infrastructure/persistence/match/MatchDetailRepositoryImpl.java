@@ -3,6 +3,7 @@ package com.fconline.infrastructure.persistence.match;
 import com.fconline.domain.match.vo.AssistChainCount;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
+import com.fconline.domain.match.vo.MatchPlayerRating;
 import com.fconline.domain.match.repository.MatchDetailRepositoryCustom;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
@@ -242,6 +243,27 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
 
         return rows.stream()
                 .map(row -> new GoalTimeRaw(row.get(se.goalTimeMinutes), row.get(se.period)))
+                .toList();
+    }
+
+    @Override
+    public List<MatchPlayerRating> findMatchPlayerRatings(String ouid, MatchType matchType, Instant from, Instant to) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QSquadEntry sq = QSquadEntry.squadEntry;
+
+        List<Tuple> rows = queryFactory
+                .select(m.matchId, sq.spId, sq.rating)
+                .from(sq)
+                .join(sq.matchDetail, md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to)
+                        .and(sq.rating.isNotNull())
+                        .and(sq.rating.gt(0.0)))
+                .fetch();
+
+        return rows.stream()
+                .map(row -> new MatchPlayerRating(row.get(m.matchId), row.get(sq.spId), row.get(sq.rating)))
                 .toList();
     }
 

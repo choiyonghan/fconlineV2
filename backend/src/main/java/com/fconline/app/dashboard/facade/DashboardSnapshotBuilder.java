@@ -3,6 +3,7 @@ package com.fconline.app.dashboard.facade;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fconline.app.dashboard.dto.DashboardCombo;
+import com.fconline.app.dashboard.dto.DashboardPooledPlayer;
 import com.fconline.app.dashboard.dto.DashboardRankingEntry;
 import com.fconline.app.dashboard.dto.DashboardScopeSummary;
 import com.fconline.app.dashboard.dto.DashboardSnapshotFile;
@@ -11,6 +12,7 @@ import com.fconline.app.dashboard.dto.DashboardUserSnapshot;
 import com.fconline.domain.match.vo.ExpectedGoalsCalculator;
 import com.fconline.app.insight.facade.TrackedUserAliasResolver;
 import com.fconline.app.record.dto.AssistChainResponse;
+import com.fconline.app.record.dto.MatchPlayerRatingResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.ShotPointResponse;
@@ -25,6 +27,7 @@ import com.fconline.infrastructure.gemini.GeminiApiClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -77,8 +80,18 @@ public class DashboardSnapshotBuilder {
     public DashboardSnapshotFile build() {
         List<TrackedUserResponse> users = userFacade.listTrackedUsers();
         SeasonResponse currentSeason = resolveCurrentSeason();
+        MatchType matchType = MatchType.CUSTOM;
+        Long seasonId = currentSeason.id();
 
-        Map<String, DashboardScopeSummary> summaryByOuid = buildScope(users, MatchType.CUSTOM, currentSeason.id());
+        Map<String, DashboardScopeSummary> summaryByOuid = new LinkedHashMap<>();
+        Map<String, List<TopPlayerResponse>> playersByOuid = new LinkedHashMap<>();
+        for (TrackedUserResponse u : users) {
+            ShotHeatmapResponse heatmap = recordFacade.getShotHeatmap(u.ouid(), matchType, seasonId, false);
+            ShotHeatmapResponse conceded = recordFacade.getConcededShotHeatmap(u.ouid(), matchType, seasonId);
+            List<TopPlayerResponse> players = recordFacade.getAllPlayers(u.ouid(), matchType, seasonId);
+            playersByOuid.put(u.ouid(), players);
+            summaryByOuid.put(u.ouid(), buildScopeSummary(u.ouid(), matchType, seasonId, heatmap, conceded, players));
+        }
 
         Map<String, DashboardUserSnapshot> snapshots = new LinkedHashMap<>();
         for (TrackedUserResponse u : users) {
@@ -86,10 +99,53 @@ public class DashboardSnapshotBuilder {
         }
 
         RankingResult ranking = buildRanking(users, summaryByOuid);
+        List<DashboardPooledPlayer> allPlayers = buildPooledPlayers(users, matchType, seasonId, playersByOuid);
 
         return new DashboardSnapshotFile(Instant.now(), currentSeason.name(),
                 ranking.failed(), ranking.note(), ranking.introText(), ranking.outroText(),
-                ranking.entries(), snapshots);
+                ranking.entries(), snapshots, allPlayers);
+    }
+
+    /**
+     * "전체 선수 스탯"(9명 풀링, 최소 10경기 출전만) + MOM 횟수. MOM은 매치별로 이 유저 관점
+     * 스쿼드 평점 원시값(getMatchPlayerRatings)을 9명 전부 모아 matchId로 묶은 뒤 argmax를
+     * 구하는 방식이다 — 상대도 추적 대상이면 상대 쪽 행도 같은 matchId로 이 풀에 자연히
+     * 섞여 들어와서 양팀 통틀어 비교된다(findConcededShotPoints와 같은 원리, 별도 상대 조인 불필요).
+     */
+    private List<DashboardPooledPlayer> buildPooledPlayers(List<TrackedUserResponse> users, MatchType matchType,
+                                                             Long seasonId, Map<String, List<TopPlayerResponse>> playersByOuid) {
+        record RatedEntry(String nickname, String matchId, String spId, double rating) {
+        }
+        List<RatedEntry> allRatings = new ArrayList<>();
+        for (TrackedUserResponse u : users) {
+            for (MatchPlayerRatingResponse r : recordFacade.getMatchPlayerRatings(u.ouid(), matchType, seasonId)) {
+                allRatings.add(new RatedEntry(u.nickname(), r.matchId(), r.spId(), r.rating()));
+            }
+        }
+        Map<String, RatedEntry> bestByMatch = new LinkedHashMap<>();
+        for (RatedEntry e : allRatings) {
+            RatedEntry cur = bestByMatch.get(e.matchId());
+            if (cur == null || e.rating() > cur.rating()) bestByMatch.put(e.matchId(), e);
+        }
+        Map<String, Integer> momCountByKey = new HashMap<>();
+        for (RatedEntry best : bestByMatch.values()) {
+            momCountByKey.merge(best.nickname() + "|" + best.spId(), 1, Integer::sum);
+        }
+
+        List<DashboardPooledPlayer> pooled = new ArrayList<>();
+        for (TrackedUserResponse u : users) {
+            for (TopPlayerResponse p : playersByOuid.getOrDefault(u.ouid(), List.of())) {
+                if (p.appearances() < TOP_PLAYER_MIN_APPEARANCES) continue;
+                int momCount = momCountByKey.getOrDefault(u.nickname() + "|" + p.spId(), 0);
+                pooled.add(new DashboardPooledPlayer(
+                        u.nickname(), p.spId(), p.playerName(), p.appearances(),
+                        p.goals(), p.assists(), p.saves(), p.tackles(), p.intercepts(), p.blocks(),
+                        p.shootTotal(), p.effectiveShoot(), p.passTry(), p.passSuccess(),
+                        p.dribbleTry(), p.dribbleSuccess(), p.dribbleDistance(), p.aerialTry(), p.aerialSuccess(),
+                        p.avgRating(), p.xg(), p.goals() - p.xg(), momCount));
+            }
+        }
+        return pooled;
     }
 
     private SeasonResponse resolveCurrentSeason() {
@@ -103,24 +159,15 @@ public class DashboardSnapshotBuilder {
 
     // ---------------- 스코프("모두의 커스텀") 서머리 ----------------
 
-    private Map<String, DashboardScopeSummary> buildScope(List<TrackedUserResponse> users, MatchType matchType,
-                                                            Long seasonId) {
-        Map<String, DashboardScopeSummary> result = new LinkedHashMap<>();
-        for (TrackedUserResponse u : users) {
-            ShotHeatmapResponse heatmap = recordFacade.getShotHeatmap(u.ouid(), matchType, seasonId, false);
-            ShotHeatmapResponse conceded = recordFacade.getConcededShotHeatmap(u.ouid(), matchType, seasonId);
-            result.put(u.ouid(), buildScopeSummary(u.ouid(), matchType, seasonId, heatmap, conceded));
-        }
-        return result;
-    }
-
     /**
      * 지표 공식은 report.js의 renderPlayStyle(플레이 성향 카드)과 동일하게 맞춘다 — 클래스
      * 주석(DashboardScopeSummary) 참고. xG는 ExpectedGoalsCalculator(거리·각도 로지스틱 회귀
-     * 순수 함수)라 더는 표본을 미리 풀링할 필요가 없다.
+     * 순수 함수)라 더는 표본을 미리 풀링할 필요가 없다. players는 build()가 "전체 선수 스탯"
+     * 풀링에도 재사용하려고 미리 fetch해서 넘겨준다(중복 호출 방지).
      */
     private DashboardScopeSummary buildScopeSummary(String ouid, MatchType matchType, Long seasonId,
-                                                      ShotHeatmapResponse heatmap, ShotHeatmapResponse conceded) {
+                                                      ShotHeatmapResponse heatmap, ShotHeatmapResponse conceded,
+                                                      List<TopPlayerResponse> players) {
         OverallRecordResponse overall = recordFacade.getOverallRecord(ouid, matchType, seasonId);
         int games = overall.tally().win() + overall.tally().draw() + overall.tally().lose();
 
@@ -137,7 +184,6 @@ public class DashboardSnapshotBuilder {
         int balanced = Math.max(games - low - high, 0);
 
         List<AssistChainResponse> chains = recordFacade.getAssistChains(ouid, matchType, seasonId, ASSIST_CHAIN_LIMIT);
-        List<TopPlayerResponse> players = recordFacade.getAllPlayers(ouid, matchType, seasonId);
         int totalShotsOnTarget = players.stream().mapToInt(TopPlayerResponse::effectiveShoot).sum();
         // 선수단 합산 대신 overall(MatchStats 기반, 매치당 팀 합계) 값을 쓴다 — report.js
         // 개인 리포트 페이지의 패스 성향 카드와 같은 소스로 맞춘 것(이전엔 여기만 선수 합산이었다).

@@ -6,6 +6,7 @@ import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
 import com.fconline.domain.match.vo.MatchGoalEvent;
 import com.fconline.domain.match.vo.MatchShotDetail;
+import com.fconline.domain.match.vo.MatchPlayerRating;
 import com.fconline.domain.match.vo.MatchSquadEntryRaw;
 import com.fconline.domain.match.vo.MatchStatsSummary;
 import com.fconline.domain.match.vo.PlayerShotPoint;
@@ -52,6 +53,15 @@ public interface MatchDetailRepositoryCustom {
      * minute을 그대로 버킷팅해서 후반/연장 골이 전부 0~45분대로 잘못 집계되고 있었다.
      */
     List<GoalTimeRaw> findGoalMinutes(String ouid, MatchType matchType, Instant from, Instant to);
+
+    /**
+     * 매치별 스쿼드 엔트리 평점 원시값(집계 없음) — 대시보드 "선수 랭킹"의 MOM 횟수 집계용
+     * (매치마다 이 유저 관점 스쿼드 안에서 argmax를 구해 그 매치의 MOM 후보로 쓴다. 상대도
+     * 추적 대상이면 상대 쪽 행도 같은 matchId로 따로 존재해서, 여러 유저를 이 메서드로 각각
+     * 호출해 풀링하면 자연히 양팀 다 포함된다 — findConcededShotPoints와 같은 원리). rating이
+     * null이거나 0인 엔트리는 제외한다(출전 등록만 되고 실제로 안 뛴 경우).
+     */
+    List<MatchPlayerRating> findMatchPlayerRatings(String ouid, MatchType matchType, Instant from, Instant to);
 
     /** 상대별 승/무/패 집계 목록 (상대별 카드 화면의 기반 데이터). */
     List<OpponentTally> aggregateOpponentTallies(String ouid, MatchType matchType, Instant from, Instant to);

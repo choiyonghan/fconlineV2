@@ -9,6 +9,7 @@ import com.fconline.app.record.dto.MatchShotResponse;
 import com.fconline.app.record.dto.MatchShotsResponse;
 import com.fconline.app.record.dto.MatchSquadEntryResponse;
 import com.fconline.app.record.dto.OverallRecordResponse;
+import com.fconline.app.record.dto.MatchPlayerRatingResponse;
 import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
@@ -387,6 +388,20 @@ public class RecordFacade {
                         ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull())
                 .stream()
                 .map(g -> new PlayerGradeResponse(g.spId(), g.grade()))
+                .toList();
+    }
+
+    /** 대시보드 "선수 랭킹"의 MOM 횟수 집계용 — 매치별 스쿼드 엔트리 평점 원시값(집계 없음). */
+    @Transactional(readOnly = true)
+    public List<MatchPlayerRatingResponse> getMatchPlayerRatings(String ouid, MatchType matchType, Long seasonId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        return matchDomainService.matchPlayerRatings(
+                        ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull())
+                .stream()
+                .map(r -> new MatchPlayerRatingResponse(r.matchId(), r.spId(), r.rating()))
                 .toList();
     }
 

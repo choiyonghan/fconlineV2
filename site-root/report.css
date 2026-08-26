@@ -894,4 +894,16 @@
   }
   .dashboard-top3-name { color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dashboard-top3-value { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-secondary); flex: 0 0 auto; }
+  .dashboard-top3-owner { color: var(--text-muted); font-size: 11px; }
+
+  /* ---------- 대시보드 "선수 랭킹 TOP5" ---------- */
+  .dashboard-player-ranking-head {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .dashboard-player-ranking-head .card-title { margin: 0; }
+  .dashboard-ranking-toggle { flex: 0 0 auto; }
+  .dashboard-player-rank-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px;
+  }
+  .dashboard-player-ranking-card .more-btn { margin-top: 14px; }
 

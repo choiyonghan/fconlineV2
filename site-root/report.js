@@ -77,6 +77,7 @@
   }
   function hideTip() { tooltip.classList.remove('show'); }
 
+  var YARD_TO_METER = 0.9144; // Nexon 드리블 거리 원본이 야드 단위라 표시 시점에 미터로 환산한다.
   function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
   function fmt1(n) { return Number(n).toFixed(1); }
 
@@ -425,15 +426,13 @@
       dashboardSummaryEl.appendChild(introBox);
     }
 
-    if (data.aiRankingFailed && data.aiRankingNote) {
-      var noteBox = el('div', 'card');
-      noteBox.style.marginBottom = '14px';
-      noteBox.appendChild(el('p', 'card-title', '⚠️ AI 랭킹 안내'));
-      noteBox.appendChild(el('p', 'card-caption', data.aiRankingNote));
-      dashboardSummaryEl.appendChild(noteBox);
-    }
+    // AI 랭킹 실패 안내 배너는 계속 실패해서 보기 불편하다는 요청으로 뺐다 — 실패 시에도
+    // 폴백 랭킹(승률·득실차 기준)은 평소처럼 조용히 그대로 보여준다, 배너만 없앤 것.
 
     dashboardSummaryEl.appendChild(buildDashboardTable(data));
+
+    // 팀 랭킹(유저 순위표) 다음에 선수 랭킹(요청) — 9명 전원 풀링된 선수 스탯 기준 TOP5.
+    dashboardSummaryEl.appendChild(buildDashboardPlayerRankingSection(data.allPlayers || []));
 
     if (data.outroText) {
       var outroBox = el('div', 'card');
@@ -450,6 +449,229 @@
     recentActivityBox.style.marginTop = '14px';
     recentActivityBox.hidden = true; // loadRecentActivityFeed가 다 모아지면 채우고 보여준다
     dashboardSummaryEl.appendChild(recentActivityBox);
+
+    // "전체 선수 스탯" — 9명 전원 풀링, 정렬 가능한 그리드. 항상 최하단(요청).
+    var playersGridCard = el('div', 'card dashboard-players-grid-card');
+    playersGridCard.id = 'dashboard-players-grid-card';
+    playersGridCard.style.marginTop = '14px';
+    playersGridCard.appendChild(el('p', 'card-title', '👥 전체 선수 스탯'));
+    playersGridCard.appendChild(el('p', 'card-caption',
+      '9명 전원의 선수 스탯을 모았습니다(최소 10경기 출전). 열 제목을 클릭하면 정렬됩니다. 드리블거리는 미터 환산입니다.'));
+    var dashboardPlayersGridWrap = el('div', 'table-scroll');
+    dashboardPlayersGridWrap.id = 'dashboard-players-grid';
+    playersGridCard.appendChild(dashboardPlayersGridWrap);
+    dashboardSummaryEl.appendChild(playersGridCard);
+    dashboardAllPlayers = data.allPlayers || [];
+    dashboardPlayersGridSort = { col: 'goals', dir: 'desc' };
+    renderDashboardPlayersGrid(dashboardAllPlayers);
+  }
+
+  // ---------------- 대시보드 "선수 랭킹"(TOP5) + "전체 선수 스탯" 그리드 ----------------
+  var dashboardAllPlayers = [];
+  var dashboardRankingMode = 'total'; // 'total'(실제/총합) | 'avg'(경기당 평균) — 버튼으로 토글.
+
+  /**
+   * 카테고리별 TOP5(요청) — valueFn은 항상 "총합" 기준 값을 반환하고, 평균 모드에서는 여기서
+   * appearances로 나눈다(카테고리마다 따로 안 만들고 토글 버튼 하나로 총합/평균 전환).
+   */
+  var DASHBOARD_PLAYER_RANK_CATEGORIES = [
+    { label: '⚽ 득점', unit: '골', valueFn: function (p) { return p.goals; } },
+    { label: '🅰️ 도움', unit: '도움', valueFn: function (p) { return p.assists; } },
+    { label: '🔥 공격포인트', unit: 'P', valueFn: function (p) { return p.goals + p.assists; } },
+    { label: '🎯 결정력', unit: '골', valueFn: function (p) { return p.finishing; }, allowNegative: true },
+    { label: '🥅 총슈팅', unit: '회', valueFn: function (p) { return p.shootTotal; } },
+    { label: '🎯 유효슈팅', unit: '회', valueFn: function (p) { return p.effectiveShoot; } },
+    { label: '🔁 패스 시도', unit: '회', valueFn: function (p) { return p.passTry; } },
+    { label: '✅ 패스 성공', unit: '회', valueFn: function (p) { return p.passSuccess; } },
+    { label: '🛡️ 태클+인터셉트', unit: '회', valueFn: function (p) { return p.tackles + p.intercepts; } },
+    { label: '🧤 선방', unit: '회', valueFn: function (p) { return p.saves; } },
+    { label: '🏆 MOM 횟수', unit: '회', valueFn: function (p) { return p.momCount; } }
+  ];
+
+  function buildDashboardPlayerRankingSection(players) {
+    var wrap = el('div', 'card dashboard-player-ranking-card');
+    wrap.style.marginTop = '14px';
+    var headRow = el('div', 'dashboard-player-ranking-head');
+    headRow.appendChild(el('p', 'card-title', '🏅 선수 랭킹 TOP5'));
+    var toggle = el('div', 'segmented dashboard-ranking-toggle');
+    var totalBtn = el('button', '', '실제(총합) 순위');
+    totalBtn.type = 'button';
+    var avgBtn = el('button', '', '평균(경기당) 순위');
+    avgBtn.type = 'button';
+    toggle.appendChild(totalBtn);
+    toggle.appendChild(avgBtn);
+    headRow.appendChild(toggle);
+    wrap.appendChild(headRow);
+    wrap.appendChild(el('p', 'card-caption',
+      '표본이 유저마다 달라 총합/평균을 나눠 볼 수 있게 했습니다. 최소 10경기 출전한 선수만 포함합니다.'));
+
+    var grid = el('div', 'dashboard-player-rank-grid');
+    wrap.appendChild(grid);
+
+    function fmtValue(v, cat) {
+      var rounded = dashboardRankingMode === 'avg' ? round1(v) : Math.round(v);
+      var sign = cat.allowNegative && v >= 0 ? '+' : '';
+      return sign + fmt(rounded) + cat.unit;
+    }
+
+    function draw() {
+      totalBtn.setAttribute('aria-pressed', String(dashboardRankingMode === 'total'));
+      avgBtn.setAttribute('aria-pressed', String(dashboardRankingMode === 'avg'));
+      grid.replaceChildren();
+      DASHBOARD_PLAYER_RANK_CATEGORIES.forEach(function (cat) {
+        var block = el('div', 'dashboard-top3-block');
+        block.appendChild(el('p', 'card-title', cat.label));
+        var ranked = players
+          .map(function (p) {
+            var raw = cat.valueFn(p);
+            var v = dashboardRankingMode === 'avg' && p.appearances > 0 ? raw / p.appearances : raw;
+            return { p: p, v: v };
+          })
+          .filter(function (r) { return cat.allowNegative ? true : r.v > 0; })
+          .sort(function (a, b) { return b.v - a.v; })
+          .slice(0, 5);
+        if (!ranked.length) {
+          block.appendChild(el('p', 'card-empty', '기록 없음'));
+        } else {
+          var ol = document.createElement('ol');
+          ol.className = 'dashboard-top3-list';
+          ranked.forEach(function (r) {
+            var li = document.createElement('li');
+            var nameSpan = el('span', 'dashboard-top3-name', r.p.playerName + ' ');
+            nameSpan.appendChild(el('span', 'dashboard-top3-owner', '(' + r.p.nickname + ')'));
+            li.appendChild(nameSpan);
+            li.appendChild(el('span', 'dashboard-top3-value', fmtValue(r.v, cat)));
+            ol.appendChild(li);
+          });
+          block.appendChild(ol);
+        }
+        grid.appendChild(block);
+      });
+    }
+
+    totalBtn.addEventListener('click', function () { dashboardRankingMode = 'total'; draw(); });
+    avgBtn.addEventListener('click', function () { dashboardRankingMode = 'avg'; draw(); });
+    draw();
+
+    var moreBtn = el('button', 'more-btn', '전체 선수 스탯 그리드에서 더보기 ↓');
+    moreBtn.type = 'button';
+    moreBtn.addEventListener('click', function () {
+      var target = document.getElementById('dashboard-players-grid-card');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    wrap.appendChild(moreBtn);
+
+    return wrap;
+  }
+
+  var dashboardPlayersGridSort = { col: 'goals', dir: 'desc' };
+
+  function renderDashboardPlayersGrid(players) {
+    var container = document.getElementById('dashboard-players-grid');
+    if (!container) return;
+    container.replaceChildren();
+    if (!players.length) { container.appendChild(el('p', 'card-empty', '표시할 선수 데이터가 없습니다.')); return; }
+
+    var cols = [
+      { key: 'nickname', label: '유저', numeric: false },
+      { key: 'playerName', label: '선수', numeric: false },
+      { key: 'appearances', label: '출전', numeric: true },
+      { key: 'goals', label: '골', numeric: true },
+      { key: 'assists', label: '도움', numeric: true },
+      { key: 'attackPoints', label: '공격P', numeric: true },
+      { key: 'xg', label: 'xG', numeric: true },
+      { key: 'finishing', label: '결정력', numeric: true },
+      { key: 'momCount', label: 'MOM', numeric: true },
+      { key: 'shootTotal', label: '총슈팅', numeric: true },
+      { key: 'effectiveShoot', label: '유효슈팅', numeric: true },
+      { key: 'passTry', label: '패스시도', numeric: true },
+      { key: 'passSuccess', label: '패스성공', numeric: true },
+      { key: 'dribbleTry', label: '드리블시도', numeric: true },
+      { key: 'dribbleSuccess', label: '드리블성공', numeric: true },
+      { key: 'dribbleDistanceM', label: '드리블거리', numeric: true },
+      { key: 'aerialTry', label: '공중볼시도', numeric: true },
+      { key: 'aerialSuccess', label: '공중볼성공', numeric: true },
+      { key: 'tackles', label: '태클', numeric: true },
+      { key: 'intercepts', label: '인터셉트', numeric: true },
+      { key: 'blocks', label: '블록', numeric: true },
+      { key: 'avgRating', label: '평점', numeric: true }
+    ];
+
+    var enriched = players.map(function (p) {
+      var copy = {};
+      for (var k in p) copy[k] = p[k];
+      copy.attackPoints = p.goals + p.assists;
+      copy.dribbleDistanceM = Math.round((p.dribbleDistance || 0) * YARD_TO_METER);
+      return copy;
+    });
+
+    var sorted = enriched.slice().sort(function (a, b) {
+      var av = a[dashboardPlayersGridSort.col], bv = b[dashboardPlayersGridSort.col];
+      var cmp;
+      if (typeof av === 'string') {
+        cmp = av.localeCompare(bv, 'ko');
+      } else {
+        cmp = (av == null ? -1 : av) - (bv == null ? -1 : bv);
+      }
+      return dashboardPlayersGridSort.dir === 'asc' ? cmp : -cmp;
+    });
+
+    var table = document.createElement('table');
+    var thead = document.createElement('thead');
+    var htr = document.createElement('tr');
+    cols.forEach(function (c) {
+      var th = el('th', c.numeric ? 'num sortable' : 'sortable');
+      th.tabIndex = 0;
+      th.setAttribute('role', 'button');
+      th.setAttribute('aria-sort', dashboardPlayersGridSort.col === c.key ? (dashboardPlayersGridSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      th.textContent = c.label + (dashboardPlayersGridSort.col === c.key ? (dashboardPlayersGridSort.dir === 'asc' ? ' ▲' : ' ▼') : '');
+      var sortFn = function () {
+        if (dashboardPlayersGridSort.col === c.key) {
+          dashboardPlayersGridSort.dir = dashboardPlayersGridSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+          dashboardPlayersGridSort.col = c.key;
+          dashboardPlayersGridSort.dir = c.numeric ? 'desc' : 'asc';
+        }
+        renderDashboardPlayersGrid(dashboardAllPlayers);
+      };
+      th.addEventListener('click', sortFn);
+      th.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sortFn(); } });
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    sorted.forEach(function (p) {
+      var tr = document.createElement('tr');
+      tr.appendChild(el('td', 'name-cell', p.nickname));
+      var nameTd = el('td', 'name-cell');
+      nameTd.appendChild(playerNameBadge(p.spId, p.playerName));
+      tr.appendChild(nameTd);
+      tr.appendChild(el('td', 'num', fmt(p.appearances)));
+      tr.appendChild(el('td', 'num', fmt(p.goals)));
+      tr.appendChild(el('td', 'num', fmt(p.assists)));
+      tr.appendChild(el('td', 'num', fmt(p.attackPoints)));
+      tr.appendChild(el('td', 'num', fmt1(p.xg)));
+      tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
+      tr.appendChild(el('td', 'num', fmt(p.momCount)));
+      tr.appendChild(el('td', 'num', fmt(p.shootTotal)));
+      tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
+      tr.appendChild(el('td', 'num', fmt(p.passTry)));
+      tr.appendChild(el('td', 'num', fmt(p.passSuccess)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleTry)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleSuccess)));
+      tr.appendChild(el('td', 'num', fmt(p.dribbleDistanceM) + 'm'));
+      tr.appendChild(el('td', 'num', fmt(p.aerialTry)));
+      tr.appendChild(el('td', 'num', fmt(p.aerialSuccess)));
+      tr.appendChild(el('td', 'num', fmt(p.tackles)));
+      tr.appendChild(el('td', 'num', fmt(p.intercepts)));
+      tr.appendChild(el('td', 'num', fmt(p.blocks)));
+      tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
   }
 
   // 순위표 열 정의 — [헤더라벨, s에서 값을 뽑는 함수]. 득점/득점xG/실점/실점xG는 제목만 짧게
@@ -2532,7 +2754,7 @@
       tr.appendChild(el('td', 'num', pct(p.dribbleRate)));
       tr.appendChild(el('td', 'num', fmt(p.dribbleTry)));
       tr.appendChild(el('td', 'num', fmt(p.dribbleSuccess)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleDistance)));
+      tr.appendChild(el('td', 'num', p.dribbleDistance ? fmt(Math.round(p.dribbleDistance * YARD_TO_METER)) + 'm' : '0m'));
       tr.appendChild(el('td', 'num', pct(p.aerialRate)));
       tr.appendChild(el('td', 'num', fmt(p.aerialTry)));
       tr.appendChild(el('td', 'num', fmt(p.aerialSuccess)));

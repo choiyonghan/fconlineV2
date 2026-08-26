@@ -248,7 +248,9 @@ public class NexonApiClient implements NexonMatchGateway {
                         status.path("passSuccess").asInt(0),
                         status.path("dribbleTry").asInt(0),
                         status.path("dribbleSuccess").asInt(0),
-                        status.path("dribbleDistance").asInt(0),
+                        // 필드명은 "dribbleDistance"가 아니라 "dribble"이다(사용자 확인, 야드 단위 —
+                        // 미터 환산은 항상 표시 시점에 한다, averageRating 5->10점 변환과 같은 패턴).
+                        status.path("dribble").asInt(0),
                         status.path("aerialTry").asInt(0),
                         status.path("aerialSuccess").asInt(0),
                         status.path("spRating").isMissingNode() ? null : status.path("spRating").asDouble()

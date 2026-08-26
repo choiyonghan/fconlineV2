@@ -21,6 +21,13 @@ public record DashboardSnapshotFile(
         String introText,
         String outroText,
         List<DashboardRankingEntry> ranking,
-        Map<String, DashboardUserSnapshot> users
+        Map<String, DashboardUserSnapshot> users,
+        /**
+         * 9명 전원의 "전체 선수 스탯"을 풀링한 목록(최소 10경기 출전만) — 같은 spId를 여러 유저가
+         * 각자 쓸 수 있어 유저별로 합치지 않고 행마다 nickname을 붙여 그대로 나열한다. 프론트가
+         * 이 배열 하나로 TOP5 랭킹 여러 종류(득점/평균득점/도움/...)와 하단 정렬 가능한 전체 그리드를
+         * 전부 계산한다(서버에서 카테고리별 TOP5를 미리 만들지 않음 — 프론트에서 정렬/슬라이스).
+         */
+        List<DashboardPooledPlayer> allPlayers
 ) {
 }
