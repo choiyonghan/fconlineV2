@@ -32,10 +32,14 @@ import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.meta.PlayerMeta;
 import com.fconline.domain.meta.repository.PlayerMetaRepository;
 import com.fconline.domain.season.Season;
+import com.fconline.domain.shared.KstZone;
 import com.fconline.domain.shared.exception.DomainException;
 import com.fconline.domain.user.TrackedUser;
+import com.fconline.domain.user.UserTeamPeriod;
 import com.fconline.domain.user.repository.TrackedUserRepository;
+import com.fconline.domain.user.repository.UserTeamPeriodRepository;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,15 +76,17 @@ public class RecordFacade {
     private final MatchDomainService matchDomainService;
     private final PlayerMetaRepository playerMetaRepository;
     private final MatchDetailRepository matchDetailRepository;
+    private final UserTeamPeriodRepository userTeamPeriodRepository;
 
     public RecordFacade(TrackedUserRepository trackedUserRepository, SeasonRangeResolver seasonRangeResolver,
                          MatchDomainService matchDomainService, PlayerMetaRepository playerMetaRepository,
-                         MatchDetailRepository matchDetailRepository) {
+                         MatchDetailRepository matchDetailRepository, UserTeamPeriodRepository userTeamPeriodRepository) {
         this.trackedUserRepository = trackedUserRepository;
         this.seasonRangeResolver = seasonRangeResolver;
         this.matchDomainService = matchDomainService;
         this.playerMetaRepository = playerMetaRepository;
         this.matchDetailRepository = matchDetailRepository;
+        this.userTeamPeriodRepository = userTeamPeriodRepository;
     }
 
     @Transactional(readOnly = true)
@@ -323,7 +329,8 @@ public class RecordFacade {
                 .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
         RecentMatchRaw raw = matchDetailRepository.findByOuidAndMatchId(ouid, matchType, matchId)
                 .orElseThrow(() -> new DomainException("해당 매치를 찾을 수 없습니다: ouid=" + ouid + ", matchId=" + matchId));
-        return toRecentMatchResponse(raw);
+        Map<String, List<UserTeamPeriod>> periodsByOuid = teamPeriodsByOuid(Set.of(ouid, raw.opponentOuid()));
+        return toRecentMatchResponse(ouid, raw, periodsByOuid);
     }
 
     private List<MatchShotResponse> toMatchShotResponses(List<MatchShotDetail> shots, Map<String, String> playerNames) {
@@ -416,10 +423,16 @@ public class RecordFacade {
         Page<RecentMatchRaw> page = matchDetailRepository.findRecentByOuid(
                 ouid, matchType, season.startInstant(), season.endInstantExclusiveOrNull(), pageable);
 
-        return page.map(this::toRecentMatchResponse);
+        Set<String> ouidsNeeded = new HashSet<>();
+        ouidsNeeded.add(ouid);
+        page.forEach(r -> ouidsNeeded.add(r.opponentOuid()));
+        Map<String, List<UserTeamPeriod>> periodsByOuid = teamPeriodsByOuid(ouidsNeeded);
+
+        return page.map(raw -> toRecentMatchResponse(ouid, raw, periodsByOuid));
     }
 
-    private RecentMatchResponse toRecentMatchResponse(RecentMatchRaw raw) {
+    private RecentMatchResponse toRecentMatchResponse(String ouid, RecentMatchRaw raw,
+                                                        Map<String, List<UserTeamPeriod>> periodsByOuid) {
         return new RecentMatchResponse(
                 raw.matchId(),
                 raw.matchDate(),
@@ -438,8 +451,28 @@ public class RecordFacade {
                 raw.tackleSuccess(),
                 raw.foul(),
                 raw.yellowCards(),
-                raw.redCards()
+                raw.redCards(),
+                resolveTeamAt(periodsByOuid, ouid, raw.matchDate()),
+                resolveTeamAt(periodsByOuid, raw.opponentOuid(), raw.matchDate())
         );
+    }
+
+    /** user_team_periods를 한 번에 읽어 ouid별로 묶는다 — 목록 한 페이지마다 DB를 다시 안 친다. */
+    private Map<String, List<UserTeamPeriod>> teamPeriodsByOuid(Set<String> ouids) {
+        return userTeamPeriodRepository.findByOuidIn(ouids).stream()
+                .collect(Collectors.groupingBy(UserTeamPeriod::getOuid));
+    }
+
+    /** matchDate 시점에 이 ouid가 쓰던 팀명 — 해당 기간 데이터가 없으면 null. */
+    private String resolveTeamAt(Map<String, List<UserTeamPeriod>> periodsByOuid, String ouid, Instant matchDate) {
+        if (ouid == null || matchDate == null) return null;
+        List<UserTeamPeriod> periods = periodsByOuid.get(ouid);
+        if (periods == null) return null;
+        LocalDate date = matchDate.atZone(KstZone.ID).toLocalDate();
+        for (UserTeamPeriod p : periods) {
+            if (p.covers(date)) return p.getTeamName();
+        }
+        return null;
     }
 
     private static int nz(Integer value) {

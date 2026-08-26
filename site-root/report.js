@@ -78,6 +78,8 @@
   function hideTip() { tooltip.classList.remove('show'); }
 
   var YARD_TO_METER = 0.9144; // Nexon 드리블 거리 원본이 야드 단위라 표시 시점에 미터로 환산한다.
+  /** "닉네임(팀)" — team이 없으면(그 시점 기간 데이터가 없으면) 닉네임만(요청: 서울쥐(첼시) vs 내혀를가져가(맨유)). */
+  function nameWithTeam(nickname, team) { return team ? nickname + '(' + team + ')' : nickname; }
   function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
   function fmt1(n) { return Number(n).toFixed(1); }
 
@@ -1001,7 +1003,7 @@
       tr.setAttribute('aria-label', m.__nickname + ' vs ' + m.opponentNickname + ' 경기 상세 보기');
       var d = new Date(m.matchDate);
       tr.appendChild(el('td', '', fmtDateTime(d, false)));
-      tr.appendChild(el('td', 'name-cell', m.__nickname + ' vs ' + m.opponentNickname));
+      tr.appendChild(el('td', 'name-cell', nameWithTeam(m.__nickname, m.team) + ' vs ' + nameWithTeam(m.opponentNickname, m.opponentTeam)));
       var resTd = document.createElement('td');
       resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
       tr.appendChild(resTd);
@@ -2187,7 +2189,7 @@
     // allUsers는 "전체" 화면에선 비어있을 수 있다(백엔드를 안 거쳐서) — 대시보드 최근 경기
     // 피드에서 연 경우 m.__nickname(그 매치를 미리 붙일 때 넣어둔 값)으로 대신한다.
     var myNickname = myUser ? myUser.nickname : (m.__nickname || '나');
-    modalTitle.textContent = myNickname + ' vs ' + m.opponentNickname + ' · ' + fmtDateTime(d, true);
+    modalTitle.textContent = nameWithTeam(myNickname, m.team) + ' vs ' + nameWithTeam(m.opponentNickname, m.opponentTeam) + ' · ' + fmtDateTime(d, true);
 
     modalBody.replaceChildren();
     var resultLine = el('div', '');
@@ -2331,7 +2333,7 @@
     if (withDate) {
       var d = new Date(m.matchDate);
       tr.appendChild(el('td', '', fmtDateTime(d, false)));
-      tr.appendChild(el('td', 'name-cell', m.opponentNickname));
+      tr.appendChild(el('td', 'name-cell', nameWithTeam(m.opponentNickname, m.opponentTeam)));
     }
     var resTd = document.createElement('td');
     resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
