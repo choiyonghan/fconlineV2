@@ -1746,43 +1746,53 @@
    * xG값 행은 match-shots 응답이 따로 필요해 처음엔 "계산 중…"으로 시작하고, openMatchModal이
    * 반환된 setXg로 나중에 채운다.
    */
+  /**
+   * 공식전(매치메이킹)은 상대가 추적 대상인 경우가 사실상 없어서 커스텀과 똑같이 "비교할 수
+   * 없어요"만 보여주면 상세가 텅 비어 보인다는 요청 — 공식전은 oppStats가 없어도 안내 문구
+   * 대신 "내 기록만" 그대로 보여준다(상대 쪽은 "-"로 표시). 커스텀은 기존 동작(비교 불가 안내) 유지.
+   */
   function buildCompareSection(container, mine, oppStats, mySquad, oppSquad) {
     container.replaceChildren();
     container.appendChild(el('p', 'card-title', '⚖️ 상대 팀 비교'));
 
-    if (!oppStats) {
+    if (!oppStats && state.matchType !== 'OFFICIAL') {
       container.appendChild(el('p', 'card-empty', '상대가 추적 대상이 아니라서 비교할 수 없어요.'));
       return { setXg: function () {} };
     }
+    if (!oppStats) {
+      container.appendChild(el('p', 'card-caption', '공식전은 상대가 추적 대상이 아니라 내 기록만 보여드려요.'));
+    }
+    function opp(field) { return oppStats ? oppStats[field] : null; }
+
     var mySaves = mySquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
-    var oppSaves = oppSquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0);
+    var oppSaves = oppStats ? oppSquad.reduce(function (sum, s) { return sum + (s.save || 0); }, 0) : null;
     var myShotAcc = mine.shootTotal > 0 ? (mine.effectiveShoot / mine.shootTotal * 100) : null;
-    var oppShotAcc = oppStats.shootTotal > 0 ? (oppStats.effectiveShoot / oppStats.shootTotal * 100) : null;
+    var oppShotAcc = oppStats && oppStats.shootTotal > 0 ? (oppStats.effectiveShoot / oppStats.shootTotal * 100) : null;
     var pctFormat = function (v) { return Math.round(v) + '%'; };
 
     compareRow(container, '득점', mine.goalsFor, mine.goalsAgainst);
-    var xgRow = compareRow(container, 'xG값', undefined, undefined, { format: fmt1 });
-    compareRow(container, '점유율', mine.possession, oppStats.possession, {
+    var xgRow = compareRow(container, 'xG값', undefined, oppStats ? undefined : null, { format: fmt1 });
+    compareRow(container, '점유율', mine.possession, opp('possession'), {
       format: pctFormat, minePct: function (mv) { return mv == null ? 50 : mv; }
     });
-    compareRow(container, '슛', mine.shootTotal, oppStats.shootTotal);
-    compareRow(container, '유효슛', mine.effectiveShoot, oppStats.effectiveShoot);
+    compareRow(container, '슛', mine.shootTotal, opp('shootTotal'));
+    compareRow(container, '유효슛', mine.effectiveShoot, opp('effectiveShoot'));
     compareRow(container, '슛 성공률', myShotAcc, oppShotAcc, { format: pctFormat });
     // 패스/태클은 "성공/시도"로 표시(요청) — 막대 비율은 성공 횟수 기준으로 계산.
-    compareRow(container, '패스', mine.passSuccess, oppStats.passSuccess, {
+    compareRow(container, '패스', mine.passSuccess, opp('passSuccess'), {
       formatMine: function (v) { return v + '/' + (mine.passTry != null ? mine.passTry : '-'); },
-      formatOpp: function (v) { return v + '/' + (oppStats.passTry != null ? oppStats.passTry : '-'); }
+      formatOpp: function (v) { return v + '/' + (opp('passTry') != null ? opp('passTry') : '-'); }
     });
-    compareRow(container, '태클', mine.tackleSuccess, oppStats.tackleSuccess, {
+    compareRow(container, '태클', mine.tackleSuccess, opp('tackleSuccess'), {
       formatMine: function (v) { return v + '/' + (mine.tackleTry != null ? mine.tackleTry : '-'); },
-      formatOpp: function (v) { return v + '/' + (oppStats.tackleTry != null ? oppStats.tackleTry : '-'); }
+      formatOpp: function (v) { return v + '/' + (opp('tackleTry') != null ? opp('tackleTry') : '-'); }
     });
     compareRow(container, '선방 횟수', mySaves, oppSaves);
-    compareRow(container, '파울', mine.foul, oppStats.foul);
-    compareRow(container, '옐로카드', mine.yellowCards, oppStats.yellowCards);
-    compareRow(container, '레드카드', mine.redCards, oppStats.redCards);
+    compareRow(container, '파울', mine.foul, opp('foul'));
+    compareRow(container, '옐로카드', mine.yellowCards, opp('yellowCards'));
+    compareRow(container, '레드카드', mine.redCards, opp('redCards'));
 
-    return { setXg: function (xgFor, xgAgainst) { xgRow.update(xgFor, xgAgainst); } };
+    return { setXg: function (xgFor, xgAgainst) { xgRow.update(xgFor, oppStats ? xgAgainst : null); } };
   }
 
   function xgOfShot(p) {

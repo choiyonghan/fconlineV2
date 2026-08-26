@@ -29,7 +29,7 @@ public class UserFacade {
     /** "사용한 팀" 필터 칩 UI용 — 매치타입/시즌 아래에 이 유저의 팀 기간을 버튼으로 보여준다(요청). */
     @Transactional(readOnly = true)
     public List<UserTeamPeriodResponse> listTeamPeriods(String ouid) {
-        return userTeamPeriodRepository.findByOuidOrderByStartDateAsc(ouid).stream()
+        return userTeamPeriodRepository.findByOuidOrderByStartDateDesc(ouid).stream()
                 .map(UserTeamPeriodResponse::from)
                 .toList();
     }

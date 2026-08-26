@@ -14,6 +14,6 @@ public interface UserTeamPeriodRepository extends JpaRepository<UserTeamPeriod, 
      */
     List<UserTeamPeriod> findByOuidInOrderByStartDateAsc(Collection<String> ouids);
 
-    /** "사용한 팀" 필터 칩 UI용 — 이 유저의 기간 목록을 시간순으로. */
-    List<UserTeamPeriod> findByOuidOrderByStartDateAsc(String ouid);
+    /** "사용한 팀" 필터 칩 UI용 — "전체" 다음 왼쪽이 가장 최근 팀이 되도록 최신순(내림차순)으로. */
+    List<UserTeamPeriod> findByOuidOrderByStartDateDesc(String ouid);
 }

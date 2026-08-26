@@ -522,12 +522,15 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
             opponentWhere.or(opp.ouid.eq(entry.getKey()).and(oppMatch.matchId.in(entry.getValue())));
         }
 
+        if (matchType == MatchType.CUSTOM) {
+            opponentWhere.and(opp.stats.matchEndType.eq(0));
+        }
         return queryFactory
                 .select(se.x, se.y, se.shootType, se.result, oppMatch.matchId)
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
-                .where(opponentWhere.and(opp.stats.matchEndType.eq(0)).and(se.x.isNotNull()).and(se.y.isNotNull()))
+                .where(opponentWhere.and(se.x.isNotNull()).and(se.y.isNotNull()))
                 .fetch().stream()
                 .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
                         row.get(oppMatch.matchId)))
@@ -571,12 +574,15 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
             opponentWhere.or(opp.ouid.eq(entry.getKey()).and(oppMatch.matchId.in(entry.getValue())));
         }
 
+        if (matchType == MatchType.CUSTOM) {
+            opponentWhere.and(opp.stats.matchEndType.eq(0));
+        }
         return queryFactory
                 .select(se.goalTimeMinutes, se.period)
                 .from(se)
                 .join(se.matchDetail, opp)
                 .join(opp.match, oppMatch)
-                .where(opponentWhere.and(opp.stats.matchEndType.eq(0))
+                .where(opponentWhere
                         .and(se.result.eq(ShootResult.GOAL)).and(se.goalTimeMinutes.isNotNull()))
                 .fetch().stream()
                 .map(row -> new GoalTimeRaw(row.get(se.goalTimeMinutes), row.get(se.period)))
@@ -766,16 +772,20 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         QMatch oppMatch = new QMatch("goalEventOpponentMatch");
         QShootEvent oppSe = new QShootEvent("goalEventOpponentShootEvent");
 
+        BooleanBuilder oppWhere = new BooleanBuilder()
+                .and(opp.ouid.eq(opponentOuid))
+                .and(oppMatch.matchType.eq(matchType))
+                .and(oppMatch.matchId.in(matchIds))
+                .and(oppSe.result.eq(ShootResult.GOAL));
+        if (matchType == MatchType.CUSTOM) {
+            oppWhere.and(opp.stats.matchEndType.eq(0));
+        }
         return queryFactory
                 .select(oppMatch.matchId, oppSe.goalTimeMinutes, oppSe.period)
                 .from(oppSe)
                 .join(oppSe.matchDetail, opp)
                 .join(opp.match, oppMatch)
-                .where(opp.ouid.eq(opponentOuid)
-                        .and(oppMatch.matchType.eq(matchType))
-                        .and(oppMatch.matchId.in(matchIds))
-                        .and(opp.stats.matchEndType.eq(0))
-                        .and(oppSe.result.eq(ShootResult.GOAL)))
+                .where(oppWhere)
                 .fetch().stream()
                 .map(row -> new MatchGoalEvent(row.get(oppMatch.matchId), row.get(oppSe.goalTimeMinutes),
                         row.get(oppSe.period), false))
@@ -793,7 +803,11 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(md.ouid.eq(ouid));
         builder.and(m.matchType.eq(matchType));
-        builder.and(md.stats.matchEndType.eq(0));
+        // matchEndType=0 필터는 커스텀에만 건다 — 공식전(매치메이킹)은 상관없이 전부 보여달라는
+        // 요청. 커스텀은 그대로 정상 종료 경기만.
+        if (matchType == MatchType.CUSTOM) {
+            builder.and(md.stats.matchEndType.eq(0));
+        }
         if (from != null) {
             builder.and(m.matchDate.goe(from));
         }
