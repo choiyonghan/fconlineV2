@@ -202,8 +202,12 @@ public class DashboardSnapshotBuilder {
                 .orElse(null);
     }
 
+    /** 표본이 너무 적은(예: 1경기 반짝) 선수가 TOP에 끼는 걸 막는다 — 최소 출전 경기 수. */
+    private static final int TOP_PLAYER_MIN_APPEARANCES = 10;
+
     private List<DashboardTopPlayer> topBy(List<TopPlayerResponse> players, java.util.function.ToIntFunction<TopPlayerResponse> extractor) {
         return players.stream()
+                .filter(p -> p.appearances() >= TOP_PLAYER_MIN_APPEARANCES)
                 .map(p -> new DashboardTopPlayer(p.playerName(), extractor.applyAsInt(p)))
                 .filter(t -> t.value() > 0)
                 .sorted(Comparator.comparingInt(DashboardTopPlayer::value).reversed())

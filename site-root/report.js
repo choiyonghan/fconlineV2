@@ -80,6 +80,12 @@
   function fmt(n) { return Number(n).toLocaleString('ko-KR'); }
   function fmt1(n) { return Number(n).toFixed(1); }
 
+  /** 날짜만 있고 시:분이 없어 몇 경기를 이어서 뛰었는지 구분이 안 된다는 피드백 — 분까지 표시. */
+  function fmtDateTime(d, withYear) {
+    var opts = withYear ? { year: 'numeric', month: '2-digit', day: '2-digit' } : { month: '2-digit', day: '2-digit' };
+    return d.toLocaleDateString('ko-KR', opts) + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -772,7 +778,7 @@
       tr.setAttribute('role', 'button');
       tr.setAttribute('aria-label', m.__nickname + ' vs ' + m.opponentNickname + ' 경기 상세 보기');
       var d = new Date(m.matchDate);
-      tr.appendChild(el('td', '', d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })));
+      tr.appendChild(el('td', '', fmtDateTime(d, false)));
       tr.appendChild(el('td', 'name-cell', m.__nickname + ' vs ' + m.opponentNickname));
       var resTd = document.createElement('td');
       resTd.appendChild(el('span', 'chip result-' + m.result, m.result));
@@ -1364,7 +1370,9 @@
       head.appendChild(el('span', 'mom-card-icon', icon));
       head.appendChild(el('span', 'mom-card-label', label));
       box.appendChild(head);
-      var nameRow = el('p', 'mom-card-name', entry.playerName);
+      // playerNameBadge가 시즌 아이콘 + 강화 단계(N강) 배지를 같이 붙여준다(요청).
+      var nameRow = el('p', 'mom-card-name');
+      nameRow.appendChild(playerNameBadge(entry.spId, entry.playerName));
       nameRow.appendChild(el('span', 'mom-card-team', entry.team === 'opponent' ? ' (상대 팀)' : ' (내 팀)'));
       box.appendChild(nameRow);
       box.appendChild(el('p', 'mom-card-reason', oneLinerFor(entry, isMom)));
@@ -1896,26 +1904,35 @@
     // 이모지 대체 글리프 없이 이상한 글자(십자 모양 등)로 깨져 보이는 문제가 있었다 — 이모지
     // 컬러 폰트를 명시적으로 지정해야 실제 축구공 이모지가 뜬다.
     var EMOJI_FONT_STACK = "'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif";
-    function drawGoalMarkers(series) {
+    // 축구공 이모지 자체는 색을 못 입혀서(고정 컬러 글리프) 내 골/상대 골이 구분이 안 된다는
+    // 피드백 — 이모지 뒤에 그 시리즈 색(나=파랑/상대=빨강) 원형 배지를 깔아서 구분되게 한다.
+    function drawGoalMarkers(series, color, ownerLabel) {
       series.forEach(function (p) {
         if (!p.goal) return;
+        var cx = xAt(p.minute), cy = yAt(p.cum) - 8;
+        var badge = document.createElementNS(svgNS, 'circle');
+        badge.setAttribute('cx', cx);
+        badge.setAttribute('cy', cy);
+        badge.setAttribute('r', '7');
+        badge.setAttribute('fill', color);
+        svg.appendChild(badge);
         var mark = document.createElementNS(svgNS, 'text');
-        mark.setAttribute('x', xAt(p.minute));
-        mark.setAttribute('y', yAt(p.cum) - 6);
+        mark.setAttribute('x', cx);
+        mark.setAttribute('y', cy + 3.5);
         mark.setAttribute('text-anchor', 'middle');
-        mark.setAttribute('font-size', '13');
+        mark.setAttribute('font-size', '10');
         mark.setAttribute('font-family', EMOJI_FONT_STACK);
         mark.textContent = '⚽';
         var title = document.createElementNS(svgNS, 'title');
-        title.textContent = round1(p.minute) + "' 골";
+        title.textContent = round1(p.minute) + "' " + ownerLabel + ' 골';
         mark.appendChild(title);
         svg.appendChild(mark);
       });
     }
     drawSeries(mine, 'var(--series-1)');
     if (opp) drawSeries(opp, 'var(--status-critical)');
-    drawGoalMarkers(mine);
-    if (opp) drawGoalMarkers(opp);
+    drawGoalMarkers(mine, 'var(--series-1)', '나');
+    if (opp) drawGoalMarkers(opp, 'var(--status-critical)', '상대');
 
     container.appendChild(svg);
 
@@ -1948,8 +1965,7 @@
     // allUsers는 "전체" 화면에선 비어있을 수 있다(백엔드를 안 거쳐서) — 대시보드 최근 경기
     // 피드에서 연 경우 m.__nickname(그 매치를 미리 붙일 때 넣어둔 값)으로 대신한다.
     var myNickname = myUser ? myUser.nickname : (m.__nickname || '나');
-    modalTitle.textContent = myNickname + ' vs ' + m.opponentNickname + ' · ' +
-      d.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    modalTitle.textContent = myNickname + ' vs ' + m.opponentNickname + ' · ' + fmtDateTime(d, true);
 
     modalBody.replaceChildren();
     var resultLine = el('div', '');
@@ -2092,7 +2108,7 @@
     tr.setAttribute('aria-label', 'vs ' + m.opponentNickname + ' 경기 상세 보기');
     if (withDate) {
       var d = new Date(m.matchDate);
-      tr.appendChild(el('td', '', d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' })));
+      tr.appendChild(el('td', '', fmtDateTime(d, false)));
       tr.appendChild(el('td', 'name-cell', m.opponentNickname));
     }
     var resTd = document.createElement('td');
@@ -2842,12 +2858,27 @@
   };
 
   /** i번째까지의 최근 WINDOW경기 평균(앞부분은 있는 만큼만) — 시즌 시작부터 곡선이 나오게 확장형으로 처리. */
+  /**
+   * 확장형(경기 수가 WINDOW 미만인 초반엔 있는 만큼만 평균)이었을 때 버그가 있었다 —
+   * 첫 1~4경기처럼 표본이 아주 적은 지점은 노이즈가 커서 우연히 시즌 최고/최저를 찍기 쉬운데,
+   * 그 지점이 이후 biorhythmNormalize의 min/max 기준이 돼버려 시즌 전체가 그 노이즈 하나에
+   * 눌려버렸다(예: 첫 경기 평점이 시즌 최고로 잡혀 이후 좋은 흐름도 전부 낮게 나옴).
+   * WINDOW가 다 찬 지점부터만 계산해 이 왜곡을 없앤다 — 전체 경기 수가 WINDOW보다 적은
+   * 유저는 그마저도 없어서 어쩔 수 없이 확장형으로 폴백한다.
+   */
   function biorhythmRollingAvg(rawValues) {
-    return rawValues.map(function (_, i) {
-      var slice = rawValues.slice(Math.max(0, i - BIORHYTHM_WINDOW + 1), i + 1);
-      var sum = slice.reduce(function (s, v) { return s + v; }, 0);
-      return sum / slice.length;
-    });
+    if (rawValues.length < BIORHYTHM_WINDOW) {
+      return rawValues.map(function (_, i) {
+        var slice = rawValues.slice(0, i + 1);
+        return slice.reduce(function (s, v) { return s + v; }, 0) / slice.length;
+      });
+    }
+    var result = [];
+    for (var i = BIORHYTHM_WINDOW - 1; i < rawValues.length; i++) {
+      var slice = rawValues.slice(i - BIORHYTHM_WINDOW + 1, i + 1);
+      result.push(slice.reduce(function (s, v) { return s + v; }, 0) / slice.length);
+    }
+    return result;
   }
 
   /** 시즌 표본 안에서의 상대적 위치로 0~100 환산(최저=0, 최고=100) — 재미용 지표라 절대치보다 흐름이 중요하다. */
@@ -2930,7 +2961,9 @@
     var axisColors = { '피지컬': 'var(--series-1)', '멘탈': 'var(--series-2)', '지능': 'var(--series-3)' };
     Object.keys(axisBoxes).forEach(function (key) { axisBoxes[key].style.setProperty('--stat-active-color', axisColors[key]); });
 
-    var labels = matchIndexLabels(chronological.length);
+    // biorhythmRollingAvg가 이제 WINDOW 미만 구간을 건너뛰어서(위 주석) physical/mental/intellect
+    // 길이가 chronological보다 짧을 수 있다 — 라벨은 실제 배열 길이에 맞춘다.
+    var labels = matchIndexLabels(physical.length);
     function drawBiorhythmChart() {
       Object.keys(axisBoxes).forEach(function (key) {
         axisBoxes[key].classList.toggle('stat-mini-active', key === biorhythmActiveAxis);
@@ -3092,8 +3125,13 @@
     // 양방향 조합 합산 TOP5 (예: A→B + B→A를 한 조합으로 합산)
     assistDuoTable(document.getElementById('table-assist-duos'), topAssistDuos(d.assistChains, 5));
 
-    // opponents (행 클릭 시 해당 상대 최근 경기를 그때 불러와 펼침)
-    opponentsTable(document.getElementById('table-opponents'), d.opponents);
+    // opponents (행 클릭 시 해당 상대 최근 경기를 그때 불러와 펼침) — 공식경기는 매치메이킹이라
+    // "상대별 전적"이 의미가 없어(같은 상대를 다시 만날 일이 거의 없음) 커스텀에서만 보여준다.
+    var opponentsCard = document.getElementById('opponents-card');
+    opponentsCard.hidden = state.matchType === 'OFFICIAL';
+    if (!opponentsCard.hidden) {
+      opponentsTable(document.getElementById('table-opponents'), d.opponents);
+    }
 
     // recent matches — 상대 무관, 이 유저의 진짜 최신 경기 (더보기 페이징)
     loadRecentMatches(true);
