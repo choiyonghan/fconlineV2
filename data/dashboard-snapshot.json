@@ -1,5 +1,5 @@
 {
-  "generatedAt" : "2026-08-26T02:14:32.841842425Z",
+  "generatedAt" : "2026-08-27T10:31:20.171529437Z",
   "currentSeasonName" : "시즌2",
   "aiRankingFailed" : true,
   "aiRankingNote" : "AI 랭킹 호출에 실패해 승률·득실차 기준 자동 집계로 대체했습니다.",
@@ -18,17 +18,17 @@
     "rank" : 2,
     "reason" : "21전 15승 2무 4패 (승률 71.4%) | 득실 +24.0 | 평균 평점 8.91 — 혼자 리그를 씹어먹는 중입니다! 득실차가 전체 유저 중 가장 화끈한 폭격기 성능을 보여줬네요."
   }, {
-    "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
-    "nickname" : "내혀를가져가",
-    "displayName" : "내혀를가져가(최용한)",
-    "rank" : 3,
-    "reason" : "40전 24승 3무 13패 (승률 60.0%) | 득실 +45.0 | 평균 평점 8.54 — 무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."
-  }, {
     "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
     "nickname" : "내눈을가져가",
     "displayName" : "내눈을가져가(최용한)",
+    "rank" : 3,
+    "reason" : "23전 14승 3무 6패 (승률 60.9%) | 득실 +17.0 | 평균 평점 8.49 — 눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."
+  }, {
+    "ouid" : "4b3bb4908597dd3cedb84fd24f5bebd1",
+    "nickname" : "내혀를가져가",
+    "displayName" : "내혀를가져가(최용한)",
     "rank" : 4,
-    "reason" : "20전 11승 3무 6패 (승률 55.0%) | 득실 +13.0 | 평균 평점 8.47 — 눈을 내주고 승리를 챙긴 신체기부형 강자! 당당히 상위권에 자리를 잡았습니다."
+    "reason" : "40전 24승 3무 13패 (승률 60.0%) | 득실 +45.0 | 평균 평점 8.54 — 무려 최다급 경기 수를 소화하는 미친 체력과 판수! 리그의 실질적인 체력왕이자 화력 담당입니다."
   }, {
     "ouid" : "6dfa509e08e020945f9a208216aad98d",
     "nickname" : "ST반니스텔로이",
@@ -40,13 +40,13 @@
     "nickname" : "서울쥐",
     "displayName" : "서울쥐(김상기)",
     "rank" : 6,
-    "reason" : "24전 12승 4무 8패 (승률 50.0%) | 득실 +6.0 | 평균 평점 8.33 — 살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."
+    "reason" : "27전 14승 4무 9패 (승률 51.9%) | 득실 +8.0 | 평균 평점 8.32 — 살짝 아쉬운 턱걸이권이지만, 이길 때는 아주 상대를 탈탈 털어버리는 매운맛 쥐입니다."
   }, {
     "ouid" : "1894adb89b4a7953381bdd5671ce7610",
     "nickname" : "지린성에사는욱구",
     "displayName" : "지린성에사는욱구(전승욱)",
     "rank" : 7,
-    "reason" : "59전 9승 7무 43패 (승률 15.3%) | 득실 -95.0 | 평균 평점 7.82 — 이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"
+    "reason" : "65전 10승 7무 48패 (승률 15.4%) | 득실 -102.0 | 평균 평점 7.84 — 이 정도면 축구가 아니라 걸어다니는 승점 자판기 아니신가요?! 수비는 잠시 꺼두셨는지 득실이 대기권 밖으로 뚫렸습니다. 리그의 성인군자십니다!"
   }, {
     "ouid" : "7f3fabc284ffe4b6bedf702a307f0f2e",
     "nickname" : "욱냥0I",
@@ -246,37 +246,37 @@
       "ouid" : "3187c800228a6e98e07fcd2a9cd97b93",
       "nickname" : "내눈을가져가",
       "summary" : {
-        "games" : 20,
-        "wins" : 11,
+        "games" : 23,
+        "wins" : 14,
         "draws" : 3,
         "losses" : 6,
-        "avgGoalsFor" : 3.75,
-        "avgGoalsForXg" : 3.7562145151517314,
-        "finishing" : -0.12429030303462696,
-        "shotsPerGame" : 7.65,
-        "avgGoalsAgainst" : 3.1,
-        "avgGoalsAgainstXg" : 3.2305862798280045,
-        "concededSampleGames" : 20,
-        "totalGoalsFor" : 75,
-        "totalGoalsAgainst" : 62,
-        "totalShots" : 153,
-        "totalShotsOnTarget" : 124,
-        "totalPassTry" : 1936,
-        "totalPassSuccess" : 1704,
-        "totalXgFor" : 75.12429030303463,
-        "totalXgAgainst" : 64.61172559656009,
+        "avgGoalsFor" : 3.652173913043478,
+        "avgGoalsForXg" : 3.6897425236293837,
+        "finishing" : -0.8640780434758284,
+        "shotsPerGame" : 7.869565217391305,
+        "avgGoalsAgainst" : 2.9130434782608696,
+        "avgGoalsAgainstXg" : 3.3544371073030383,
+        "concededSampleGames" : 23,
+        "totalGoalsFor" : 84,
+        "totalGoalsAgainst" : 67,
+        "totalShots" : 181,
+        "totalShotsOnTarget" : 143,
+        "totalPassTry" : 2189,
+        "totalPassSuccess" : 1919,
+        "totalXgFor" : 84.86407804347583,
+        "totalXgAgainst" : 77.15205346796988,
         "cleanSheets" : 0,
         "cleanSheetPct" : 0.0,
-        "multiConcededGames" : 11,
-        "multiConcededPct" : 55.0,
-        "lowPossessionGames" : 5,
-        "lowPossessionPct" : 25.0,
-        "balancedPossessionGames" : 15,
-        "balancedPossessionPct" : 75.0,
+        "multiConcededGames" : 12,
+        "multiConcededPct" : 52.17391304347826,
+        "lowPossessionGames" : 6,
+        "lowPossessionPct" : 26.08695652173913,
+        "balancedPossessionGames" : 17,
+        "balancedPossessionPct" : 73.91304347826087,
         "highPossessionGames" : 0,
         "highPossessionPct" : 0.0,
-        "avgPossession" : 47.65,
-        "avgRating" : 8.468333,
+        "avgPossession" : 47.43478260869565,
+        "avgRating" : 8.48550608695652,
         "combo" : {
           "playerAName" : "라우타로",
           "playerBName" : "루이스 피구",
@@ -284,47 +284,47 @@
         },
         "topGoals" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 25
+          "value" : 28
         }, {
           "playerName" : "사뮈엘 에토",
-          "value" : 10
+          "value" : 13
         }, {
-          "playerName" : "마이콘",
+          "playerName" : "알렉시스 산체스",
           "value" : 4
         } ],
         "topAssists" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 14
+          "value" : 16
+        }, {
+          "playerName" : "알렉시스 산체스",
+          "value" : 11
         }, {
           "playerName" : "마이콘",
-          "value" : 4
-        }, {
-          "playerName" : "호베르투 카를루스",
-          "value" : 4
+          "value" : 5
         } ],
         "topAttackPoints" : [ {
           "playerName" : "로멜루 루카쿠",
-          "value" : 39
+          "value" : 44
         }, {
           "playerName" : "사뮈엘 에토",
-          "value" : 12
+          "value" : 16
         }, {
-          "playerName" : "마이콘",
-          "value" : 8
+          "playerName" : "알렉시스 산체스",
+          "value" : 15
         } ],
         "topDefense" : [ {
           "playerName" : "파트리크 비에이라",
-          "value" : 29
+          "value" : 34
         }, {
           "playerName" : "덴젤 둠프리스",
-          "value" : 24
+          "value" : 29
         }, {
-          "playerName" : "에스테반 캄비아소",
-          "value" : 20
+          "playerName" : "마이콘",
+          "value" : 26
         } ],
         "topSaves" : [ {
           "playerName" : "M. 디 그레고리오",
-          "value" : 35
+          "value" : 47
         }, {
           "playerName" : "덴젤 둠프리스",
           "value" : 2
@@ -430,37 +430,37 @@
       "ouid" : "1b8131906ebdd10fcb02b79367cc515a",
       "nickname" : "서울쥐",
       "summary" : {
-        "games" : 24,
-        "wins" : 12,
+        "games" : 27,
+        "wins" : 14,
         "draws" : 4,
-        "losses" : 8,
-        "avgGoalsFor" : 3.3333333333333335,
-        "avgGoalsForXg" : 3.370818675010002,
-        "finishing" : -0.8996482002400512,
-        "shotsPerGame" : 8.208333333333334,
-        "avgGoalsAgainst" : 3.0833333333333335,
-        "avgGoalsAgainstXg" : 3.1268633494999545,
-        "concededSampleGames" : 24,
-        "totalGoalsFor" : 80,
-        "totalGoalsAgainst" : 74,
-        "totalShots" : 197,
-        "totalShotsOnTarget" : 149,
-        "totalPassTry" : 2376,
-        "totalPassSuccess" : 2112,
-        "totalXgFor" : 80.89964820024005,
-        "totalXgAgainst" : 75.04472038799891,
+        "losses" : 9,
+        "avgGoalsFor" : 3.185185185185185,
+        "avgGoalsForXg" : 3.3352997542565306,
+        "finishing" : -4.053093364926326,
+        "shotsPerGame" : 8.148148148148149,
+        "avgGoalsAgainst" : 2.888888888888889,
+        "avgGoalsAgainstXg" : 3.048443358568263,
+        "concededSampleGames" : 27,
+        "totalGoalsFor" : 86,
+        "totalGoalsAgainst" : 78,
+        "totalShots" : 220,
+        "totalShotsOnTarget" : 167,
+        "totalPassTry" : 2634,
+        "totalPassSuccess" : 2333,
+        "totalXgFor" : 90.05309336492633,
+        "totalXgAgainst" : 82.3079706813431,
         "cleanSheets" : 2,
-        "cleanSheetPct" : 8.333333333333334,
+        "cleanSheetPct" : 7.407407407407407,
         "multiConcededGames" : 14,
-        "multiConcededPct" : 58.333333333333336,
-        "lowPossessionGames" : 1,
-        "lowPossessionPct" : 4.166666666666667,
-        "balancedPossessionGames" : 14,
-        "balancedPossessionPct" : 58.333333333333336,
+        "multiConcededPct" : 51.851851851851855,
+        "lowPossessionGames" : 3,
+        "lowPossessionPct" : 11.11111111111111,
+        "balancedPossessionGames" : 15,
+        "balancedPossessionPct" : 55.55555555555556,
         "highPossessionGames" : 9,
-        "highPossessionPct" : 37.5,
-        "avgPossession" : 52.208333333333336,
-        "avgRating" : 8.32963,
+        "highPossessionPct" : 33.333333333333336,
+        "avgPossession" : 51.51851851851852,
+        "avgRating" : 8.31687333333334,
         "combo" : {
           "playerAName" : "디디에 드로그바",
           "playerBName" : "세스크 파브레가스",
@@ -471,7 +471,7 @@
           "value" : 23
         }, {
           "playerName" : "프란체스코 토티",
-          "value" : 17
+          "value" : 18
         }, {
           "playerName" : "세스크 파브레가스",
           "value" : 11
@@ -480,40 +480,40 @@
           "playerName" : "세스크 파브레가스",
           "value" : 14
         }, {
-          "playerName" : "프란체스코 토티",
-          "value" : 7
-        }, {
           "playerName" : "나카타 히데토시",
+          "value" : 8
+        }, {
+          "playerName" : "프란체스코 토티",
           "value" : 7
         } ],
         "topAttackPoints" : [ {
           "playerName" : "디디에 드로그바",
           "value" : 26
         }, {
-          "playerName" : "세스크 파브레가스",
+          "playerName" : "프란체스코 토티",
           "value" : 25
         }, {
-          "playerName" : "프란체스코 토티",
-          "value" : 24
+          "playerName" : "세스크 파브레가스",
+          "value" : 25
         } ],
         "topDefense" : [ {
           "playerName" : "에반 은디카",
-          "value" : 55
-        }, {
-          "playerName" : "칼리두 쿨리발리",
-          "value" : 44
+          "value" : 62
         }, {
           "playerName" : "마르키뉴스",
-          "value" : 39
+          "value" : 47
+        }, {
+          "playerName" : "K. 코네",
+          "value" : 46
         } ],
         "topSaves" : [ {
           "playerName" : "보이치에흐 슈체스니",
-          "value" : 44
+          "value" : 53
         }, {
           "playerName" : "티보 쿠르투아",
           "value" : 25
         }, {
-          "playerName" : "애슐리 콜",
+          "playerName" : "마르키뉴스",
           "value" : 2
         } ]
       }
@@ -661,37 +661,37 @@
       "ouid" : "1894adb89b4a7953381bdd5671ce7610",
       "nickname" : "지린성에사는욱구",
       "summary" : {
-        "games" : 59,
-        "wins" : 9,
+        "games" : 65,
+        "wins" : 10,
         "draws" : 7,
-        "losses" : 43,
-        "avgGoalsFor" : 2.0677966101694913,
-        "avgGoalsForXg" : 2.4310346833377303,
-        "finishing" : -21.431046316926086,
-        "shotsPerGame" : 5.627118644067797,
-        "avgGoalsAgainst" : 3.6779661016949152,
-        "avgGoalsAgainstXg" : 3.6997451974928746,
-        "concededSampleGames" : 59,
-        "totalGoalsFor" : 122,
-        "totalGoalsAgainst" : 217,
-        "totalShots" : 332,
-        "totalShotsOnTarget" : 242,
-        "totalPassTry" : 5353,
-        "totalPassSuccess" : 4663,
-        "totalXgFor" : 143.43104631692609,
-        "totalXgAgainst" : 218.2849666520796,
+        "losses" : 48,
+        "avgGoalsFor" : 2.0153846153846153,
+        "avgGoalsForXg" : 2.5113019151027696,
+        "finishing" : -32.234624481680015,
+        "shotsPerGame" : 5.753846153846154,
+        "avgGoalsAgainst" : 3.5846153846153848,
+        "avgGoalsAgainstXg" : 3.6488953778031834,
+        "concededSampleGames" : 65,
+        "totalGoalsFor" : 131,
+        "totalGoalsAgainst" : 233,
+        "totalShots" : 374,
+        "totalShotsOnTarget" : 271,
+        "totalPassTry" : 5959,
+        "totalPassSuccess" : 5201,
+        "totalXgFor" : 163.23462448168002,
+        "totalXgAgainst" : 237.1781995572069,
         "cleanSheets" : 1,
-        "cleanSheetPct" : 1.694915254237288,
-        "multiConcededGames" : 45,
-        "multiConcededPct" : 76.27118644067797,
+        "cleanSheetPct" : 1.5384615384615385,
+        "multiConcededGames" : 48,
+        "multiConcededPct" : 73.84615384615384,
         "lowPossessionGames" : 9,
-        "lowPossessionPct" : 15.254237288135593,
-        "balancedPossessionGames" : 45,
-        "balancedPossessionPct" : 76.27118644067797,
-        "highPossessionGames" : 5,
-        "highPossessionPct" : 8.474576271186441,
-        "avgPossession" : 49.355932203389834,
-        "avgRating" : 7.822410847457626,
+        "lowPossessionPct" : 13.846153846153847,
+        "balancedPossessionGames" : 48,
+        "balancedPossessionPct" : 73.84615384615384,
+        "highPossessionGames" : 8,
+        "highPossessionPct" : 12.307692307692308,
+        "avgPossession" : 49.784615384615385,
+        "avgRating" : 7.835042461538461,
         "combo" : {
           "playerAName" : "로멜루 루카쿠",
           "playerBName" : "웨인 루니",
@@ -705,16 +705,16 @@
           "value" : 22
         }, {
           "playerName" : "레반도프스키",
-          "value" : 17
+          "value" : 19
         } ],
         "topAssists" : [ {
           "playerName" : "웨인 루니",
           "value" : 19
         }, {
-          "playerName" : "로멜루 루카쿠",
-          "value" : 11
+          "playerName" : "주앙 펠릭스",
+          "value" : 13
         }, {
-          "playerName" : "스콧 맥토미니",
+          "playerName" : "로멜루 루카쿠",
           "value" : 11
         } ],
         "topAttackPoints" : [ {
@@ -725,7 +725,7 @@
           "value" : 33
         }, {
           "playerName" : "레반도프스키",
-          "value" : 24
+          "value" : 27
         } ],
         "topDefense" : [ {
           "playerName" : "리오 퍼디난드",
@@ -738,11 +738,11 @@
           "value" : 64
         } ],
         "topSaves" : [ {
+          "playerName" : "주안 가르시아",
+          "value" : 86
+        }, {
           "playerName" : "데헤아",
           "value" : 71
-        }, {
-          "playerName" : "주안 가르시아",
-          "value" : 57
         }, {
           "playerName" : "페터 슈마이켈",
           "value" : 48
@@ -820,7 +820,8 @@
     "avgRating" : 7.84705882352941,
     "xg" : 12.416736893953876,
     "finishing" : 0.5832631060461235,
-    "momCount" : 3
+    "momCount" : 3,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "850013128",
@@ -844,7 +845,8 @@
     "avgRating" : 7.75882352941176,
     "xg" : 13.162222514629006,
     "finishing" : 1.837777485370994,
-    "momCount" : 3
+    "momCount" : 3,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "861007512",
@@ -868,7 +870,8 @@
     "avgRating" : 7.50588235294118,
     "xg" : 12.979179830000543,
     "finishing" : -4.979179830000543,
-    "momCount" : 4
+    "momCount" : 4,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "828177003",
@@ -892,7 +895,8 @@
     "avgRating" : 7.45294117647059,
     "xg" : 2.949048915888112,
     "finishing" : 2.050951084111888,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "828215698",
@@ -916,7 +920,8 @@
     "avgRating" : 6.78235294117647,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "802001109",
@@ -940,7 +945,8 @@
     "avgRating" : 6.45882352941177,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "850214098",
@@ -964,7 +970,8 @@
     "avgRating" : 7.0375,
     "xg" : 2.3869473987793914,
     "finishing" : -2.3869473987793914,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 25
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "851237942",
@@ -988,7 +995,8 @@
     "avgRating" : 6.49411764705882,
     "xg" : 0.7587211391664235,
     "finishing" : -0.7587211391664235,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "D로쏘네리",
     "spId" : "852001088",
@@ -1012,7 +1020,8 @@
     "avgRating" : 6.35882352941177,
     "xg" : 0.0016818603447187994,
     "finishing" : -0.0016818603447187994,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 27
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "852010264",
@@ -1036,7 +1045,8 @@
     "avgRating" : 7.91,
     "xg" : 12.103742569019165,
     "finishing" : -0.10374256901916468,
-    "momCount" : 3
+    "momCount" : 3,
+    "goalsAgainst" : 21
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "848001397",
@@ -1060,7 +1070,8 @@
     "avgRating" : 7.24545454545455,
     "xg" : 2.3630130756095156,
     "finishing" : 1.6369869243904844,
-    "momCount" : 1
+    "momCount" : 1,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "846000250",
@@ -1084,7 +1095,8 @@
     "avgRating" : 7.10909090909091,
     "xg" : 2.233947808444009,
     "finishing" : -0.2339478084440092,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "836001183",
@@ -1108,7 +1120,8 @@
     "avgRating" : 6.55454545454545,
     "xg" : 1.8329556945843124,
     "finishing" : -1.8329556945843124,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "825161840",
@@ -1132,7 +1145,8 @@
     "avgRating" : 6.55454545454545,
     "xg" : 1.5163205352250935,
     "finishing" : -1.5163205352250935,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "836005479",
@@ -1156,7 +1170,8 @@
     "avgRating" : 6.48181818181818,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "825045197",
@@ -1180,7 +1195,8 @@
     "avgRating" : 7.1,
     "xg" : 0.9941733904872265,
     "finishing" : 0.005826609512773473,
-    "momCount" : 1
+    "momCount" : 1,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "839005589",
@@ -1204,7 +1220,8 @@
     "avgRating" : 6.44545454545454,
     "xg" : 3.7369225867943356,
     "finishing" : 0.26307741320566436,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "835009593",
@@ -1228,7 +1245,8 @@
     "avgRating" : 6.81818181818182,
     "xg" : 3.6845054766463963,
     "finishing" : -0.6845054766463963,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "802001040",
@@ -1252,7 +1270,8 @@
     "avgRating" : 6.74545454545455,
     "xg" : 1.453368527156794,
     "finishing" : -1.453368527156794,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "ST반니스텔로이",
     "spId" : "802204963",
@@ -1276,247 +1295,283 @@
     "avgRating" : 6.14545454545454,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 23
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "848192505",
     "playerName" : "로멜루 루카쿠",
-    "appearances" : 20,
-    "goals" : 25,
-    "assists" : 14,
+    "appearances" : 23,
+    "goals" : 28,
+    "assists" : 16,
     "saves" : 0,
     "tackles" : 6,
     "intercepts" : 6,
     "blocks" : 0,
-    "shootTotal" : 42,
-    "effectiveShoot" : 33,
-    "passTry" : 224,
-    "passSuccess" : 198,
-    "dribbleTry" : 147,
-    "dribbleSuccess" : 127,
-    "dribbleDistance" : 4775,
+    "shootTotal" : 47,
+    "effectiveShoot" : 37,
+    "passTry" : 252,
+    "passSuccess" : 222,
+    "dribbleTry" : 170,
+    "dribbleSuccess" : 146,
+    "dribbleDistance" : 5315,
     "aerialTry" : 30,
     "aerialSuccess" : 4,
-    "avgRating" : 8.41,
-    "xg" : 23.443817215780726,
-    "finishing" : 1.5561827842192741,
-    "momCount" : 5
+    "avgRating" : 8.34782608695652,
+    "xg" : 25.532894323484662,
+    "finishing" : 2.467105676515338,
+    "momCount" : 5,
+    "goalsAgainst" : 67
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "845009676",
     "playerName" : "사뮈엘 에토",
-    "appearances" : 12,
-    "goals" : 10,
-    "assists" : 2,
+    "appearances" : 15,
+    "goals" : 13,
+    "assists" : 3,
     "saves" : 0,
     "tackles" : 2,
     "intercepts" : 2,
     "blocks" : 0,
-    "shootTotal" : 17,
-    "effectiveShoot" : 15,
-    "passTry" : 154,
-    "passSuccess" : 132,
-    "dribbleTry" : 104,
-    "dribbleSuccess" : 85,
-    "dribbleDistance" : 4366,
-    "aerialTry" : 12,
+    "shootTotal" : 22,
+    "effectiveShoot" : 20,
+    "passTry" : 181,
+    "passSuccess" : 153,
+    "dribbleTry" : 127,
+    "dribbleSuccess" : 105,
+    "dribbleDistance" : 5620,
+    "aerialTry" : 15,
     "aerialSuccess" : 1,
-    "avgRating" : 7.81666666666667,
-    "xg" : 9.664393131146008,
-    "finishing" : 0.3356068688539917,
-    "momCount" : 1
+    "avgRating" : 7.84666666666667,
+    "xg" : 11.558255915223993,
+    "finishing" : 1.4417440847760066,
+    "momCount" : 1,
+    "goalsAgainst" : 46
+  }, {
+    "nickname" : "내눈을가져가",
+    "spId" : "848184941",
+    "playerName" : "알렉시스 산체스",
+    "appearances" : 10,
+    "goals" : 4,
+    "assists" : 11,
+    "saves" : 0,
+    "tackles" : 3,
+    "intercepts" : 3,
+    "blocks" : 0,
+    "shootTotal" : 11,
+    "effectiveShoot" : 7,
+    "passTry" : 117,
+    "passSuccess" : 96,
+    "dribbleTry" : 84,
+    "dribbleSuccess" : 69,
+    "dribbleDistance" : 3248,
+    "aerialTry" : 17,
+    "aerialSuccess" : 0,
+    "avgRating" : 7.45,
+    "xg" : 4.418715910995223,
+    "finishing" : -0.418715910995223,
+    "momCount" : 3,
+    "goalsAgainst" : 28
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "867135455",
     "playerName" : "마이콘",
-    "appearances" : 15,
+    "appearances" : 18,
     "goals" : 4,
-    "assists" : 4,
+    "assists" : 5,
     "saves" : 0,
-    "tackles" : 10,
-    "intercepts" : 9,
-    "blocks" : 0,
-    "shootTotal" : 17,
-    "effectiveShoot" : 14,
-    "passTry" : 188,
-    "passSuccess" : 169,
-    "dribbleTry" : 131,
-    "dribbleSuccess" : 124,
-    "dribbleDistance" : 2803,
-    "aerialTry" : 16,
+    "tackles" : 13,
+    "intercepts" : 13,
+    "blocks" : 1,
+    "shootTotal" : 21,
+    "effectiveShoot" : 16,
+    "passTry" : 227,
+    "passSuccess" : 202,
+    "dribbleTry" : 151,
+    "dribbleSuccess" : 144,
+    "dribbleDistance" : 3359,
+    "aerialTry" : 18,
     "aerialSuccess" : 1,
-    "avgRating" : 7.17333333333333,
-    "xg" : 5.701607590737655,
-    "finishing" : -1.7016075907376553,
-    "momCount" : 0
+    "avgRating" : 7.17777777777778,
+    "xg" : 6.4318600455892625,
+    "finishing" : -2.4318600455892625,
+    "momCount" : 0,
+    "goalsAgainst" : 49
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "835138123",
     "playerName" : "에스테반 캄비아소",
-    "appearances" : 15,
+    "appearances" : 18,
     "goals" : 4,
     "assists" : 2,
     "saves" : 0,
-    "tackles" : 10,
-    "intercepts" : 10,
+    "tackles" : 13,
+    "intercepts" : 13,
     "blocks" : 0,
-    "shootTotal" : 7,
-    "effectiveShoot" : 7,
-    "passTry" : 163,
-    "passSuccess" : 142,
-    "dribbleTry" : 117,
-    "dribbleSuccess" : 111,
-    "dribbleDistance" : 2526,
-    "aerialTry" : 5,
-    "aerialSuccess" : 1,
-    "avgRating" : 6.74,
-    "xg" : 2.2070429582827384,
-    "finishing" : 1.7929570417172616,
-    "momCount" : 0
-  }, {
-    "nickname" : "내눈을가져가",
-    "spId" : "868001419",
-    "playerName" : "파트리크 비에이라",
-    "appearances" : 11,
-    "goals" : 1,
-    "assists" : 2,
-    "saves" : 1,
-    "tackles" : 14,
-    "intercepts" : 15,
-    "blocks" : 1,
-    "shootTotal" : 1,
-    "effectiveShoot" : 1,
-    "passTry" : 102,
-    "passSuccess" : 93,
-    "dribbleTry" : 58,
-    "dribbleSuccess" : 55,
-    "dribbleDistance" : 979,
+    "shootTotal" : 9,
+    "effectiveShoot" : 8,
+    "passTry" : 184,
+    "passSuccess" : 162,
+    "dribbleTry" : 127,
+    "dribbleSuccess" : 119,
+    "dribbleDistance" : 2776,
     "aerialTry" : 7,
-    "aerialSuccess" : 2,
-    "avgRating" : 6.70909090909091,
-    "xg" : 0.8856963013513712,
-    "finishing" : 0.11430369864862877,
-    "momCount" : 0
+    "aerialSuccess" : 1,
+    "avgRating" : 6.71111111111111,
+    "xg" : 2.5308703247473336,
+    "finishing" : 1.4691296752526664,
+    "momCount" : 0,
+    "goalsAgainst" : 49
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "856235840",
     "playerName" : "M. 디 그레고리오",
-    "appearances" : 11,
+    "appearances" : 14,
     "goals" : 0,
     "assists" : 0,
-    "saves" : 35,
+    "saves" : 47,
     "tackles" : 2,
     "intercepts" : 2,
     "blocks" : 0,
     "shootTotal" : 0,
     "effectiveShoot" : 0,
-    "passTry" : 30,
-    "passSuccess" : 26,
-    "dribbleTry" : 1,
-    "dribbleSuccess" : 1,
-    "dribbleDistance" : 35,
+    "passTry" : 41,
+    "passSuccess" : 35,
+    "dribbleTry" : 4,
+    "dribbleSuccess" : 4,
+    "dribbleDistance" : 123,
     "aerialTry" : 0,
     "aerialSuccess" : 0,
-    "avgRating" : 6.40909090909091,
+    "avgRating" : 6.63571428571429,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 35
+  }, {
+    "nickname" : "내눈을가져가",
+    "spId" : "868001419",
+    "playerName" : "파트리크 비에이라",
+    "appearances" : 14,
+    "goals" : 1,
+    "assists" : 2,
+    "saves" : 1,
+    "tackles" : 17,
+    "intercepts" : 17,
+    "blocks" : 1,
+    "shootTotal" : 3,
+    "effectiveShoot" : 3,
+    "passTry" : 122,
+    "passSuccess" : 109,
+    "dribbleTry" : 68,
+    "dribbleSuccess" : 62,
+    "dribbleDistance" : 1068,
+    "aerialTry" : 14,
+    "aerialSuccess" : 2,
+    "avgRating" : 6.61428571428571,
+    "xg" : 1.6318519368092788,
+    "finishing" : -0.6318519368092788,
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "863233096",
     "playerName" : "덴젤 둠프리스",
-    "appearances" : 15,
+    "appearances" : 18,
     "goals" : 0,
     "assists" : 1,
     "saves" : 2,
-    "tackles" : 10,
-    "intercepts" : 14,
-    "blocks" : 4,
-    "shootTotal" : 2,
+    "tackles" : 12,
+    "intercepts" : 17,
+    "blocks" : 5,
+    "shootTotal" : 3,
     "effectiveShoot" : 2,
-    "passTry" : 106,
-    "passSuccess" : 95,
-    "dribbleTry" : 45,
-    "dribbleSuccess" : 41,
-    "dribbleDistance" : 694,
-    "aerialTry" : 14,
+    "passTry" : 123,
+    "passSuccess" : 111,
+    "dribbleTry" : 54,
+    "dribbleSuccess" : 50,
+    "dribbleDistance" : 812,
+    "aerialTry" : 16,
     "aerialSuccess" : 4,
-    "avgRating" : 6.04666666666667,
-    "xg" : 1.2474240038700408,
-    "finishing" : -1.2474240038700408,
-    "momCount" : 0
+    "avgRating" : 6.10555555555556,
+    "xg" : 1.6972660950810345,
+    "finishing" : -1.6972660950810345,
+    "momCount" : 0,
+    "goalsAgainst" : 49
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "813001040",
     "playerName" : "호베르투 카를루스",
-    "appearances" : 11,
+    "appearances" : 14,
     "goals" : 1,
     "assists" : 4,
     "saves" : 0,
-    "tackles" : 4,
-    "intercepts" : 4,
+    "tackles" : 5,
+    "intercepts" : 5,
     "blocks" : 1,
-    "shootTotal" : 3,
-    "effectiveShoot" : 2,
-    "passTry" : 73,
-    "passSuccess" : 65,
-    "dribbleTry" : 42,
-    "dribbleSuccess" : 41,
-    "dribbleDistance" : 1138,
-    "aerialTry" : 6,
+    "shootTotal" : 6,
+    "effectiveShoot" : 3,
+    "passTry" : 90,
+    "passSuccess" : 79,
+    "dribbleTry" : 54,
+    "dribbleSuccess" : 52,
+    "dribbleDistance" : 1284,
+    "aerialTry" : 7,
     "aerialSuccess" : 0,
-    "avgRating" : 6.5,
-    "xg" : 0.38471703437473437,
-    "finishing" : 0.6152829656252656,
-    "momCount" : 0
+    "avgRating" : 6.45,
+    "xg" : 0.5210611557951218,
+    "finishing" : 0.4789388442048782,
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "850140601",
     "playerName" : "네마냐 비디치",
-    "appearances" : 13,
+    "appearances" : 16,
     "goals" : 0,
     "assists" : 1,
     "saves" : 0,
-    "tackles" : 5,
-    "intercepts" : 9,
-    "blocks" : 4,
+    "tackles" : 9,
+    "intercepts" : 14,
+    "blocks" : 5,
     "shootTotal" : 1,
     "effectiveShoot" : 1,
-    "passTry" : 99,
-    "passSuccess" : 92,
-    "dribbleTry" : 50,
-    "dribbleSuccess" : 44,
-    "dribbleDistance" : 943,
-    "aerialTry" : 17,
+    "passTry" : 117,
+    "passSuccess" : 108,
+    "dribbleTry" : 61,
+    "dribbleSuccess" : 53,
+    "dribbleDistance" : 1143,
+    "aerialTry" : 22,
     "aerialSuccess" : 0,
-    "avgRating" : 6.25384615384615,
+    "avgRating" : 6.3375,
     "xg" : 0.770740209965333,
     "finishing" : -0.770740209965333,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 40
   }, {
     "nickname" : "내눈을가져가",
     "spId" : "802001041",
     "playerName" : "하비에르 사네티",
-    "appearances" : 11,
+    "appearances" : 14,
     "goals" : 1,
     "assists" : 2,
     "saves" : 0,
-    "tackles" : 3,
+    "tackles" : 4,
     "intercepts" : 3,
     "blocks" : 0,
     "shootTotal" : 2,
     "effectiveShoot" : 1,
-    "passTry" : 66,
-    "passSuccess" : 60,
-    "dribbleTry" : 51,
-    "dribbleSuccess" : 47,
-    "dribbleDistance" : 1162,
-    "aerialTry" : 5,
+    "passTry" : 80,
+    "passSuccess" : 71,
+    "dribbleTry" : 59,
+    "dribbleSuccess" : 55,
+    "dribbleDistance" : 1276,
+    "aerialTry" : 8,
     "aerialSuccess" : 0,
-    "avgRating" : 6.20909090909091,
+    "avgRating" : 6.18571428571428,
     "xg" : 0.6375506965843912,
     "finishing" : 0.36244930341560877,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "852007826",
@@ -1540,7 +1595,8 @@
     "avgRating" : 8.059999999999999,
     "xg" : 43.27725414465032,
     "finishing" : -1.2772541446503212,
-    "momCount" : 11
+    "momCount" : 11,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "856231677",
@@ -1564,7 +1620,8 @@
     "avgRating" : 7.907500000000001,
     "xg" : 38.107893123017995,
     "finishing" : -5.107893123017995,
-    "momCount" : 3
+    "momCount" : 3,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "836226764",
@@ -1588,7 +1645,8 @@
     "avgRating" : 7.657500000000001,
     "xg" : 28.049357134220863,
     "finishing" : -1.0493571342208625,
-    "momCount" : 6
+    "momCount" : 6,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "829121944",
@@ -1612,7 +1670,8 @@
     "avgRating" : 6.976923076923079,
     "xg" : 9.67095463228104,
     "finishing" : 3.32904536771896,
-    "momCount" : 1
+    "momCount" : 1,
+    "goalsAgainst" : 87
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "827000250",
@@ -1636,7 +1695,8 @@
     "avgRating" : 7.170000000000002,
     "xg" : 9.821163563004337,
     "finishing" : -0.8211635630043368,
-    "momCount" : 2
+    "momCount" : 2,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "855237238",
@@ -1660,7 +1720,8 @@
     "avgRating" : 6.9375,
     "xg" : 11.816211078176666,
     "finishing" : -2.816211078176666,
-    "momCount" : 1
+    "momCount" : 1,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "861016254",
@@ -1684,7 +1745,8 @@
     "avgRating" : 6.525641025641025,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 1
+    "momCount" : 1,
+    "goalsAgainst" : 87
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "825140601",
@@ -1708,7 +1770,8 @@
     "avgRating" : 6.437499999999998,
     "xg" : 0.7263311043420364,
     "finishing" : -0.7263311043420364,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "861007289",
@@ -1732,7 +1795,8 @@
     "avgRating" : 6.372499999999999,
     "xg" : 0.757636618724853,
     "finishing" : -0.757636618724853,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "852229880",
@@ -1756,7 +1820,8 @@
     "avgRating" : 6.457500000000001,
     "xg" : 0.55790823403825,
     "finishing" : 0.44209176596175004,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "내혀를가져가",
     "spId" : "825039943",
@@ -1780,7 +1845,8 @@
     "avgRating" : 6.352500000000002,
     "xg" : 1.1725041448089062,
     "finishing" : 0.8274958551910938,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 91
   }, {
     "nickname" : "서울쥐",
     "spId" : "848031432",
@@ -1801,34 +1867,36 @@
     "dribbleDistance" : 2918,
     "aerialTry" : 24,
     "aerialSuccess" : 2,
-    "avgRating" : 8.52727272727273,
-    "xg" : 21.40790813371379,
-    "finishing" : 1.5920918662862107,
-    "momCount" : 4
+    "avgRating" : 8.527272727272727,
+    "xg" : 21.407908133713786,
+    "finishing" : 1.5920918662862142,
+    "momCount" : 4,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "867001238",
     "playerName" : "프란체스코 토티",
-    "appearances" : 13,
-    "goals" : 17,
+    "appearances" : 16,
+    "goals" : 18,
     "assists" : 7,
     "saves" : 0,
     "tackles" : 6,
     "intercepts" : 6,
     "blocks" : 0,
-    "shootTotal" : 32,
-    "effectiveShoot" : 27,
-    "passTry" : 192,
-    "passSuccess" : 174,
-    "dribbleTry" : 171,
-    "dribbleSuccess" : 143,
-    "dribbleDistance" : 4414,
+    "shootTotal" : 35,
+    "effectiveShoot" : 30,
+    "passTry" : 233,
+    "passSuccess" : 209,
+    "dribbleTry" : 202,
+    "dribbleSuccess" : 170,
+    "dribbleDistance" : 5126,
     "aerialTry" : 8,
     "aerialSuccess" : 0,
-    "avgRating" : 8.092307692307692,
-    "xg" : 13.739744783074244,
-    "finishing" : 3.2602552169257564,
-    "momCount" : 2
+    "avgRating" : 7.9,
+    "xg" : 14.079198265539587,
+    "finishing" : 3.9208017344604134,
+    "momCount" : 2,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "867162895",
@@ -1850,129 +1918,135 @@
     "aerialTry" : 4,
     "aerialSuccess" : 0,
     "avgRating" : 8.018181818181818,
-    "xg" : 11.71351115851543,
-    "finishing" : -0.7135111585154306,
-    "momCount" : 2
+    "xg" : 11.713511158515429,
+    "finishing" : -0.7135111585154288,
+    "momCount" : 2,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "866236403",
     "playerName" : "에반 은디카",
-    "appearances" : 13,
-    "goals" : 3,
+    "appearances" : 16,
+    "goals" : 4,
     "assists" : 0,
     "saves" : 1,
-    "tackles" : 27,
-    "intercepts" : 28,
-    "blocks" : 1,
-    "shootTotal" : 5,
-    "effectiveShoot" : 4,
-    "passTry" : 60,
-    "passSuccess" : 56,
-    "dribbleTry" : 32,
-    "dribbleSuccess" : 31,
-    "dribbleDistance" : 635,
-    "aerialTry" : 11,
-    "aerialSuccess" : 5,
-    "avgRating" : 6.376923076923077,
-    "xg" : 3.8415459140934565,
-    "finishing" : -0.8415459140934565,
-    "momCount" : 0
+    "tackles" : 30,
+    "intercepts" : 32,
+    "blocks" : 2,
+    "shootTotal" : 8,
+    "effectiveShoot" : 5,
+    "passTry" : 73,
+    "passSuccess" : 68,
+    "dribbleTry" : 39,
+    "dribbleSuccess" : 38,
+    "dribbleDistance" : 689,
+    "aerialTry" : 19,
+    "aerialSuccess" : 7,
+    "avgRating" : 6.45,
+    "xg" : 6.151800767202552,
+    "finishing" : -2.151800767202552,
+    "momCount" : 0,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "858053302",
     "playerName" : "다니엘레 데로시",
-    "appearances" : 13,
+    "appearances" : 16,
     "goals" : 2,
     "assists" : 6,
     "saves" : 1,
-    "tackles" : 16,
-    "intercepts" : 16,
+    "tackles" : 22,
+    "intercepts" : 22,
     "blocks" : 0,
-    "shootTotal" : 11,
-    "effectiveShoot" : 3,
-    "passTry" : 173,
-    "passSuccess" : 162,
-    "dribbleTry" : 138,
-    "dribbleSuccess" : 129,
-    "dribbleDistance" : 3717,
-    "aerialTry" : 12,
+    "shootTotal" : 12,
+    "effectiveShoot" : 4,
+    "passTry" : 204,
+    "passSuccess" : 190,
+    "dribbleTry" : 156,
+    "dribbleSuccess" : 143,
+    "dribbleDistance" : 4325,
+    "aerialTry" : 14,
     "aerialSuccess" : 0,
-    "avgRating" : 7.207692307692308,
-    "xg" : 1.6216097557830116,
-    "finishing" : 0.3783902442169884,
-    "momCount" : 3
+    "avgRating" : 7.0874999999999995,
+    "xg" : 1.7956891305753637,
+    "finishing" : 0.20431086942463628,
+    "momCount" : 3,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "852013383",
     "playerName" : "나카타 히데토시",
-    "appearances" : 13,
-    "goals" : 6,
-    "assists" : 7,
+    "appearances" : 16,
+    "goals" : 7,
+    "assists" : 8,
     "saves" : 0,
-    "tackles" : 2,
-    "intercepts" : 2,
+    "tackles" : 3,
+    "intercepts" : 3,
     "blocks" : 0,
-    "shootTotal" : 10,
-    "effectiveShoot" : 10,
-    "passTry" : 126,
-    "passSuccess" : 90,
-    "dribbleTry" : 100,
-    "dribbleSuccess" : 88,
-    "dribbleDistance" : 3587,
-    "aerialTry" : 10,
+    "shootTotal" : 16,
+    "effectiveShoot" : 15,
+    "passTry" : 147,
+    "passSuccess" : 101,
+    "dribbleTry" : 115,
+    "dribbleSuccess" : 103,
+    "dribbleDistance" : 4423,
+    "aerialTry" : 11,
     "aerialSuccess" : 0,
-    "avgRating" : 7.123076923076922,
-    "xg" : 3.7206733692982086,
-    "finishing" : 2.2793266307017914,
-    "momCount" : 2
+    "avgRating" : 7.118749999999999,
+    "xg" : 6.1378218338554955,
+    "finishing" : 0.8621781661445045,
+    "momCount" : 2,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "840211110",
     "playerName" : "파울로 디발라",
-    "appearances" : 13,
-    "goals" : 6,
-    "assists" : 5,
+    "appearances" : 16,
+    "goals" : 8,
+    "assists" : 6,
     "saves" : 0,
-    "tackles" : 1,
-    "intercepts" : 1,
+    "tackles" : 2,
+    "intercepts" : 2,
     "blocks" : 0,
-    "shootTotal" : 16,
-    "effectiveShoot" : 12,
-    "passTry" : 102,
-    "passSuccess" : 82,
-    "dribbleTry" : 94,
-    "dribbleSuccess" : 76,
-    "dribbleDistance" : 3885,
+    "shootTotal" : 18,
+    "effectiveShoot" : 14,
+    "passTry" : 123,
+    "passSuccess" : 99,
+    "dribbleTry" : 106,
+    "dribbleSuccess" : 84,
+    "dribbleDistance" : 4596,
     "aerialTry" : 8,
     "aerialSuccess" : 0,
-    "avgRating" : 6.86153846153846,
-    "xg" : 4.320355147216616,
-    "finishing" : 1.679644852783384,
-    "momCount" : 1
+    "avgRating" : 6.9125,
+    "xg" : 5.350280829521916,
+    "finishing" : 2.6497191704780843,
+    "momCount" : 2,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "863250723",
     "playerName" : "K. 코네",
-    "appearances" : 13,
-    "goals" : 0,
+    "appearances" : 16,
+    "goals" : 1,
     "assists" : 5,
-    "saves" : 0,
-    "tackles" : 18,
-    "intercepts" : 18,
+    "saves" : 1,
+    "tackles" : 23,
+    "intercepts" : 23,
     "blocks" : 0,
-    "shootTotal" : 4,
-    "effectiveShoot" : 3,
-    "passTry" : 160,
-    "passSuccess" : 151,
-    "dribbleTry" : 113,
-    "dribbleSuccess" : 108,
-    "dribbleDistance" : 2214,
-    "aerialTry" : 8,
+    "shootTotal" : 7,
+    "effectiveShoot" : 6,
+    "passTry" : 208,
+    "passSuccess" : 196,
+    "dribbleTry" : 150,
+    "dribbleSuccess" : 144,
+    "dribbleDistance" : 3109,
+    "aerialTry" : 10,
     "aerialSuccess" : 0,
-    "avgRating" : 6.946153846153847,
-    "xg" : 0.40568700966971066,
-    "finishing" : -0.40568700966971066,
-    "momCount" : 0
+    "avgRating" : 7.0562499999999995,
+    "xg" : 1.6582168222592504,
+    "finishing" : -0.6582168222592504,
+    "momCount" : 1,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "867201024",
@@ -1993,82 +2067,111 @@
     "dribbleDistance" : 380,
     "aerialTry" : 17,
     "aerialSuccess" : 2,
-    "avgRating" : 6.145454545454545,
+    "avgRating" : 6.145454545454546,
     "xg" : 1.4869892000111515,
     "finishing" : -0.48698920001115154,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "852166676",
     "playerName" : "루디 펠러",
-    "appearances" : 13,
+    "appearances" : 16,
     "goals" : 6,
-    "assists" : 4,
+    "assists" : 5,
     "saves" : 0,
     "tackles" : 0,
     "intercepts" : 0,
     "blocks" : 0,
-    "shootTotal" : 18,
-    "effectiveShoot" : 14,
-    "passTry" : 147,
-    "passSuccess" : 133,
-    "dribbleTry" : 120,
-    "dribbleSuccess" : 92,
-    "dribbleDistance" : 3057,
-    "aerialTry" : 9,
+    "shootTotal" : 23,
+    "effectiveShoot" : 17,
+    "passTry" : 167,
+    "passSuccess" : 152,
+    "dribbleTry" : 140,
+    "dribbleSuccess" : 105,
+    "dribbleDistance" : 3708,
+    "aerialTry" : 10,
     "aerialSuccess" : 1,
-    "avgRating" : 7.238461538461537,
-    "xg" : 7.589069980489132,
-    "finishing" : -1.589069980489132,
-    "momCount" : 0
+    "avgRating" : 7.1,
+    "xg" : 9.219123475356517,
+    "finishing" : -3.2191234753565166,
+    "momCount" : 0,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "256186153",
     "playerName" : "보이치에흐 슈체스니",
-    "appearances" : 13,
+    "appearances" : 16,
     "goals" : 0,
     "assists" : 0,
-    "saves" : 44,
+    "saves" : 53,
     "tackles" : 0,
     "intercepts" : 0,
     "blocks" : 0,
     "shootTotal" : 0,
     "effectiveShoot" : 0,
-    "passTry" : 34,
-    "passSuccess" : 30,
-    "dribbleTry" : 5,
-    "dribbleSuccess" : 5,
-    "dribbleDistance" : 128,
+    "passTry" : 43,
+    "passSuccess" : 38,
+    "dribbleTry" : 7,
+    "dribbleSuccess" : 7,
+    "dribbleDistance" : 138,
     "aerialTry" : 0,
     "aerialSuccess" : 0,
-    "avgRating" : 6.461538461538462,
+    "avgRating" : 6.5,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 41
+  }, {
+    "nickname" : "서울쥐",
+    "spId" : "845207865",
+    "playerName" : "마르키뉴스",
+    "appearances" : 16,
+    "goals" : 0,
+    "assists" : 0,
+    "saves" : 2,
+    "tackles" : 23,
+    "intercepts" : 24,
+    "blocks" : 1,
+    "shootTotal" : 0,
+    "effectiveShoot" : 0,
+    "passTry" : 75,
+    "passSuccess" : 70,
+    "dribbleTry" : 41,
+    "dribbleSuccess" : 36,
+    "dribbleDistance" : 767,
+    "aerialTry" : 6,
+    "aerialSuccess" : 2,
+    "avgRating" : 5.924999999999999,
+    "xg" : 0.0,
+    "finishing" : 0.0,
+    "momCount" : 0,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "867135455",
     "playerName" : "마이콘",
-    "appearances" : 13,
+    "appearances" : 16,
     "goals" : 0,
-    "assists" : 2,
+    "assists" : 3,
     "saves" : 0,
     "tackles" : 18,
     "intercepts" : 18,
     "blocks" : 0,
     "shootTotal" : 0,
     "effectiveShoot" : 0,
-    "passTry" : 107,
-    "passSuccess" : 94,
-    "dribbleTry" : 76,
-    "dribbleSuccess" : 68,
-    "dribbleDistance" : 2248,
-    "aerialTry" : 6,
+    "passTry" : 128,
+    "passSuccess" : 112,
+    "dribbleTry" : 91,
+    "dribbleSuccess" : 83,
+    "dribbleDistance" : 2588,
+    "aerialTry" : 8,
     "aerialSuccess" : 1,
-    "avgRating" : 6.615384615384615,
+    "avgRating" : 6.525,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "852189505",
@@ -2090,33 +2193,10 @@
     "aerialTry" : 1,
     "aerialSuccess" : 0,
     "avgRating" : 6.572727272727272,
-    "xg" : 4.705816023815575,
-    "finishing" : -1.7058160238155748,
-    "momCount" : 0
-  }, {
-    "nickname" : "서울쥐",
-    "spId" : "845207865",
-    "playerName" : "마르키뉴스",
-    "appearances" : 13,
-    "goals" : 0,
-    "assists" : 0,
-    "saves" : 1,
-    "tackles" : 19,
-    "intercepts" : 20,
-    "blocks" : 1,
-    "shootTotal" : 0,
-    "effectiveShoot" : 0,
-    "passTry" : 62,
-    "passSuccess" : 57,
-    "dribbleTry" : 32,
-    "dribbleSuccess" : 29,
-    "dribbleDistance" : 676,
-    "aerialTry" : 3,
-    "aerialSuccess" : 0,
-    "avgRating" : 5.8769230769230765,
-    "xg" : 0.0,
-    "finishing" : 0.0,
-    "momCount" : 0
+    "xg" : 4.705816023815576,
+    "finishing" : -1.7058160238155757,
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "856238074",
@@ -2140,7 +2220,8 @@
     "avgRating" : 6.554545454545454,
     "xg" : 1.0011312655606575,
     "finishing" : -1.0011312655606575,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "840183277",
@@ -2162,9 +2243,10 @@
     "aerialTry" : 8,
     "aerialSuccess" : 1,
     "avgRating" : 6.945454545454544,
-    "xg" : 2.2102464539005644,
-    "finishing" : -1.2102464539005644,
-    "momCount" : 0
+    "xg" : 2.210246453900564,
+    "finishing" : -1.210246453900564,
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "845001116",
@@ -2188,7 +2270,8 @@
     "avgRating" : 6.009090909090909,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "863239231",
@@ -2209,10 +2292,36 @@
     "dribbleDistance" : 1745,
     "aerialTry" : 9,
     "aerialSuccess" : 2,
-    "avgRating" : 6.700000000000002,
+    "avgRating" : 6.7,
     "xg" : 1.348152871111151,
     "finishing" : -0.348152871111151,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
+  }, {
+    "nickname" : "서울쥐",
+    "spId" : "825034079",
+    "playerName" : "애슐리 콜",
+    "appearances" : 16,
+    "goals" : 0,
+    "assists" : 1,
+    "saves" : 2,
+    "tackles" : 11,
+    "intercepts" : 11,
+    "blocks" : 0,
+    "shootTotal" : 0,
+    "effectiveShoot" : 0,
+    "passTry" : 119,
+    "passSuccess" : 103,
+    "dribbleTry" : 67,
+    "dribbleSuccess" : 65,
+    "dribbleDistance" : 1976,
+    "aerialTry" : 11,
+    "aerialSuccess" : 3,
+    "avgRating" : 6.2125,
+    "xg" : 0.0,
+    "finishing" : 0.0,
+    "momCount" : 0,
+    "goalsAgainst" : 41
   }, {
     "nickname" : "서울쥐",
     "spId" : "848215914",
@@ -2234,9 +2343,10 @@
     "aerialTry" : 5,
     "aerialSuccess" : 0,
     "avgRating" : 6.718181818181819,
-    "xg" : 0.9767739765402756,
-    "finishing" : -0.9767739765402756,
-    "momCount" : 0
+    "xg" : 0.9767739765402758,
+    "finishing" : -0.9767739765402758,
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "251192119",
@@ -2257,10 +2367,11 @@
     "dribbleDistance" : 0,
     "aerialTry" : 0,
     "aerialSuccess" : 0,
-    "avgRating" : 6.054545454545454,
+    "avgRating" : 6.054545454545456,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "서울쥐",
     "spId" : "856256079",
@@ -2281,34 +2392,11 @@
     "dribbleDistance" : 2108,
     "aerialTry" : 6,
     "aerialSuccess" : 0,
-    "avgRating" : 6.7,
+    "avgRating" : 6.699999999999999,
     "xg" : 0.8104331574470289,
     "finishing" : -0.8104331574470289,
-    "momCount" : 1
-  }, {
-    "nickname" : "서울쥐",
-    "spId" : "825034079",
-    "playerName" : "애슐리 콜",
-    "appearances" : 13,
-    "goals" : 0,
-    "assists" : 1,
-    "saves" : 2,
-    "tackles" : 8,
-    "intercepts" : 8,
-    "blocks" : 0,
-    "shootTotal" : 0,
-    "effectiveShoot" : 0,
-    "passTry" : 99,
-    "passSuccess" : 88,
-    "dribbleTry" : 55,
-    "dribbleSuccess" : 53,
-    "dribbleDistance" : 1625,
-    "aerialTry" : 8,
-    "aerialSuccess" : 2,
-    "avgRating" : 6.184615384615385,
-    "xg" : 0.0,
-    "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 1,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "848158023",
@@ -2332,7 +2420,8 @@
     "avgRating" : 8.266666666666666,
     "xg" : 20.247810349479103,
     "finishing" : 3.752189650520897,
-    "momCount" : 6
+    "momCount" : 6,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "826247635",
@@ -2356,7 +2445,8 @@
     "avgRating" : 7.866666666666666,
     "xg" : 10.566069788634298,
     "finishing" : 0.433930211365702,
-    "momCount" : 5
+    "momCount" : 5,
+    "goalsAgainst" : 29
   }, {
     "nickname" : "아기블루스",
     "spId" : "836231443",
@@ -2380,7 +2470,8 @@
     "avgRating" : 7.7,
     "xg" : 11.121579653687494,
     "finishing" : -1.121579653687494,
-    "momCount" : 4
+    "momCount" : 4,
+    "goalsAgainst" : 32
   }, {
     "nickname" : "아기블루스",
     "spId" : "856272834",
@@ -2404,7 +2495,8 @@
     "avgRating" : 7.404761904761905,
     "xg" : 2.1692606329087853,
     "finishing" : 0.8307393670912147,
-    "momCount" : 2
+    "momCount" : 2,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "866230621",
@@ -2428,7 +2520,8 @@
     "avgRating" : 7.066666666666665,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "856255253",
@@ -2452,7 +2545,8 @@
     "avgRating" : 7.238095238095239,
     "xg" : 1.1567791524266522,
     "finishing" : 0.8432208475733478,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "863256196",
@@ -2476,7 +2570,8 @@
     "avgRating" : 6.319047619047619,
     "xg" : 3.760084066994267,
     "finishing" : -3.760084066994267,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "866270673",
@@ -2500,7 +2595,8 @@
     "avgRating" : 6.55,
     "xg" : 2.27097411793107,
     "finishing" : -0.27097411793107007,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "아기블루스",
     "spId" : "856207865",
@@ -2524,7 +2620,8 @@
     "avgRating" : 6.28095238095238,
     "xg" : 0.8491215219459715,
     "finishing" : -0.8491215219459715,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "834226271",
@@ -2548,7 +2645,8 @@
     "avgRating" : 6.871428571428572,
     "xg" : 6.39702669796431,
     "finishing" : -3.39702669796431,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "아기블루스",
     "spId" : "856252145",
@@ -2572,7 +2670,8 @@
     "avgRating" : 6.571428571428571,
     "xg" : 0.5995013405415182,
     "finishing" : -0.5995013405415182,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 37
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "850054050",
@@ -2593,10 +2692,11 @@
     "dribbleDistance" : 13534,
     "aerialTry" : 55,
     "aerialSuccess" : 3,
-    "avgRating" : 7.377777777777776,
+    "avgRating" : 7.377777777777778,
     "xg" : 26.35148709527227,
     "finishing" : -2.351487095272269,
-    "momCount" : 4
+    "momCount" : 4,
+    "goalsAgainst" : 162
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "848192505",
@@ -2617,10 +2717,11 @@
     "dribbleDistance" : 7281,
     "aerialTry" : 48,
     "aerialSuccess" : 6,
-    "avgRating" : 7.393548387096777,
+    "avgRating" : 7.393548387096775,
     "xg" : 31.897690193852377,
     "finishing" : -9.897690193852377,
-    "momCount" : 3
+    "momCount" : 3,
+    "goalsAgainst" : 100
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "844237238",
@@ -2641,10 +2742,36 @@
     "dribbleDistance" : 6942,
     "aerialTry" : 33,
     "aerialSuccess" : 8,
-    "avgRating" : 6.4666666666666694,
+    "avgRating" : 6.466666666666668,
     "xg" : 11.90787792814173,
     "finishing" : -2.9078779281417297,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 162
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "848188545",
+    "playerName" : "레반도프스키",
+    "appearances" : 20,
+    "goals" : 19,
+    "assists" : 8,
+    "saves" : 0,
+    "tackles" : 4,
+    "intercepts" : 4,
+    "blocks" : 0,
+    "shootTotal" : 42,
+    "effectiveShoot" : 36,
+    "passTry" : 225,
+    "passSuccess" : 201,
+    "dribbleTry" : 160,
+    "dribbleSuccess" : 129,
+    "dribbleDistance" : 4351,
+    "aerialTry" : 53,
+    "aerialSuccess" : 7,
+    "avgRating" : 7.8100000000000005,
+    "xg" : 23.278123626554592,
+    "finishing" : -4.278123626554592,
+    "momCount" : 3,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "867000250",
@@ -2665,34 +2792,11 @@
     "dribbleDistance" : 10055,
     "aerialTry" : 20,
     "aerialSuccess" : 0,
-    "avgRating" : 6.544444444444446,
+    "avgRating" : 6.544444444444443,
     "xg" : 5.844152324620771,
     "finishing" : 1.1558476753792286,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "848188545",
-    "playerName" : "레반도프스키",
-    "appearances" : 14,
-    "goals" : 17,
-    "assists" : 7,
-    "saves" : 0,
-    "tackles" : 3,
-    "intercepts" : 3,
-    "blocks" : 0,
-    "shootTotal" : 31,
-    "effectiveShoot" : 27,
-    "passTry" : 154,
-    "passSuccess" : 140,
-    "dribbleTry" : 106,
-    "dribbleSuccess" : 84,
-    "dribbleDistance" : 2954,
-    "aerialTry" : 35,
-    "aerialSuccess" : 4,
-    "avgRating" : 8.157142857142857,
-    "xg" : 17.364571998772014,
-    "finishing" : -0.3645719987720142,
-    "momCount" : 2
+    "momCount" : 0,
+    "goalsAgainst" : 162
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "848007289",
@@ -2713,10 +2817,36 @@
     "dribbleDistance" : 2579,
     "aerialTry" : 37,
     "aerialSuccess" : 8,
-    "avgRating" : 5.735555555555556,
+    "avgRating" : 5.735555555555555,
     "xg" : 0.003036654858017242,
     "finishing" : -0.003036654858017242,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 162
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "861052241",
+    "playerName" : "헨릭 라르손",
+    "appearances" : 20,
+    "goals" : 13,
+    "assists" : 6,
+    "saves" : 1,
+    "tackles" : 6,
+    "intercepts" : 6,
+    "blocks" : 0,
+    "shootTotal" : 29,
+    "effectiveShoot" : 24,
+    "passTry" : 236,
+    "passSuccess" : 198,
+    "dribbleTry" : 207,
+    "dribbleSuccess" : 171,
+    "dribbleDistance" : 7267,
+    "aerialTry" : 31,
+    "aerialSuccess" : 1,
+    "avgRating" : 7.6949999999999985,
+    "xg" : 11.145678144417788,
+    "finishing" : 1.8543218555822119,
+    "momCount" : 4,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "848005740",
@@ -2737,58 +2867,111 @@
     "dribbleDistance" : 1924,
     "aerialTry" : 48,
     "aerialSuccess" : 4,
-    "avgRating" : 5.847058823529412,
+    "avgRating" : 5.847058823529413,
     "xg" : 0.7675895570286675,
     "finishing" : 0.2324104429713325,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "861052241",
-    "playerName" : "헨릭 라르손",
-    "appearances" : 14,
-    "goals" : 11,
-    "assists" : 4,
-    "saves" : 1,
-    "tackles" : 5,
-    "intercepts" : 5,
-    "blocks" : 0,
-    "shootTotal" : 22,
-    "effectiveShoot" : 19,
-    "passTry" : 170,
-    "passSuccess" : 137,
-    "dribbleTry" : 148,
-    "dribbleSuccess" : 126,
-    "dribbleDistance" : 5432,
-    "aerialTry" : 27,
-    "aerialSuccess" : 0,
-    "avgRating" : 7.892857142857143,
-    "xg" : 9.055394896420589,
-    "finishing" : 1.944605103579411,
-    "momCount" : 3
+    "momCount" : 0,
+    "goalsAgainst" : 113
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "866242444",
     "playerName" : "주앙 펠릭스",
-    "appearances" : 14,
-    "goals" : 6,
-    "assists" : 10,
+    "appearances" : 20,
+    "goals" : 7,
+    "assists" : 13,
     "saves" : 0,
     "tackles" : 2,
     "intercepts" : 2,
     "blocks" : 0,
-    "shootTotal" : 15,
-    "effectiveShoot" : 13,
-    "passTry" : 144,
-    "passSuccess" : 123,
-    "dribbleTry" : 142,
-    "dribbleSuccess" : 109,
-    "dribbleDistance" : 4832,
-    "aerialTry" : 9,
+    "shootTotal" : 24,
+    "effectiveShoot" : 17,
+    "passTry" : 207,
+    "passSuccess" : 170,
+    "dribbleTry" : 199,
+    "dribbleSuccess" : 158,
+    "dribbleDistance" : 7358,
+    "aerialTry" : 14,
+    "aerialSuccess" : 5,
+    "avgRating" : 7.179999999999998,
+    "xg" : 10.302544224612705,
+    "finishing" : -3.3025442246127046,
+    "momCount" : 1,
+    "goalsAgainst" : 71
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "856259532",
+    "playerName" : "주안 가르시아",
+    "appearances" : 19,
+    "goals" : 0,
+    "assists" : 0,
+    "saves" : 86,
+    "tackles" : 0,
+    "intercepts" : 0,
+    "blocks" : 0,
+    "shootTotal" : 0,
+    "effectiveShoot" : 0,
+    "passTry" : 65,
+    "passSuccess" : 57,
+    "dribbleTry" : 8,
+    "dribbleSuccess" : 8,
+    "dribbleDistance" : 344,
+    "aerialTry" : 0,
+    "aerialSuccess" : 0,
+    "avgRating" : 6.689473684210528,
+    "xg" : 0.0,
+    "finishing" : 0.0,
+    "momCount" : 0,
+    "goalsAgainst" : 68
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "845230938",
+    "playerName" : "F. 케시에",
+    "appearances" : 20,
+    "goals" : 5,
+    "assists" : 4,
+    "saves" : 1,
+    "tackles" : 17,
+    "intercepts" : 18,
+    "blocks" : 2,
+    "shootTotal" : 13,
+    "effectiveShoot" : 10,
+    "passTry" : 201,
+    "passSuccess" : 182,
+    "dribbleTry" : 173,
+    "dribbleSuccess" : 154,
+    "dribbleDistance" : 3863,
+    "aerialTry" : 13,
     "aerialSuccess" : 3,
-    "avgRating" : 7.242857142857143,
-    "xg" : 6.0697641798966036,
-    "finishing" : -0.06976417989660355,
-    "momCount" : 1
+    "avgRating" : 6.610000000000001,
+    "xg" : 6.745455516316426,
+    "finishing" : -1.7454555163164258,
+    "momCount" : 0,
+    "goalsAgainst" : 71
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "861020289",
+    "playerName" : "야야 투레",
+    "appearances" : 20,
+    "goals" : 2,
+    "assists" : 8,
+    "saves" : 0,
+    "tackles" : 15,
+    "intercepts" : 16,
+    "blocks" : 2,
+    "shootTotal" : 9,
+    "effectiveShoot" : 6,
+    "passTry" : 239,
+    "passSuccess" : 225,
+    "dribbleTry" : 187,
+    "dribbleSuccess" : 168,
+    "dribbleDistance" : 4479,
+    "aerialTry" : 13,
+    "aerialSuccess" : 2,
+    "avgRating" : 6.675,
+    "xg" : 3.5715912548758486,
+    "finishing" : -1.5715912548758486,
+    "momCount" : 0,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "517193080",
@@ -2812,31 +2995,8 @@
     "avgRating" : 6.1909090909090905,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 1
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "861020289",
-    "playerName" : "야야 투레",
-    "appearances" : 14,
-    "goals" : 2,
-    "assists" : 7,
-    "saves" : 0,
-    "tackles" : 13,
-    "intercepts" : 14,
-    "blocks" : 2,
-    "shootTotal" : 4,
-    "effectiveShoot" : 3,
-    "passTry" : 165,
-    "passSuccess" : 155,
-    "dribbleTry" : 136,
-    "dribbleSuccess" : 119,
-    "dribbleDistance" : 3165,
-    "aerialTry" : 7,
-    "aerialSuccess" : 1,
-    "avgRating" : 6.807142857142857,
-    "xg" : 1.2481844498799655,
-    "finishing" : 0.7518155501200345,
-    "momCount" : 0
+    "momCount" : 1,
+    "goalsAgainst" : 78
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "829020801",
@@ -2860,7 +3020,33 @@
     "avgRating" : 7.321428571428571,
     "xg" : 9.22302825949536,
     "finishing" : -0.22302825949535965,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 62
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "861026709",
+    "playerName" : "라파엘 마르케스",
+    "appearances" : 20,
+    "goals" : 2,
+    "assists" : 0,
+    "saves" : 1,
+    "tackles" : 24,
+    "intercepts" : 26,
+    "blocks" : 2,
+    "shootTotal" : 4,
+    "effectiveShoot" : 4,
+    "passTry" : 155,
+    "passSuccess" : 143,
+    "dribbleTry" : 98,
+    "dribbleSuccess" : 96,
+    "dribbleDistance" : 2251,
+    "aerialTry" : 11,
+    "aerialSuccess" : 1,
+    "avgRating" : 5.94,
+    "xg" : 2.4444316151312453,
+    "finishing" : -0.4444316151312453,
+    "momCount" : 0,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "856231677",
@@ -2884,7 +3070,8 @@
     "avgRating" : 6.1,
     "xg" : 8.232437131525582,
     "finishing" : -5.232437131525582,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 162
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "840205988",
@@ -2905,34 +3092,36 @@
     "dribbleDistance" : 5653,
     "aerialTry" : 16,
     "aerialSuccess" : 1,
-    "avgRating" : 6.208823529411767,
+    "avgRating" : 6.208823529411766,
     "xg" : 0.014195766959701182,
     "finishing" : -0.014195766959701182,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 113
   }, {
     "nickname" : "지린성에사는욱구",
-    "spId" : "856259532",
-    "playerName" : "주안 가르시아",
-    "appearances" : 13,
+    "spId" : "863253163",
+    "playerName" : "R. 아라우호",
+    "appearances" : 20,
     "goals" : 0,
     "assists" : 0,
-    "saves" : 57,
-    "tackles" : 0,
-    "intercepts" : 0,
-    "blocks" : 0,
-    "shootTotal" : 0,
-    "effectiveShoot" : 0,
-    "passTry" : 43,
-    "passSuccess" : 37,
-    "dribbleTry" : 5,
-    "dribbleSuccess" : 5,
-    "dribbleDistance" : 277,
-    "aerialTry" : 0,
+    "saves" : 4,
+    "tackles" : 23,
+    "intercepts" : 25,
+    "blocks" : 3,
+    "shootTotal" : 1,
+    "effectiveShoot" : 1,
+    "passTry" : 140,
+    "passSuccess" : 130,
+    "dribbleTry" : 81,
+    "dribbleSuccess" : 78,
+    "dribbleDistance" : 1300,
+    "aerialTry" : 16,
     "aerialSuccess" : 0,
-    "avgRating" : 6.523076923076924,
-    "xg" : 0.0,
-    "finishing" : 0.0,
-    "momCount" : 0
+    "avgRating" : 5.8450000000000015,
+    "xg" : 0.5611905798722794,
+    "finishing" : -0.5611905798722794,
+    "momCount" : 0,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "851234574",
@@ -2956,7 +3145,8 @@
     "avgRating" : 5.846666666666668,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 162
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "237190053",
@@ -2980,55 +3170,8 @@
     "avgRating" : 6.633333333333333,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "845230938",
-    "playerName" : "F. 케시에",
-    "appearances" : 14,
-    "goals" : 2,
-    "assists" : 4,
-    "saves" : 1,
-    "tackles" : 10,
-    "intercepts" : 9,
-    "blocks" : 0,
-    "shootTotal" : 6,
-    "effectiveShoot" : 4,
-    "passTry" : 142,
-    "passSuccess" : 130,
-    "dribbleTry" : 120,
-    "dribbleSuccess" : 106,
-    "dribbleDistance" : 2921,
-    "aerialTry" : 4,
-    "aerialSuccess" : 1,
-    "avgRating" : 6.5357142857142865,
-    "xg" : 3.1326040637806103,
-    "finishing" : -1.1326040637806103,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "861026709",
-    "playerName" : "라파엘 마르케스",
-    "appearances" : 14,
-    "goals" : 1,
-    "assists" : 0,
-    "saves" : 1,
-    "tackles" : 19,
-    "intercepts" : 20,
-    "blocks" : 1,
-    "shootTotal" : 2,
-    "effectiveShoot" : 2,
-    "passTry" : 97,
-    "passSuccess" : 89,
-    "dribbleTry" : 61,
-    "dribbleSuccess" : 59,
-    "dribbleDistance" : 1377,
-    "aerialTry" : 8,
-    "aerialSuccess" : 0,
-    "avgRating" : 5.942857142857143,
-    "xg" : 0.8501351426656518,
-    "finishing" : 0.14986485733434818,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "207051539",
@@ -3052,7 +3195,8 @@
     "avgRating" : 6.272727272727272,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 49
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "845184941",
@@ -3073,58 +3217,86 @@
     "dribbleDistance" : 3841,
     "aerialTry" : 14,
     "aerialSuccess" : 1,
-    "avgRating" : 6.247368421052631,
+    "avgRating" : 6.247368421052632,
     "xg" : 4.10943080652335,
     "finishing" : -0.10943080652335002,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "863253163",
-    "playerName" : "R. 아라우호",
-    "appearances" : 14,
-    "goals" : 0,
-    "assists" : 0,
-    "saves" : 3,
-    "tackles" : 17,
-    "intercepts" : 19,
-    "blocks" : 2,
-    "shootTotal" : 1,
-    "effectiveShoot" : 1,
-    "passTry" : 83,
-    "passSuccess" : 75,
-    "dribbleTry" : 49,
-    "dribbleSuccess" : 47,
-    "dribbleDistance" : 815,
-    "aerialTry" : 12,
-    "aerialSuccess" : 0,
-    "avgRating" : 5.764285714285714,
-    "xg" : 0.5611905798722794,
-    "finishing" : -0.5611905798722794,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 65
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "840241486",
     "playerName" : "쥘 쿤데",
-    "appearances" : 14,
+    "appearances" : 20,
     "goals" : 0,
     "assists" : 0,
-    "saves" : 3,
-    "tackles" : 11,
-    "intercepts" : 12,
+    "saves" : 4,
+    "tackles" : 13,
+    "intercepts" : 14,
     "blocks" : 1,
-    "shootTotal" : 0,
+    "shootTotal" : 1,
     "effectiveShoot" : 0,
-    "passTry" : 82,
-    "passSuccess" : 77,
-    "dribbleTry" : 51,
-    "dribbleSuccess" : 48,
-    "dribbleDistance" : 1155,
+    "passTry" : 129,
+    "passSuccess" : 119,
+    "dribbleTry" : 86,
+    "dribbleSuccess" : 81,
+    "dribbleDistance" : 2153,
+    "aerialTry" : 9,
+    "aerialSuccess" : 2,
+    "avgRating" : 5.624999999999999,
+    "xg" : 0.03640851426075373,
+    "finishing" : -0.03640851426075373,
+    "momCount" : 0,
+    "goalsAgainst" : 71
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "101001615",
+    "playerName" : "릴리앙 튀람",
+    "appearances" : 20,
+    "goals" : 1,
+    "assists" : 1,
+    "saves" : 0,
+    "tackles" : 7,
+    "intercepts" : 8,
+    "blocks" : 1,
+    "shootTotal" : 4,
+    "effectiveShoot" : 4,
+    "passTry" : 133,
+    "passSuccess" : 117,
+    "dribbleTry" : 109,
+    "dribbleSuccess" : 101,
+    "dribbleDistance" : 3188,
+    "aerialTry" : 7,
+    "aerialSuccess" : 0,
+    "avgRating" : 5.78,
+    "xg" : 1.8353868058014333,
+    "finishing" : -0.8353868058014333,
+    "momCount" : 0,
+    "goalsAgainst" : 71
+  }, {
+    "nickname" : "지린성에사는욱구",
+    "spId" : "845239231",
+    "playerName" : "마르크 쿠쿠레야",
+    "appearances" : 20,
+    "goals" : 0,
+    "assists" : 3,
+    "saves" : 0,
+    "tackles" : 6,
+    "intercepts" : 7,
+    "blocks" : 1,
+    "shootTotal" : 1,
+    "effectiveShoot" : 0,
+    "passTry" : 157,
+    "passSuccess" : 125,
+    "dribbleTry" : 125,
+    "dribbleSuccess" : 115,
+    "dribbleDistance" : 3907,
     "aerialTry" : 4,
     "aerialSuccess" : 0,
-    "avgRating" : 5.571428571428571,
-    "xg" : 0.0,
-    "finishing" : 0.0,
-    "momCount" : 0
+    "avgRating" : 6.04,
+    "xg" : 0.017018875749155796,
+    "finishing" : -0.017018875749155796,
+    "momCount" : 0,
+    "goalsAgainst" : 71
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "868140601",
@@ -3145,10 +3317,11 @@
     "dribbleDistance" : 652,
     "aerialTry" : 15,
     "aerialSuccess" : 0,
-    "avgRating" : 5.790909090909091,
+    "avgRating" : 5.790909090909092,
     "xg" : 0.0,
     "finishing" : 0.0,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 49
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "836233049",
@@ -3172,7 +3345,8 @@
     "avgRating" : 6.2250000000000005,
     "xg" : 1.8561132800683358,
     "finishing" : 0.14388671993166424,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 35
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "848143001",
@@ -3193,58 +3367,11 @@
     "dribbleDistance" : 2590,
     "aerialTry" : 7,
     "aerialSuccess" : 2,
-    "avgRating" : 5.950000000000001,
+    "avgRating" : 5.95,
     "xg" : 2.8688909012127795,
     "finishing" : -1.8688909012127795,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "101001615",
-    "playerName" : "릴리앙 튀람",
-    "appearances" : 14,
-    "goals" : 1,
-    "assists" : 1,
-    "saves" : 0,
-    "tackles" : 3,
-    "intercepts" : 3,
-    "blocks" : 0,
-    "shootTotal" : 4,
-    "effectiveShoot" : 4,
-    "passTry" : 91,
-    "passSuccess" : 80,
-    "dribbleTry" : 75,
-    "dribbleSuccess" : 68,
-    "dribbleDistance" : 2098,
-    "aerialTry" : 5,
-    "aerialSuccess" : 0,
-    "avgRating" : 5.685714285714286,
-    "xg" : 1.8353868058014333,
-    "finishing" : -0.8353868058014333,
-    "momCount" : 0
-  }, {
-    "nickname" : "지린성에사는욱구",
-    "spId" : "845239231",
-    "playerName" : "마르크 쿠쿠레야",
-    "appearances" : 14,
-    "goals" : 0,
-    "assists" : 2,
-    "saves" : 0,
-    "tackles" : 3,
-    "intercepts" : 4,
-    "blocks" : 1,
-    "shootTotal" : 1,
-    "effectiveShoot" : 0,
-    "passTry" : 110,
-    "passSuccess" : 86,
-    "dribbleTry" : 89,
-    "dribbleSuccess" : 81,
-    "dribbleDistance" : 2595,
-    "aerialTry" : 3,
-    "aerialSuccess" : 0,
-    "avgRating" : 5.864285714285714,
-    "xg" : 0.017018875749155796,
-    "finishing" : -0.017018875749155796,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 62
   }, {
     "nickname" : "지린성에사는욱구",
     "spId" : "851236401",
@@ -3268,6 +3395,7 @@
     "avgRating" : 6.0,
     "xg" : 0.22086542452881316,
     "finishing" : -0.22086542452881316,
-    "momCount" : 0
+    "momCount" : 0,
+    "goalsAgainst" : 49
   } ]
 }
