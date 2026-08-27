@@ -465,7 +465,17 @@
     var playersGridCard = el('div', 'card dashboard-players-grid-card');
     playersGridCard.id = 'dashboard-players-grid-card';
     playersGridCard.style.marginTop = '14px';
-    playersGridCard.appendChild(el('p', 'card-title', '👥 전체 선수 스탯'));
+    var playersGridHead = el('div', 'dashboard-player-ranking-head');
+    playersGridHead.appendChild(el('p', 'card-title', '👥 전체 선수 스탯'));
+    var playersGridToggle = el('div', 'segmented dashboard-ranking-toggle');
+    var playersGridTotalBtn = el('button', '', '전체(총합)');
+    playersGridTotalBtn.type = 'button';
+    var playersGridAvgBtn = el('button', '', '평균(경기당)');
+    playersGridAvgBtn.type = 'button';
+    playersGridToggle.appendChild(playersGridTotalBtn);
+    playersGridToggle.appendChild(playersGridAvgBtn);
+    playersGridHead.appendChild(playersGridToggle);
+    playersGridCard.appendChild(playersGridHead);
     playersGridCard.appendChild(el('p', 'card-caption',
       '9명 전원의 선수 스탯을 모았습니다(최소 10경기 출전). 열 제목을 클릭하면 정렬됩니다. 드리블거리는 미터 환산입니다.'));
     var dashboardPlayersGridWrap = el('div', 'table-scroll');
@@ -474,7 +484,15 @@
     dashboardSummaryEl.appendChild(playersGridCard);
     dashboardAllPlayers = data.allPlayers || [];
     dashboardPlayersGridSort = { col: 'goals', dir: 'desc' };
-    renderDashboardPlayersGrid(dashboardAllPlayers);
+    dashboardPlayersGridMode = 'total';
+    function drawPlayersGrid() {
+      playersGridTotalBtn.setAttribute('aria-pressed', String(dashboardPlayersGridMode === 'total'));
+      playersGridAvgBtn.setAttribute('aria-pressed', String(dashboardPlayersGridMode === 'avg'));
+      renderDashboardPlayersGrid(dashboardAllPlayers);
+    }
+    playersGridTotalBtn.addEventListener('click', function () { dashboardPlayersGridMode = 'total'; drawPlayersGrid(); });
+    playersGridAvgBtn.addEventListener('click', function () { dashboardPlayersGridMode = 'avg'; drawPlayersGrid(); });
+    drawPlayersGrid();
   }
 
   // ---------------- 대시보드 "선수 랭킹"(TOP5) + "전체 선수 스탯" 그리드 ----------------
@@ -576,6 +594,16 @@
   }
 
   var dashboardPlayersGridSort = { col: 'goals', dir: 'desc' };
+  var dashboardPlayersGridMode = 'total'; // 'total'(총합) | 'avg'(경기당 평균) — 버튼으로 토글.
+
+  // 평균 모드에서 appearances로 나눌 누적 지표들 — 출전(appearances)·평점(avgRating, 이미 경기당
+  // 평균)·선방률(savePct, 이미 비율)은 나누지 않는다(요청: "전체/평균" 버튼으로 총합/경기당 전환).
+  var DASHBOARD_PLAYERS_GRID_AVG_KEYS = [
+    'goals', 'assists', 'attackPoints', 'xg', 'finishing', 'momCount', 'saves',
+    'shootTotal', 'effectiveShoot', 'passTry', 'passSuccess',
+    'dribbleTry', 'dribbleSuccess', 'dribbleDistanceM', 'aerialTry', 'aerialSuccess',
+    'tackles', 'intercepts', 'blocks'
+  ];
 
   function renderDashboardPlayersGrid(players) {
     var container = document.getElementById('dashboard-players-grid');
@@ -620,6 +648,9 @@
       // 보고 표시 — 아니면 표본이 작은 필드 플레이어가 "선방률 100%" 같은 오해를 부른다.
       var looksLikeKeeper = p.appearances > 0 && (p.saves / p.appearances) >= 1;
       copy.savePct = looksLikeKeeper ? (p.saves / (p.saves + (p.goalsAgainst || 0)) * 100) : null;
+      if (dashboardPlayersGridMode === 'avg' && p.appearances > 0) {
+        DASHBOARD_PLAYERS_GRID_AVG_KEYS.forEach(function (k) { copy[k] = copy[k] / p.appearances; });
+      }
       return copy;
     });
 
@@ -659,6 +690,9 @@
     thead.appendChild(htr);
     table.appendChild(thead);
 
+    // 평균 모드에서는 나눗셈 결과라 소수점이 생기므로 fmt1로, 총합 모드에서는 정수 fmt로 표시.
+    var nf = dashboardPlayersGridMode === 'avg' ? fmt1 : fmt;
+
     var tbody = document.createElement('tbody');
     sorted.forEach(function (p) {
       var tr = document.createElement('tr');
@@ -667,26 +701,26 @@
       nameTd.appendChild(playerNameBadge(p.spId, p.playerName));
       tr.appendChild(nameTd);
       tr.appendChild(el('td', 'num', fmt(p.appearances)));
-      tr.appendChild(el('td', 'num', fmt(p.goals)));
-      tr.appendChild(el('td', 'num', fmt(p.assists)));
-      tr.appendChild(el('td', 'num', fmt(p.attackPoints)));
+      tr.appendChild(el('td', 'num', nf(p.goals)));
+      tr.appendChild(el('td', 'num', nf(p.assists)));
+      tr.appendChild(el('td', 'num', nf(p.attackPoints)));
       tr.appendChild(el('td', 'num', fmt1(p.xg)));
       tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
-      tr.appendChild(el('td', 'num', fmt(p.momCount)));
-      tr.appendChild(el('td', 'num', fmt(p.saves)));
+      tr.appendChild(el('td', 'num', nf(p.momCount)));
+      tr.appendChild(el('td', 'num', nf(p.saves)));
       tr.appendChild(el('td', 'num', p.savePct == null ? '-' : fmt1(p.savePct) + '%'));
-      tr.appendChild(el('td', 'num', fmt(p.shootTotal)));
-      tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
-      tr.appendChild(el('td', 'num', fmt(p.passTry)));
-      tr.appendChild(el('td', 'num', fmt(p.passSuccess)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleTry)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleSuccess)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleDistanceM) + 'm'));
-      tr.appendChild(el('td', 'num', fmt(p.aerialTry)));
-      tr.appendChild(el('td', 'num', fmt(p.aerialSuccess)));
-      tr.appendChild(el('td', 'num', fmt(p.tackles)));
-      tr.appendChild(el('td', 'num', fmt(p.intercepts)));
-      tr.appendChild(el('td', 'num', fmt(p.blocks)));
+      tr.appendChild(el('td', 'num', nf(p.shootTotal)));
+      tr.appendChild(el('td', 'num', nf(p.effectiveShoot)));
+      tr.appendChild(el('td', 'num', nf(p.passTry)));
+      tr.appendChild(el('td', 'num', nf(p.passSuccess)));
+      tr.appendChild(el('td', 'num', nf(p.dribbleTry)));
+      tr.appendChild(el('td', 'num', nf(p.dribbleSuccess)));
+      tr.appendChild(el('td', 'num', nf(p.dribbleDistanceM) + 'm'));
+      tr.appendChild(el('td', 'num', nf(p.aerialTry)));
+      tr.appendChild(el('td', 'num', nf(p.aerialSuccess)));
+      tr.appendChild(el('td', 'num', nf(p.tackles)));
+      tr.appendChild(el('td', 'num', nf(p.intercepts)));
+      tr.appendChild(el('td', 'num', nf(p.blocks)));
       tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
       tbody.appendChild(tr);
     });
