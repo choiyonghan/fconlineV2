@@ -138,7 +138,8 @@ public class RecordFacade {
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
                         stat.aerialTry(), stat.aerialSuccess(),
-                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
+                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0),
+                        stat.goalsAgainst()))
                 .toList();
 
         return new OverallRecordResponse(
@@ -215,7 +216,8 @@ public class RecordFacade {
                         stat.shootTotal(), stat.effectiveShoot(), stat.passTry(), stat.passSuccess(),
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
                         stat.aerialTry(), stat.aerialSuccess(),
-                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0)))
+                        stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0),
+                        stat.goalsAgainst()))
                 .toList();
     }
 

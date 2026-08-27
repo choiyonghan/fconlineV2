@@ -168,7 +168,7 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                         se.passTry.sumAggregate(), se.passSuccess.sumAggregate(),
                         se.dribbleTry.sumAggregate(), se.dribbleSuccess.sumAggregate(), se.dribbleDistance.sumAggregate(),
                         se.aerialTry.sumAggregate(), se.aerialSuccess.sumAggregate(),
-                        se.rating.avg())
+                        se.rating.avg(), md.stats.goalsAgainst.sumAggregate())
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
@@ -195,10 +195,12 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                     int aerialTry = nz(row.get(se.aerialTry.sumAggregate()));
                     int aerialSuccess = nz(row.get(se.aerialSuccess.sumAggregate()));
                     Double avgRating = row.get(se.rating.avg());
+                    int goalsAgainst = nz(row.get(md.stats.goalsAgainst.sumAggregate()));
                     double score = (goals * 3.0) + (assists * 2.0) + (tackles + intercepts + blocks + saves) * 0.5;
                     return new TopPlayerStat(row.get(se.spId), appearances, goals, assists, saves, tackles,
                             intercepts, blocks, shootTotal, effectiveShoot, passTry, passSuccess,
-                            dribbleTry, dribbleSuccess, dribbleDistance, aerialTry, aerialSuccess, avgRating, score);
+                            dribbleTry, dribbleSuccess, dribbleDistance, aerialTry, aerialSuccess, avgRating, score,
+                            goalsAgainst);
                 })
                 .sorted(Comparator.comparingDouble(TopPlayerStat::contributionScore).reversed())
                 .limit(limit)

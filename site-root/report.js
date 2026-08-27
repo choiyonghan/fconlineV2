@@ -593,6 +593,8 @@
       { key: 'xg', label: 'xG', numeric: true },
       { key: 'finishing', label: '결정력', numeric: true },
       { key: 'momCount', label: 'MOM', numeric: true },
+      { key: 'saves', label: '세이브', numeric: true },
+      { key: 'savePct', label: '선방률', numeric: true },
       { key: 'shootTotal', label: '총슈팅', numeric: true },
       { key: 'effectiveShoot', label: '유효슈팅', numeric: true },
       { key: 'passTry', label: '패스시도', numeric: true },
@@ -613,6 +615,11 @@
       for (var k in p) copy[k] = p[k];
       copy.attackPoints = p.goals + p.assists;
       copy.dribbleDistanceM = Math.round((p.dribbleDistance || 0) * YARD_TO_METER);
+      // 선방률 = 세이브 / (세이브 + 실점). 실제로는 필드 플레이어도 골라인 클리어링 등으로
+      // save가 1~2 정도 가끔 잡히므로(노이즈), 경기당 평균 1세이브 이상인 경우만 골키퍼로
+      // 보고 표시 — 아니면 표본이 작은 필드 플레이어가 "선방률 100%" 같은 오해를 부른다.
+      var looksLikeKeeper = p.appearances > 0 && (p.saves / p.appearances) >= 1;
+      copy.savePct = looksLikeKeeper ? (p.saves / (p.saves + (p.goalsAgainst || 0)) * 100) : null;
       return copy;
     });
 
@@ -666,6 +673,8 @@
       tr.appendChild(el('td', 'num', fmt1(p.xg)));
       tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
       tr.appendChild(el('td', 'num', fmt(p.momCount)));
+      tr.appendChild(el('td', 'num', fmt(p.saves)));
+      tr.appendChild(el('td', 'num', p.savePct == null ? '-' : fmt1(p.savePct) + '%'));
       tr.appendChild(el('td', 'num', fmt(p.shootTotal)));
       tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
       tr.appendChild(el('td', 'num', fmt(p.passTry)));

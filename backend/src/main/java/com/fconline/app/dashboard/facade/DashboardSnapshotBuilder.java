@@ -142,7 +142,7 @@ public class DashboardSnapshotBuilder {
                         p.goals(), p.assists(), p.saves(), p.tackles(), p.intercepts(), p.blocks(),
                         p.shootTotal(), p.effectiveShoot(), p.passTry(), p.passSuccess(),
                         p.dribbleTry(), p.dribbleSuccess(), p.dribbleDistance(), p.aerialTry(), p.aerialSuccess(),
-                        p.avgRating(), p.xg(), p.goals() - p.xg(), momCount));
+                        p.avgRating(), p.xg(), p.goals() - p.xg(), momCount, p.goalsAgainst()));
             }
         }
         return pooled;
