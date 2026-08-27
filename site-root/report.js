@@ -44,6 +44,7 @@
 
   var state = { ouid: null, matchType: 'CUSTOM', seasonId: null, teamPeriodId: null };
   var playersGridSort = { col: 'overall', dir: 'desc' };
+  var playersGridMode = 'total'; // 'total'(총합) | 'avg'(경기당 평균) — 버튼으로 토글.
 
   var savedSelection = {};
   try {
@@ -2728,6 +2729,17 @@
 
   recentMoreBtn.addEventListener('click', function () { loadRecentMatches(false); });
 
+  var playersGridTotalBtn = document.getElementById('players-grid-total-btn');
+  var playersGridAvgBtn = document.getElementById('players-grid-avg-btn');
+  function setPlayersGridMode(mode) {
+    playersGridMode = mode;
+    playersGridTotalBtn.setAttribute('aria-pressed', String(mode === 'total'));
+    playersGridAvgBtn.setAttribute('aria-pressed', String(mode === 'avg'));
+    renderPlayersGrid(currentPlayersList);
+  }
+  playersGridTotalBtn.addEventListener('click', function () { setPlayersGridMode('total'); });
+  playersGridAvgBtn.addEventListener('click', function () { setPlayersGridMode('avg'); });
+
   /**
    * 백엔드는 raw 합계만 주고, 비율/100점 만점 점수는 여기서 계산한다 — "1등이 100점"이 되려면
    * 그룹(현재 유저·매치타입·시즌의 전체 선수) 안에서의 최댓값을 알아야 하는데 그건 이 목록이
@@ -2749,6 +2761,11 @@
       copy.passAccuracy = p.passTry > 0 ? (p.passSuccess / p.passTry * 100) : null;
       copy.dribbleRate = p.dribbleTry > 0 ? (p.dribbleSuccess / p.dribbleTry * 100) : null;
       copy.aerialRate = p.aerialTry > 0 ? (p.aerialSuccess / p.aerialTry * 100) : null;
+      // 선방률 = 세이브/(세이브+실점). 필드 플레이어도 골라인 클리어링 등으로 save가 가끔
+      // 1~2 잡히는 노이즈가 있어(대시보드 그리드와 동일 이슈), 경기당 평균 1세이브 이상인
+      // 경우만 골키퍼로 보고 표시한다 — 아니면 표본이 작은 필드 플레이어가 오해를 부른다.
+      var looksLikeKeeper = p.appearances > 0 && (p.saves / p.appearances) >= 1;
+      copy.savePct = looksLikeKeeper ? (p.saves / (p.saves + (p.goalsAgainst || 0)) * 100) : null;
       copy.attackRaw = (p.goals * 3) + (p.assists * 2) + (p.effectiveShoot * 0.3) + (p.dribbleSuccess * 0.2);
       copy.defenseRaw = p.tackles + p.intercepts + p.blocks + (p.aerialSuccess * 0.3);
       if (p.contributionScore > maxScore) maxScore = p.contributionScore;
@@ -2781,12 +2798,31 @@
     return '득점 ' + fmt(p.goals) + ' · 도움 ' + fmt(p.assists);
   }
 
+  // 평균 모드에서 appearances로 나눌 누적 지표들 — 출전/평점/공격력·수비력·종합(이미 그룹 내
+  // 최댓값=100 정규화된 합성 점수)/슛정확·패스·드리블·공중볼(이미 %)/선방률(이미 비율)은
+  // 나누지 않는다.
+  var PLAYERS_GRID_AVG_KEYS = [
+    'goals', 'assists', 'attackPoints', 'xg', 'finishing', 'saves',
+    'shootTotal', 'effectiveShoot', 'passTry', 'passSuccess',
+    'dribbleTry', 'dribbleSuccess', 'dribbleDistance', 'aerialTry', 'aerialSuccess',
+    'tackles', 'intercepts', 'blocks'
+  ];
+
   var currentPlayersList = [];
   function renderPlayersGrid(players) {
-    currentPlayersList = players;
+    currentPlayersList = players; // 항상 총합 기준 base 목록(토글은 매 렌더마다 여기서 다시 계산)
     var container = document.getElementById('table-allplayers');
     container.replaceChildren();
     if (!players.length) { container.appendChild(el('p', 'card-empty', '표시할 선수 데이터가 없습니다.')); return; }
+
+    var working = players.map(function (p) {
+      var copy = {};
+      for (var k in p) copy[k] = p[k];
+      if (playersGridMode === 'avg' && p.appearances > 0) {
+        PLAYERS_GRID_AVG_KEYS.forEach(function (key) { copy[key] = copy[key] / p.appearances; });
+      }
+      return copy;
+    });
 
     var cols = [
       { key: 'playerName', label: '선수', numeric: false },
@@ -2798,6 +2834,8 @@
       { key: 'attackPoints', label: '공격P', numeric: true },
       { key: 'xg', label: 'xG', numeric: true },
       { key: 'finishing', label: '결정력', numeric: true },
+      { key: 'saves', label: '세이브', numeric: true },
+      { key: 'savePct', label: '선방률', numeric: true },
       { key: 'shootTotal', label: '총슈팅', numeric: true },
       { key: 'effectiveShoot', label: '유효슈팅', numeric: true },
       { key: 'shootAccuracy', label: '슛정확', numeric: true },
@@ -2818,7 +2856,7 @@
       { key: 'overall', label: '종합', numeric: true }
     ];
 
-    var sorted = players.slice().sort(function (a, b) {
+    var sorted = working.slice().sort(function (a, b) {
       var av = a[playersGridSort.col], bv = b[playersGridSort.col];
       var cmp;
       if (typeof av === 'string') {
@@ -2859,6 +2897,8 @@
     table.appendChild(thead);
 
     function pct(v) { return v == null ? '-' : Math.round(v) + '%'; }
+    // 평균 모드는 나눗셈 결과라 소수점이 생기므로 fmt1로, 총합 모드에서는 정수 fmt로 표시.
+    var nf = playersGridMode === 'avg' ? fmt1 : fmt;
 
     var tbody = document.createElement('tbody');
     sorted.forEach(function (p) {
@@ -2869,27 +2909,30 @@
       tr.appendChild(el('td', 'num', fmt(p.appearances)));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.attackRating))));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.defenseRating))));
-      tr.appendChild(el('td', 'num', fmt(p.goals)));
-      tr.appendChild(el('td', 'num', fmt(p.assists)));
-      tr.appendChild(el('td', 'num', fmt(p.attackPoints)));
+      tr.appendChild(el('td', 'num', nf(p.goals)));
+      tr.appendChild(el('td', 'num', nf(p.assists)));
+      tr.appendChild(el('td', 'num', nf(p.attackPoints)));
       tr.appendChild(el('td', 'num', fmt1(p.xg)));
       tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
-      tr.appendChild(el('td', 'num', fmt(p.shootTotal)));
-      tr.appendChild(el('td', 'num', fmt(p.effectiveShoot)));
+      tr.appendChild(el('td', 'num', nf(p.saves)));
+      tr.appendChild(el('td', 'num', p.savePct == null ? '-' : fmt1(p.savePct) + '%'));
+      tr.appendChild(el('td', 'num', nf(p.shootTotal)));
+      tr.appendChild(el('td', 'num', nf(p.effectiveShoot)));
       tr.appendChild(el('td', 'num', pct(p.shootAccuracy)));
       tr.appendChild(el('td', 'num', pct(p.passAccuracy)));
-      tr.appendChild(el('td', 'num', fmt(p.passTry)));
-      tr.appendChild(el('td', 'num', fmt(p.passSuccess)));
+      tr.appendChild(el('td', 'num', nf(p.passTry)));
+      tr.appendChild(el('td', 'num', nf(p.passSuccess)));
       tr.appendChild(el('td', 'num', pct(p.dribbleRate)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleTry)));
-      tr.appendChild(el('td', 'num', fmt(p.dribbleSuccess)));
-      tr.appendChild(el('td', 'num', p.dribbleDistance ? fmt(Math.round(p.dribbleDistance * YARD_TO_METER)) + 'm' : '0m'));
+      tr.appendChild(el('td', 'num', nf(p.dribbleTry)));
+      tr.appendChild(el('td', 'num', nf(p.dribbleSuccess)));
+      var dribbleMeters = p.dribbleDistance * YARD_TO_METER;
+      tr.appendChild(el('td', 'num', p.dribbleDistance ? (playersGridMode === 'avg' ? fmt1(dribbleMeters) : fmt(Math.round(dribbleMeters))) + 'm' : '0m'));
       tr.appendChild(el('td', 'num', pct(p.aerialRate)));
-      tr.appendChild(el('td', 'num', fmt(p.aerialTry)));
-      tr.appendChild(el('td', 'num', fmt(p.aerialSuccess)));
-      tr.appendChild(el('td', 'num', fmt(p.tackles)));
-      tr.appendChild(el('td', 'num', fmt(p.intercepts)));
-      tr.appendChild(el('td', 'num', fmt(p.blocks)));
+      tr.appendChild(el('td', 'num', nf(p.aerialTry)));
+      tr.appendChild(el('td', 'num', nf(p.aerialSuccess)));
+      tr.appendChild(el('td', 'num', nf(p.tackles)));
+      tr.appendChild(el('td', 'num', nf(p.intercepts)));
+      tr.appendChild(el('td', 'num', nf(p.blocks)));
       tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.overall))));
       tbody.appendChild(tr);
@@ -3487,8 +3530,11 @@
     // recent matches — 상대 무관, 이 유저의 진짜 최신 경기 (더보기 페이징)
     loadRecentMatches(true);
 
-    // 전체 선수 스탯 그리드 — 유저/매치타입 바뀔 때마다 정렬 상태는 초기화(종합 desc)
+    // 전체 선수 스탯 그리드 — 유저/매치타입 바뀔 때마다 정렬·총합/평균 상태는 초기화
     playersGridSort = { col: 'overall', dir: 'desc' };
+    playersGridMode = 'total';
+    playersGridTotalBtn.setAttribute('aria-pressed', 'true');
+    playersGridAvgBtn.setAttribute('aria-pressed', 'false');
     renderPlayersGrid(enrichedPlayers);
   }
 
