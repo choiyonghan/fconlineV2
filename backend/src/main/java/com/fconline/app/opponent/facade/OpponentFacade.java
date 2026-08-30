@@ -16,7 +16,9 @@ import com.fconline.domain.score.service.ScoreCalculationService;
 import com.fconline.domain.season.Season;
 import com.fconline.domain.streak.OpponentStreak;
 import com.fconline.domain.streak.repository.OpponentStreakRepository;
+import com.fconline.infrastructure.cache.CacheNames;
 import java.util.List;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
@@ -55,7 +57,8 @@ public class OpponentFacade {
         return listOpponents(ouid, matchType, seasonId, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — records와 같은 이유(매치 데이터 파생). */
+    @Cacheable(CacheNames.OPPONENTS)
     @Transactional(readOnly = true)
     public List<OpponentSummaryResponse> listOpponents(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         if (matchType == MatchType.OFFICIAL) {

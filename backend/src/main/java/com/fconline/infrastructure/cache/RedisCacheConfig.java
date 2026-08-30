@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fconline.app.insight.dto.AskResponse;
+import com.fconline.app.opponent.dto.OpponentSummaryResponse;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.MatchShotsResponse;
 import com.fconline.app.record.dto.MatchSquadEntryResponse;
@@ -12,6 +13,9 @@ import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
+import com.fconline.app.season.dto.SeasonResponse;
+import com.fconline.app.user.dto.TrackedUserResponse;
+import com.fconline.app.user.dto.UserTeamPeriodResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +54,8 @@ public class RedisCacheConfig implements CachingConfigurer {
 
     private static final Duration RECORDS_TTL = Duration.ofMinutes(5);
     private static final Duration INSIGHT_ANSWERS_TTL = Duration.ofMinutes(10);
+    /** 추적 유저 명단/시즌 목록처럼 거의 안 바뀌는 참조 데이터용(CacheNames 주석 참고). */
+    private static final Duration REFERENCE_DATA_TTL = Duration.ofHours(1);
 
     private final CacheErrorHandler cacheErrorHandler;
 
@@ -87,7 +93,15 @@ public class RedisCacheConfig implements CachingConfigurer {
                 // instance of Page") 그대로 캐싱하면 매번 깨진다. CachedPage 클래스 주석 참고.
                 Map.entry(CacheNames.RECENT_MATCHES,
                         typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchResponse.class), RECORDS_TTL)),
-                Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL))
+                Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL)),
+                Map.entry(CacheNames.OPPONENTS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, OpponentSummaryResponse.class), RECORDS_TTL)),
+                Map.entry(CacheNames.TRACKED_USERS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TrackedUserResponse.class), REFERENCE_DATA_TTL)),
+                Map.entry(CacheNames.SEASONS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), REFERENCE_DATA_TTL)),
+                Map.entry(CacheNames.TEAM_PERIODS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), RECORDS_TTL))
         );
 
         RedisCacheConfiguration fallback = polymorphicFallbackConfig(objectMapper);
