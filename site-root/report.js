@@ -1536,7 +1536,7 @@
       // (기존 전체 슛 히트맵 등)는 전부 "내 슛"으로 취급해 기존 색 그대로 나온다.
       c.setAttribute('class', isGoal ? (p.mine === false ? 'goal-dot-conceded' : 'goal-dot') : 'miss-dot');
       c.tabIndex = 0;
-      var xgLabel = p.xg != null ? round1(p.xg) + '골' : null;
+      var xgLabel = p.xg != null ? p.xg.toFixed(2) + '골' : null;
       var showFn = function (evt) {
         var lines = [p.shootType + ' · ' + (RESULT_KO[p.result] || p.result)];
         if (xgLabel) lines.push('이 구역 xG값 ' + xgLabel);
@@ -1666,17 +1666,26 @@
 
   /**
    * MOM/Worst Player 한줄평 — Nexon API에 MOM 플래그가 없어(백엔드 MatchSquadEntryRaw 주석 참고)
-   * 언제나 이 방식(평점 최댓값/최솟값)으로만 뽑는다. 이유는 그 선수의 가장 두드러진 스탯
-   * 하나를 우선순위(골>어시스트>세이브>태클+인터셉트)로 골라 문장화하고, 특별한 스탯이 없으면
-   * 평점만 언급한다.
+   * 언제나 이 방식(평점 최댓값/최솟값)으로만 뽑는다. 그 선수의 두드러진 스탯을 좋은기록순
+   * (골>어시스트>세이브>태클+인터셉트, 요청)으로 최대 2개까지 골라 함께 문장화하고, 특별한
+   * 스탯이 하나도 없으면 평점만 언급한다. "기록으로"/"기록에"처럼 항상 "기록"을 사이에 끼워
+   * 넣어서, 마지막으로 고른 단어의 받침에 따라 조사(로/으로)가 달라지는 문제를 피한다.
    */
   function oneLinerFor(entry, isMom) {
     var ratingText = entry.rating != null ? '평점 ' + fmt1(entry.rating) : '평점 기록 없음';
-    if (entry.goal > 0) return entry.goal + '골로 ' + (isMom ? '팀을 이끌었다' : '만은 넣었다') + ' (' + ratingText + ')';
-    if (entry.assist > 0) return entry.assist + '도움으로 공격을 살렸다 (' + ratingText + ')';
-    if (entry.save > 0) return entry.save + '선방으로 골문을 지켰다 (' + ratingText + ')';
     var defense = entry.tackle + entry.intercept;
-    if (defense > 0) return '태클+인터셉트 ' + defense + '회로 수비에 기여했다 (' + ratingText + ')';
+    var parts = [];
+    if (entry.goal > 0) parts.push(entry.goal + '골');
+    if (entry.assist > 0) parts.push(entry.assist + '도움');
+    if (entry.save > 0) parts.push(entry.save + '선방');
+    if (defense > 0) parts.push('태클+인터셉트 ' + defense + '회');
+    parts = parts.slice(0, 2);
+    if (parts.length) {
+      var recordText = parts.join(' ') + ' 기록';
+      return isMom
+        ? recordText + '으로 팀을 이끌었다 (' + ratingText + ')'
+        : recordText + '에 그쳤다 (' + ratingText + ')';
+    }
     return isMom ? ratingText + '로 안정적인 경기력을 보였다' : ratingText + '로 아쉬운 경기를 보냈다';
   }
 
@@ -1840,7 +1849,7 @@
   }
 
   function xgOfShot(p) {
-    return calcXg(p.x, p.y);
+    return calcXg(p.x, p.y, p.shootType);
   }
 
   /**
@@ -1861,7 +1870,7 @@
     if (g.period != null && PERIOD_KO[g.period]) detailParts.push(PERIOD_KO[g.period]);
     detailParts.push(g.shootType);
     detailParts.push(g.assist && g.assistPlayerName ? '어시스트: ' + g.assistPlayerName : '어시스트 없음');
-    if (xg != null) detailParts.push('이 구역 xG ' + round1(xg) + '골');
+    if (xg != null) detailParts.push('이 구역 xG ' + xg.toFixed(2) + '골');
     body.appendChild(el('div', 'goal-timeline-meta', detailParts.join(' · ')));
     row.appendChild(body);
     if (onSelect) {
@@ -2151,7 +2160,7 @@
   function cumulativeXgSeries(shots) {
     var points = shots
       .filter(function (p) { return p.x != null && p.y != null; })
-      .map(function (p) { return { minute: absoluteMinuteOf(p.goalTimeMinutes, p.period), xg: calcXg(p.x, p.y), goal: !!p.isGoal }; })
+      .map(function (p) { return { minute: absoluteMinuteOf(p.goalTimeMinutes, p.period), xg: calcXg(p.x, p.y, p.shootType), goal: !!p.isGoal }; })
       .filter(function (p) { return p.minute != null; })
       .sort(function (a, b) { return a.minute - b.minute; });
     var series = [{ minute: 0, cum: 0, goal: false }];
@@ -2960,12 +2969,36 @@
   var GOAL_CENTER_Y_M = PITCH_WIDTH_M / 2;
 
   /**
+   * 슛 유형별 난이도 배율(요청) — 공개된 xG 모델(StatsBomb/Opta 계열 문서, Caley(2015) 등)은
+   * 몸 동작을 범주형 변수로 넣는데, 헤더는 뚜렷한 음의 계수를 받는다: 헤더는 크로스 등으로
+   * 골대에 가까운 곳에서 나오는 경우가 많아 원값(raw) 전환율만 보면 낮아 보이지 않지만,
+   * 같은 거리·각도의 발슛과 "동일 조건"으로 비교하면 대략 30% 안팎 낮다는 게 공통된 결론이다.
+   * 발리·바이시클킥도 몸의 중심이 무너진 채로 때리는 슛이라 정확도가 떨어지는데, 헤더만큼
+   * 극단적이진 않다(바이시클킥은 표본 자체가 워낙 희귀해서 더 보수적으로 낮춰 잡았다).
+   * 페널티킥은 매번 같은 지점(약 11m, 정면)에서 차는 세트피스라 거리·각도로 추정하기보다
+   * 실측 전환율(공개 연구 다수가 76~78%대로 수렴)에 맞춰 고정 배율로 위로 보정한다. 프리킥도
+   * 벽·골키퍼 셋업이라는 거리·각도만으론 안 잡히는 난이도가 있어 소폭 낮춘다. 나머지
+   * (일반/ZD/DD/파워샷 등 정상적인 발슛)는 기준(1.00)으로 둔다 — 이미 근사치의 근사치이므로
+   * 과도하게 세분화하지 않는다.
+   */
+  var XG_SHOT_TYPE_MULTIPLIER = {
+    '헤더': 0.70,
+    '발리': 0.82,
+    '바이시클킥': 0.55,
+    '플레어샷': 0.85,
+    '무회전': 0.85,
+    '프리킥': 0.80,
+    'PK': 1.15
+  };
+
+  /**
    * 정규화 좌표(x,y ∈ [0,1], x=1이 상대 골대 방향)를 실제 미터 좌표(105×68)로 환산해 골대까지
    * 거리와 골대를 바라보는 시야각(양쪽 골포스트까지의 거리로 코사인 법칙 적용)을 구하고,
-   * 거리·각도 로지스틱 회귀 근사식(logit = 0.5 − 0.15×거리 + 0.05×각도)에 넣는다. 정식 xG
-   * 모델은 아니다 — 수비수 배치·압박·패스 난이도 등은 반영하지 않는 거리·각도만의 근사치.
+   * 거리·각도 로지스틱 회귀 근사식(logit = 0.5 − 0.15×거리 + 0.05×각도)에 넣은 뒤, 슛 유형별
+   * 난이도 배율(XG_SHOT_TYPE_MULTIPLIER)을 곱해 소숫점 둘째 자리로 반올림한다(요청). 정식 xG
+   * 모델은 아니다 — 수비수 배치·압박·패스 난이도 등은 반영하지 않는 거리·각도·슛유형만의 근사치.
    */
-  function calcXg(x, y) {
+  function calcXg(x, y, shootType) {
     if (x == null || y == null) return null;
     var xm = x * PITCH_LENGTH_M;
     var ym = y * PITCH_WIDTH_M;
@@ -2976,7 +3009,9 @@
     cosAngle = Math.max(-1, Math.min(1, cosAngle)); // 부동소수 오차로 [-1,1] 살짝 벗어나는 것 방지
     var angleDeg = Math.acos(cosAngle) * (180 / Math.PI);
     var logit = 0.5 - 0.15 * dist + 0.05 * angleDeg;
-    return 1 / (1 + Math.exp(-logit));
+    var base = 1 / (1 + Math.exp(-logit));
+    var mult = XG_SHOT_TYPE_MULTIPLIER[shootType] || 1;
+    return Math.round(Math.min(1, base * mult) * 100) / 100;
   }
 
   /**
@@ -2992,14 +3027,14 @@
     var shotsForPitch = points.map(function (p) {
       var withXg = {};
       for (var k in p) withXg[k] = p[k];
-      withXg.xg = calcXg(p.x, p.y);
+      withXg.xg = calcXg(p.x, p.y, p.shootType);
       withXg.mine = true;
       return withXg;
     }).concat(concededPoints.map(function (p) {
       return {
         x: p.x != null ? 1 - p.x : null, y: p.y != null ? 1 - p.y : null,
         goal: p.goal, shootType: p.shootType, result: p.result,
-        xg: calcXg(p.x, p.y),
+        xg: calcXg(p.x, p.y, p.shootType),
         mine: false
       };
     })).filter(function (p) { return p.x != null && p.y != null; });
@@ -3082,7 +3117,7 @@
   function expectedGoalsOf(points) {
     var sum = 0;
     points.forEach(function (p) {
-      var r = calcXg(p.x, p.y);
+      var r = calcXg(p.x, p.y, p.shootType);
       if (r != null) sum += r;
     });
     return sum;
@@ -3092,7 +3127,7 @@
   function groupExpectedGoalsByMatch(points) {
     var byMatch = {};
     points.forEach(function (p) {
-      var r = calcXg(p.x, p.y);
+      var r = calcXg(p.x, p.y, p.shootType);
       if (r == null) return;
       byMatch[p.matchId] = (byMatch[p.matchId] || 0) + r;
     });
