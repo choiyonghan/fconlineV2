@@ -40,6 +40,7 @@ import com.fconline.domain.user.UserTeamPeriod;
 import com.fconline.domain.user.repository.TrackedUserRepository;
 import com.fconline.domain.user.repository.UserTeamPeriodRepository;
 import com.fconline.infrastructure.cache.CacheNames;
+import com.fconline.infrastructure.cache.RecentMatchesPageCache;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -81,17 +82,20 @@ public class RecordFacade {
     private final PlayerMetaRepository playerMetaRepository;
     private final MatchDetailRepository matchDetailRepository;
     private final UserTeamPeriodRepository userTeamPeriodRepository;
+    private final RecentMatchesPageCache recentMatchesPageCache;
 
     public RecordFacade(TrackedUserRepository trackedUserRepository, SeasonRangeResolver seasonRangeResolver,
                          TeamPeriodRangeResolver teamPeriodRangeResolver,
                          MatchDomainService matchDomainService, PlayerMetaRepository playerMetaRepository,
-                         MatchDetailRepository matchDetailRepository, UserTeamPeriodRepository userTeamPeriodRepository) {
+                         MatchDetailRepository matchDetailRepository, UserTeamPeriodRepository userTeamPeriodRepository,
+                         RecentMatchesPageCache recentMatchesPageCache) {
         this.trackedUserRepository = trackedUserRepository;
         this.seasonRangeResolver = seasonRangeResolver;
         this.teamPeriodRangeResolver = teamPeriodRangeResolver;
         this.matchDomainService = matchDomainService;
         this.playerMetaRepository = playerMetaRepository;
         this.matchDetailRepository = matchDetailRepository;
+        this.recentMatchesPageCache = recentMatchesPageCache;
         this.userTeamPeriodRepository = userTeamPeriodRepository;
     }
 
@@ -483,23 +487,16 @@ public class RecordFacade {
     /**
      * 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). 대시보드
      * "🕐 최근 경기 (전체 9명)" 섹션이 9명 각자에 대해 이 API를 매번 라이브로 호출하므로
-     * (report.js) Redis 캐시 대상(TTL 5분) — RedisCacheConfig가 Page&lt;RecentMatchResponse&gt;
-     * 정확한 타입으로 직렬화하므로(다른 캐시들과 같은 패턴) Page가 인터페이스라 역직렬화가
-     * 깨지기 쉽다는 예전 우려는 더 이상 해당하지 않는다.
+     * (report.js) DB 조회 자체는 RecentMatchesPageCache가 캐싱한다(TTL 5분) — 이 메서드는
+     * Page 자체를 캐시하지 않는다(Page는 인터페이스라 역직렬화가 안 됨, CachedPage 주석 참고).
      */
-    @Cacheable(CacheNames.RECENT_MATCHES)
     @Transactional(readOnly = true)
     public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
                                                         Pageable pageable) {
         return getRecentMatches(ouid, matchType, seasonId, null, pageable);
     }
 
-    /**
-     * teamPeriodId(선택) — "사용한 팀" 필터. 위 3-파라미터 오버로드(InsightSnapshotBuilder가 외부에서
-     * 호출)와 이 5-파라미터 버전(컨트롤러가 호출)은 파라미터 개수가 달라(4개 vs 5개) SimpleKey가
-     * 서로 절대 같아지지 않으므로 같은 캐시 이름을 공유해도 안전하다.
-     */
-    @Cacheable(CacheNames.RECENT_MATCHES)
+    /** teamPeriodId(선택) — "사용한 팀" 필터. */
     @Transactional(readOnly = true)
     public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
                                                         Long teamPeriodId, Pageable pageable) {
@@ -508,8 +505,9 @@ public class RecordFacade {
 
         Season season = seasonRangeResolver.resolve(seasonId);
         var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
-        Page<RecentMatchRaw> page = matchDetailRepository.findRecentByOuid(
-                ouid, matchType, range.from(), range.to(), pageable);
+        Page<RecentMatchRaw> page = recentMatchesPageCache
+                .fetch(ouid, matchType, range.from(), range.to(), pageable)
+                .toPage(pageable);
 
         Set<String> ouidsNeeded = new HashSet<>();
         ouidsNeeded.add(ouid);

@@ -12,6 +12,7 @@ import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
+import com.fconline.domain.match.vo.RecentMatchRaw;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,6 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Page;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -82,11 +82,12 @@ public class RedisCacheConfig implements CachingConfigurer {
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, AssistChainResponse.class), RECORDS_TTL)),
                 Map.entry(CacheNames.PLAYER_GRADES,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, PlayerGradeResponse.class), RECORDS_TTL)),
-                // Page<T>는 인터페이스라(런타임엔 PageImpl) 정확한 타입을 안 주면 역직렬화가 애매해지는데,
-                // constructParametricType으로 Page<RecentMatchResponse>를 명시하면 spring-data-commons의
-                // Page Jackson 모듈(HTTP 응답 직렬화에도 이미 쓰이는 것과 동일)이 정상적으로 복원한다.
+                // RecentMatchesPageCache가 Page 대신 CachedPage(평범한 record)를 캐싱한다 — Page는
+                // 인터페이스라 spring-data-commons의 Page Jackson 모듈이 직렬화("쓰기")만 지원하고
+                // 역직렬화("읽기")는 지원하지 않아서(운영에서 실제로 겪은 에러: "Cannot construct
+                // instance of Page") 그대로 캐싱하면 매번 깨진다. CachedPage 클래스 주석 참고.
                 Map.entry(CacheNames.RECENT_MATCHES,
-                        typedConfig(objectMapper, tf.constructParametricType(Page.class, RecentMatchResponse.class), RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchRaw.class), RECORDS_TTL)),
                 Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL))
         );
 
