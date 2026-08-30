@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class RecentMatchesPageCache {
 
+    private static final Logger log = LoggerFactory.getLogger(RecentMatchesPageCache.class);
+
     private final MatchDetailRepository matchDetailRepository;
     private final RecentMatchMapper recentMatchMapper;
 
@@ -45,14 +49,22 @@ public class RecentMatchesPageCache {
     @Transactional(readOnly = true)
     public CachedPage<RecentMatchResponse> fetch(String ouid, MatchType matchType, Instant from, Instant to,
                                                   Pageable pageable) {
+        // TEMP DIAGNOSTIC(요청) — 캐시 히트면 이 로그가 아예 안 찍혀야 정상이다. 반복 호출에도
+        // 계속 찍히면 캐시가 실제로는 매번 미스나고 있다는 뜻(원인 파악되면 곧 제거할 예정).
+        long t0 = System.nanoTime();
+        log.warn("[TEMP] RecentMatchesPageCache.fetch 실제 실행됨(캐시 미스) ouid={} from={} to={} pageable={}",
+                ouid, from, to, pageable);
         Page<RecentMatchRaw> page = matchDetailRepository.findRecentByOuid(ouid, matchType, from, to, pageable);
+        log.warn("[TEMP] findRecentByOuid 소요 {}ms", (System.nanoTime() - t0) / 1_000_000);
 
         Set<String> ouidsNeeded = new HashSet<>();
         ouidsNeeded.add(ouid);
         page.forEach(r -> ouidsNeeded.add(r.opponentOuid()));
         Map<String, List<UserTeamPeriod>> periodsByOuid = recentMatchMapper.teamPeriodsByOuid(ouidsNeeded);
+        log.warn("[TEMP] teamPeriodsByOuid까지 누적 소요 {}ms", (System.nanoTime() - t0) / 1_000_000);
 
         Page<RecentMatchResponse> mapped = page.map(raw -> recentMatchMapper.toRecentMatchResponse(ouid, raw, periodsByOuid));
+        log.warn("[TEMP] fetch 전체 소요 {}ms", (System.nanoTime() - t0) / 1_000_000);
         return CachedPage.from(mapped);
     }
 }
