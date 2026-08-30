@@ -12,7 +12,6 @@ import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
-import com.fconline.domain.match.vo.RecentMatchRaw;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +86,7 @@ public class RedisCacheConfig implements CachingConfigurer {
                 // 역직렬화("읽기")는 지원하지 않아서(운영에서 실제로 겪은 에러: "Cannot construct
                 // instance of Page") 그대로 캐싱하면 매번 깨진다. CachedPage 클래스 주석 참고.
                 Map.entry(CacheNames.RECENT_MATCHES,
-                        typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchRaw.class), RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchResponse.class), RECORDS_TTL)),
                 Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL))
         );
 
