@@ -105,7 +105,7 @@ public class RecordFacade {
      * 동기화가 하루 한 번(sync.yml)이라 5분 정도의 지연은 report.html의 "실시간" 취지를 크게
      * 해치지 않는다는 전제(요청)로, 반복 새로고침·9명 대시보드 배치가 만드는 DB 부하를 줄인다.
      */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.OVERALL_RECORD)
     @Transactional(readOnly = true)
     public OverallRecordResponse getOverallRecord(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         TrackedUser user = trackedUserRepository.findById(ouid)
@@ -197,7 +197,7 @@ public class RecordFacade {
     }
 
     /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — getOverallRecord 주석 참고. */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.ALL_PLAYERS)
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
                                                   Long teamPeriodId) {
@@ -259,7 +259,7 @@ public class RecordFacade {
     }
 
     /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — getOverallRecord 주석 참고. */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.SHOT_HEATMAP)
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
                                                boolean goalsOnly, Long teamPeriodId) {
@@ -296,7 +296,7 @@ public class RecordFacade {
     }
 
     /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — getOverallRecord 주석 참고. */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.CONCEDED_SHOT_HEATMAP)
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId,
                                                         String opponentOuid, Long teamPeriodId) {
@@ -320,7 +320,7 @@ public class RecordFacade {
      * 매치 상세 모달용 — 특정 매치 1건의 슛 이벤트 전체(누가 어디서 어떤 유형/결과로 쐈는지,
      * 골이면 시각과 어시스트 여부까지). 선수 이름은 spId/assistSpId를 모아 한 번에 조회해 붙인다.
      */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.MATCH_SHOTS)
     @Transactional(readOnly = true)
     public MatchShotsResponse getMatchShots(String ouid, MatchType matchType, String matchId) {
         trackedUserRepository.findById(ouid)
@@ -347,7 +347,7 @@ public class RecordFacade {
      * Nexon API에 MOM 플래그가 없어(MatchSquadEntryRaw 클래스 주석 참고) 프론트가 이 rating을
      * 비교해서 MOM/Worst를 직접 뽑는다.
      */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.MATCH_SQUAD)
     @Transactional(readOnly = true)
     public List<MatchSquadEntryResponse> getMatchSquad(String ouid, MatchType matchType, String matchId) {
         trackedUserRepository.findById(ouid)
@@ -372,7 +372,7 @@ public class RecordFacade {
      * ouid가 이 매치에 없으면(상대가 추적 대상이 아니거나 매치를 못 찾음) 예외를 던진다 —
      * 호출부(컨트롤러/프론트)가 "비교 데이터 없음"으로 처리한다.
      */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.MATCH_STATS)
     @Transactional(readOnly = true)
     public RecentMatchResponse getMatchStats(String ouid, MatchType matchType, String matchId) {
         trackedUserRepository.findById(ouid)
@@ -413,7 +413,7 @@ public class RecordFacade {
     }
 
     /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — getOverallRecord 주석 참고. */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.ASSIST_CHAINS)
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId, Integer limit,
                                                        Long teamPeriodId) {
@@ -450,7 +450,7 @@ public class RecordFacade {
     }
 
     /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 5분) — getOverallRecord 주석 참고. */
-    @Cacheable(CacheNames.RECORDS)
+    @Cacheable(CacheNames.PLAYER_GRADES)
     @Transactional(readOnly = true)
     public List<PlayerGradeResponse> getPlayerGrades(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
         trackedUserRepository.findById(ouid)
