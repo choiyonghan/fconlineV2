@@ -26,6 +26,13 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * (Page 모듈 등 spring-data-commons가 이미 등록해둔 상태)를 복사해 재사용한다. 다만 Redis에서
  * 읽어올 땐 대상 타입을 모른 채(Object로) 역직렬화해야 하므로, 복사본에만 폴리모픽 타입 정보
  * (@class)를 추가로 켠다 — 원본 ObjectMapper(HTTP 응답 직렬화용)는 그대로 둔다.
+ *
+ * DefaultTyping.EVERYTHING을 쓴다(NON_FINAL이 아니라) — 여기서 캐싱하는 DTO가 전부 Java
+ * record인데, record는 컴파일러가 항상 final로 만들어서 NON_FINAL 타입핑은 "final이라 타입이
+ * 명확하다"고 판단해 @class를 아예 안 붙인다(직렬화는 성공하지만, 역직렬화 시 Object로
+ * 읽어야 하는 이 캐시 입장에선 타입을 알 방법이 없어져 "missing type id property '@class'"로
+ * 깨짐 — 운영에서 실제로 겪은 버그). EVERYTHING은 final 여부와 무관하게 항상 @class를 붙여서
+ * 이 문제를 피한다.
  */
 @Configuration
 @EnableCaching
@@ -48,7 +55,7 @@ public class RedisCacheConfig implements CachingConfigurer {
         ObjectMapper redisObjectMapper = objectMapper.copy();
         redisObjectMapper.activateDefaultTyping(
                 redisObjectMapper.getPolymorphicTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL,
+                ObjectMapper.DefaultTyping.EVERYTHING,
                 JsonTypeInfo.As.PROPERTY);
 
         var valueSerializer = RedisSerializationContext.SerializationPair
