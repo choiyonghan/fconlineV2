@@ -481,18 +481,25 @@ public class RecordFacade {
     // 필요해지면 위 다른 메서드들과 같은 패턴(오버로드 추가)으로 확장.
 
     /**
-     * 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). Redis 캐시 대상에서
-     * 의도적으로 뺐다 — Page는 인터페이스라(런타임엔 PageImpl) Redis JSON 직렬화 후 역직렬화가
-     * spring-data-commons의 Page Jackson 모듈에 기대야 하는데, 다른 캐시 메서드들(레코드/List)보다
-     * 깨지기 쉬워서 굳이 위험을 감수할 만큼 비싼 쿼리도 아니다(단순 페이지네이션 조회).
+     * 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). 대시보드
+     * "🕐 최근 경기 (전체 9명)" 섹션이 9명 각자에 대해 이 API를 매번 라이브로 호출하므로
+     * (report.js) Redis 캐시 대상(TTL 5분) — RedisCacheConfig가 Page&lt;RecentMatchResponse&gt;
+     * 정확한 타입으로 직렬화하므로(다른 캐시들과 같은 패턴) Page가 인터페이스라 역직렬화가
+     * 깨지기 쉽다는 예전 우려는 더 이상 해당하지 않는다.
      */
+    @Cacheable(CacheNames.RECENT_MATCHES)
     @Transactional(readOnly = true)
     public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
                                                         Pageable pageable) {
         return getRecentMatches(ouid, matchType, seasonId, null, pageable);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. */
+    /**
+     * teamPeriodId(선택) — "사용한 팀" 필터. 위 3-파라미터 오버로드(InsightSnapshotBuilder가 외부에서
+     * 호출)와 이 5-파라미터 버전(컨트롤러가 호출)은 파라미터 개수가 달라(4개 vs 5개) SimpleKey가
+     * 서로 절대 같아지지 않으므로 같은 캐시 이름을 공유해도 안전하다.
+     */
+    @Cacheable(CacheNames.RECENT_MATCHES)
     @Transactional(readOnly = true)
     public Page<RecentMatchResponse> getRecentMatches(String ouid, MatchType matchType, Long seasonId,
                                                         Long teamPeriodId, Pageable pageable) {

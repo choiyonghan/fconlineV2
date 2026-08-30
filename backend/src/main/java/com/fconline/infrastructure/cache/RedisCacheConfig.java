@@ -21,6 +21,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.Page;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -81,6 +82,11 @@ public class RedisCacheConfig implements CachingConfigurer {
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, AssistChainResponse.class), RECORDS_TTL)),
                 Map.entry(CacheNames.PLAYER_GRADES,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, PlayerGradeResponse.class), RECORDS_TTL)),
+                // Page<T>는 인터페이스라(런타임엔 PageImpl) 정확한 타입을 안 주면 역직렬화가 애매해지는데,
+                // constructParametricType으로 Page<RecentMatchResponse>를 명시하면 spring-data-commons의
+                // Page Jackson 모듈(HTTP 응답 직렬화에도 이미 쓰이는 것과 동일)이 정상적으로 복원한다.
+                Map.entry(CacheNames.RECENT_MATCHES,
+                        typedConfig(objectMapper, tf.constructParametricType(Page.class, RecentMatchResponse.class), RECORDS_TTL)),
                 Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL))
         );
 

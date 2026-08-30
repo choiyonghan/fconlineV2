@@ -26,6 +26,7 @@ public final class CacheNames {
     public static final String MATCH_STATS = "match-stats";
     public static final String ASSIST_CHAINS = "assist-chains";
     public static final String PLAYER_GRADES = "player-grades";
+    public static final String RECENT_MATCHES = "recent-matches";
 
     /** InsightFacade.ask()의 (ouid,matchType,seasonId,question) 동일 질문 응답 — TTL 10분. */
     public static final String INSIGHT_ANSWERS = "insight-answers";
