@@ -43,3 +43,11 @@ services:
       # GitHub Pages 프론트(apps/web)만 브라우저에서 이 백엔드를 호출할 수 있게 허용한다.
       - key: APP_CORS_ALLOWED_ORIGINS
         value: https://choiyonghan.github.io
+      # 무료 Redis 캐시(RedisCacheConfig) — 옵트인이라 둘 다 채워야 실제로 켜진다. REDIS_URL은
+      # Upstash(무료 티어) 콘솔의 "Redis Connect" 탭에 있는 rediss://default:<비밀번호>@<host>:<port>
+      # 형태 연결 문자열을 그대로 붙여넣는다. CACHE_TYPE 없이 REDIS_URL만 있으면 여전히 캐시 비활성
+      # (spring.cache.type 기본값 simple) — 둘 다 안 채우면 이 앱은 지금처럼 캐시 없이 동작한다.
+      - key: CACHE_TYPE
+        sync: false
+      - key: REDIS_URL
+        sync: false

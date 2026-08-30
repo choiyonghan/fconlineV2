@@ -20,6 +20,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // 무료 Redis(Upstash 등) 캐시용 — RedisCacheConfig 참고. REDIS_URL/CACHE_TYPE 미설정 시
+    // (로컬/CI) spring.cache.type=simple(인메모리)로 자동 폴백하므로 Redis 없이도 그대로 동작한다.
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
     // --- DB / migration ---
     implementation("org.flywaydb:flyway-core")

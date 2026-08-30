@@ -42,6 +42,21 @@ spring:
     default-schema: fconline
     locations: classpath:db/migration
 
+  # RecordFacade의 조회 API/InsightFacade.ask() 캐시(RedisCacheConfig 참고). 기본값은 simple
+  # (인메모리, 프로세스 재시작 시 초기화)이라 로컬/CI/테스트엔 Redis가 전혀 필요 없다. 프로덕션은
+  # Render 환경변수로 CACHE_TYPE=redis + REDIS_URL(Upstash 무료 티어 등의 rediss://... 연결
+  # 문자열)을 같이 넣어야 실제로 Redis를 쓴다 — REDIS_URL만 있고 CACHE_TYPE이 없으면 여전히
+  # simple로 동작한다(둘 다 명시적으로 켜야 하는 옵트인 설계).
+  cache:
+    type: ${CACHE_TYPE:simple}
+  data:
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379}
+      # 무료 티어 Redis는 순간적으로 느려지거나 끊길 수 있어 요청이 무한정 물리지 않게 짧게 끊는다
+      # (LoggingCacheErrorHandler가 타임아웃도 다른 캐시 오류와 동일하게 로그만 남기고 DB로 폴백).
+      timeout: 2000ms
+      connect-timeout: 2000ms
+
 server:
   # Render 등 컨테이너 호스팅은 PORT 환경변수로 리스닝 포트를 지정한다 —
   # 없으면(로컬/기존 SERVER_PORT 관례) 그대로 폴백한다.
@@ -92,6 +107,11 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    redis:
+      # 캐시는 있으면 좋고 없어도 그만인 최적화일 뿐이라, Redis(특히 외부 무료 서비스)가 끊겨도
+      # 앱 전체 헬스체크(Render healthCheckPath)를 DOWN으로 끌고 가면 안 된다.
+      enabled: false
 
 logging:
   level:

@@ -8,6 +8,7 @@ import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
+import com.fconline.infrastructure.cache.CacheNames;
 import com.fconline.infrastructure.gemini.GeminiApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
 import java.util.Comparator;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,6 +88,13 @@ public class InsightFacade {
         this.geminiApiClient = geminiApiClient;
     }
 
+    /**
+     * Redis 캐시 대상(TTL 10분, RedisCacheConfig) — 질문 원문(AskRequest.question 포함)까지 키로
+     * 묶어서, 완전히 같은 질문이 짧은 시간 안에 다시 들어올 때만 히트한다(같은 사람이 새로고침/
+     * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Gemini 티어는 분당/일당
+     * 호출 한도가 있어 이런 중복 호출을 줄이는 게 records 캐시보다 오히려 더 의미 있다.
+     */
+    @Cacheable(CacheNames.INSIGHT_ANSWERS)
     @Transactional(readOnly = true)
     public AskResponse ask(AskRequest request) {
         String ouid = request.ouid();
