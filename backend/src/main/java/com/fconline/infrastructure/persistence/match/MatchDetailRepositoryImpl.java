@@ -464,13 +464,13 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
         }
 
         return queryFactory
-                .select(se.spId, se.x, se.y)
+                .select(se.spId, se.x, se.y, se.shootType)
                 .from(se)
                 .join(se.matchDetail, md)
                 .join(md.match, m)
                 .where(where)
                 .fetch().stream()
-                .map(row -> new PlayerShotPoint(row.get(se.spId), row.get(se.x), row.get(se.y)))
+                .map(row -> new PlayerShotPoint(row.get(se.spId), row.get(se.x), row.get(se.y), row.get(se.shootType)))
                 .toList();
     }
 

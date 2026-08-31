@@ -225,7 +225,7 @@ public class DashboardSnapshotBuilder {
     private static double sumXg(List<ShotPointResponse> points) {
         double sum = 0;
         for (ShotPointResponse p : points) {
-            sum += ExpectedGoalsCalculator.calcXg(p.x(), p.y());
+            sum += ExpectedGoalsCalculator.calcXg(p.x(), p.y(), p.shootType());
         }
         return sum;
     }

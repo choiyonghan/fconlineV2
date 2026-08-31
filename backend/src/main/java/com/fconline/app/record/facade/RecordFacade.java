@@ -235,7 +235,7 @@ public class RecordFacade {
                                           String opponentOuid) {
         Map<String, Double> result = new HashMap<>();
         for (PlayerShotPoint p : matchDomainService.playerShotPoints(ouid, matchType, from, to, opponentOuid)) {
-            result.merge(p.spId(), ExpectedGoalsCalculator.calcXg(p.x(), p.y()), Double::sum);
+            result.merge(p.spId(), ExpectedGoalsCalculator.calcXg(p.x(), p.y(), p.shootType().label()), Double::sum);
         }
         return result;
     }
