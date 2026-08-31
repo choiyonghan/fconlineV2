@@ -51,3 +51,13 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      # 카톡 성격 리포트(.md, 실명 파일명)를 올려둔 Supabase Storage private bucket 접근용
+      # (PersonalityReportClient) — DB와 같은 Supabase 프로젝트, Project Settings → API에서
+      # URL/service_role key 확인. 셋 다 안 채우면 성격 리포트 없이(전적 데이터만으로) 그대로
+      # 동작한다(옵트인).
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false

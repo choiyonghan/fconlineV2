@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Google Gemini API(무료 티어) 연동. NexonApiClient와 같은 이유로 인프라 계층에 둔다 —
@@ -68,6 +69,12 @@ public class GeminiApiClient {
         } catch (HttpStatusCodeException e) {
             log.error("Gemini API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new GeminiApiException("Gemini API 호출에 실패했습니다.", e);
+        } catch (RestClientException e) {
+            // HttpStatusCodeException이 아닌 나머지(타임아웃 등 ResourceAccessException 포함) —
+            // RestClientConfig가 읽기 타임아웃(45초)을 걸어둬서 응답이 안 오면 여기로 떨어진다.
+            // 이걸 안 잡으면 호출부(InsightFacade → 컨트롤러)까지 처리 안 된 예외로 새서 500이 됨.
+            log.error("Gemini API 호출 중 오류(타임아웃 등): {}", e.toString());
+            throw new GeminiApiException("Gemini API 응답이 너무 오래 걸려 실패했습니다. 잠시 후 다시 시도해 주세요.", e);
         }
 
         if (response == null) {

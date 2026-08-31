@@ -32,6 +32,8 @@ public final class CacheNames {
 
     /** InsightFacade.ask()의 (ouid,matchType,seasonId,question) 동일 질문 응답. */
     public static final String INSIGHT_ANSWERS = "insight-answers";
+    /** PersonalityReportClient.fetch()의 실명별 카톡 성격 리포트(.md) 원문. */
+    public static final String PERSONALITY_REPORTS = "personality-reports";
 
     // --- OpponentFacade ---
     public static final String OPPONENTS = "opponents";

@@ -11,6 +11,7 @@ import com.fconline.domain.season.Season;
 import com.fconline.infrastructure.cache.CacheNames;
 import com.fconline.infrastructure.gemini.GeminiApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
+import com.fconline.infrastructure.personality.PersonalityReportClient;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,10 @@ import org.springframework.transaction.annotation.Transactional;
  * 유저 관점이 아닌 제3자 간 비교 질문에도 각자의 실제 데이터로 답할 수 있다(그전엔 현재
  * 선택된 유저 기준 상대 전적만 있어서, 관계없는 두 유저를 비교하려면 공통 상대를 거쳐 추론하는
  * 식으로 답이 새곤 했다).
+ *
+ * 전적 데이터와는 별개로, Claude Code가 카톡 대화를 직접 읽고 손으로 써둔 성격 리포트가 있는
+ * 유저(전원은 아님)는 그 내용도 PersonalityReportClient로 붙여서, Gemini가 그 사람 특유의
+ * 말투/성향을 반영한 더 캐릭터에 맞는 답변을 하게 한다(요청).
  */
 @Component
 public class InsightFacade {
@@ -58,6 +63,10 @@ public class InsightFacade {
             한 명 기준이 아니라), 반드시 맨 앞의 "전체 유저 종합 전적 순위" 섹션(각자 전체 상대
             합산 기준)을 근거로 쓰세요 — 현재 선택된 유저의 상대별 전적(그 유저 한 명과 붙었을
             때의 상성)만 보고 다른 유저끼리를 간접 비교하면 안 됩니다.
+            성격 리포트(카톡 대화 분석)가 함께 주어지면, 그 사람 특유의 말투·자주 쓰는 표현·
+            성향을 답변에 자연스럽게 녹여서 더 그 사람다운 답변을 만드세요 — 단, 사생활이나
+            민감한 개인사를 캐묻거나 먼저 들추지 말고, 질문 맥락(전적/성향 관련)에 실제로
+            도움이 될 때만 참고하세요.
             질문이 FC Online 전적과 무관한 일반 상식/잡담이면(데이터에 없다고 거절하지 말고)
             평소 알고 있는 지식으로 자유롭게 답변하되, 위와 같은 캐주얼하고 위트있는 말투는
             그대로 유지하세요. 다만 전적 관련 질문에 한해서는 절대 근거 없이 수치를 지어내지
@@ -73,19 +82,22 @@ public class InsightFacade {
     private final TrackedUserAliasResolver aliasResolver;
     private final UserFacade userFacade;
     private final GeminiApiClient geminiApiClient;
+    private final PersonalityReportClient personalityReportClient;
 
     public InsightFacade(SeasonRangeResolver seasonRangeResolver,
                           GithubInsightSnapshotClient githubInsightSnapshotClient,
                           InsightSnapshotBuilder insightSnapshotBuilder,
                           TrackedUserAliasResolver aliasResolver,
                           UserFacade userFacade,
-                          GeminiApiClient geminiApiClient) {
+                          GeminiApiClient geminiApiClient,
+                          PersonalityReportClient personalityReportClient) {
         this.seasonRangeResolver = seasonRangeResolver;
         this.githubInsightSnapshotClient = githubInsightSnapshotClient;
         this.insightSnapshotBuilder = insightSnapshotBuilder;
         this.aliasResolver = aliasResolver;
         this.userFacade = userFacade;
         this.geminiApiClient = geminiApiClient;
+        this.personalityReportClient = personalityReportClient;
     }
 
     /**
@@ -105,7 +117,15 @@ public class InsightFacade {
         InsightSnapshotContent primary = loadContent(ouid, matchType, season.getId());
         StringBuilder dataSummary = new StringBuilder(appendMentionedOpponent(primary, question));
 
-        List<TrackedUserResponse> otherMentioned = userFacade.listTrackedUsers().stream()
+        List<TrackedUserResponse> allTrackedUsers = userFacade.listTrackedUsers();
+        String primaryNickname = allTrackedUsers.stream()
+                .filter(u -> u.ouid().equals(ouid))
+                .map(TrackedUserResponse::nickname)
+                .findFirst()
+                .orElse(null);
+        appendPersonalityReport(dataSummary, primaryNickname);
+
+        List<TrackedUserResponse> otherMentioned = allTrackedUsers.stream()
                 .filter(u -> !u.ouid().equals(ouid))
                 .filter(u -> aliasResolver.mentions(question, u.nickname()))
                 .toList();
@@ -114,6 +134,7 @@ public class InsightFacade {
             InsightSnapshotContent otherContent = loadContent(other.ouid(), matchType, season.getId());
             dataSummary.append("\n\n[질문에서 언급된 다른 추적 유저: ").append(labelOf(other.nickname()))
                     .append(" 본인 데이터]\n").append(otherContent.summaryText());
+            appendPersonalityReport(dataSummary, other.nickname());
         }
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
@@ -148,6 +169,23 @@ public class InsightFacade {
             return content.summaryText();
         }
         return content.summaryText() + "\n\n" + mentioned.get().getValue();
+    }
+
+    /**
+     * 실명 매핑(TrackedUserAliasResolver)이 있고 Supabase Storage에 리포트가 실제로 올라와 있는
+     * 유저만 성격 리포트를 덧붙인다 — 7명 전원이 다 있는 게 아니라 일부는 조용히 생략된다.
+     */
+    private void appendPersonalityReport(StringBuilder dataSummary, String nickname) {
+        if (nickname == null) {
+            return;
+        }
+        String realName = aliasResolver.realNameOf(nickname);
+        if (realName == null) {
+            return;
+        }
+        personalityReportClient.fetch(realName).ifPresent(text ->
+                dataSummary.append("\n\n[").append(nickname).append("(").append(realName)
+                        .append(")의 성격 리포트 — 카톡 대화 분석 기반, 말투/캐릭터 참고용]\n").append(text));
     }
 
     private String labelOf(String nickname) {

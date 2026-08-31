@@ -104,7 +104,11 @@ public class RedisCacheConfig implements CachingConfigurer {
                 Map.entry(CacheNames.SEASONS,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), TTL)),
                 Map.entry(CacheNames.TEAM_PERIODS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), TTL))
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), TTL)),
+                // 성격 리포트는 그냥 마크다운 원문(String)이라 Jackson JSON 포장 없이 바이트 그대로
+                // 저장한다 — 리포트 안에 따옴표·줄바꿈이 많아 JSON 이스케이프를 거칠 이유가 없다.
+                Map.entry(CacheNames.PERSONALITY_REPORTS,
+                        baseConfig(TTL).serializeValuesWith(SerializationPair.fromSerializer(new StringRedisSerializer())))
         );
 
         RedisCacheConfiguration fallback = polymorphicFallbackConfig(objectMapper);
