@@ -683,7 +683,12 @@
       return dashboardPlayersGridSort.dir === 'asc' ? cmp : -cmp;
     });
 
+    // stats-grid-table: PC에서는 넓은 정렬 가능 표 그대로, 좁은 화면(report.css
+    // @media max-width:760px)에서는 열이 20개가 넘어 가로 스크롤만으론 한눈에 비교가 안 돼서
+    // .dashboard-table과 같은 방식으로 행 하나가 "라벨: 값" 칩 카드가 되게 접는다 — 그러려면
+    // 아래 tbody 렌더링에서 각 td에 data-label을 붙여야 한다(테이블 아래쪽 참고).
     var table = document.createElement('table');
+    table.className = 'stats-grid-table';
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
     cols.forEach(function (c) {
@@ -741,6 +746,11 @@
       tr.appendChild(el('td', 'num', nf(p.intercepts)));
       tr.appendChild(el('td', 'num', nf(p.blocks)));
       tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
+      // 좁은 화면 칩 카드용 라벨 — tr.children는 append 순서 그대로라 cols와 인덱스가 맞는다
+      // (이름 칸 2개는 이미 name-cell 클래스로 자기 값을 그대로 보여주니 라벨이 필요 없다).
+      for (var i = 2; i < tr.children.length; i++) {
+        tr.children[i].setAttribute('data-label', cols[i].label);
+      }
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -2896,7 +2906,10 @@
       return playersGridSort.dir === 'asc' ? cmp : -cmp;
     });
 
+    // stats-grid-table: report.css @media max-width:760px에서 이 표를 라벨:값 칩 카드로 접는다 —
+    // 열이 28개라 가로 스크롤만으론 비교가 안 됨(대시보드 쪽 renderDashboardPlayersGrid와 동일 처리).
     var table = document.createElement('table');
+    table.className = 'stats-grid-table';
     var thead = document.createElement('thead');
     var htr = document.createElement('tr');
     cols.forEach(function (c) {
@@ -2964,6 +2977,10 @@
       tr.appendChild(el('td', 'num', nf(p.blocks)));
       tr.appendChild(el('td', 'num', p.avgRating == null ? '-' : fmt1(p.avgRating)));
       tr.appendChild(el('td', 'num', fmt(Math.round(p.overall))));
+      // 좁은 화면 칩 카드용 라벨 — renderDashboardPlayersGrid와 동일한 방식(이름 칸 1개만 제외).
+      for (var i = 1; i < tr.children.length; i++) {
+        tr.children[i].setAttribute('data-label', cols[i].label);
+      }
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
