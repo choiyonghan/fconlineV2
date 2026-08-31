@@ -39,7 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * 전적 데이터와는 별개로, Claude Code가 카톡 대화를 직접 읽고 손으로 써둔 성격 리포트가 있는
  * 유저(전원은 아님)는 그 내용도 PersonalityReportClient로 붙여서, Gemini가 그 사람 특유의
- * 말투/성향을 반영한 더 캐릭터에 맞는 답변을 하게 한다(요청).
+ * 말투/성향을 반영한 더 캐릭터에 맞는 답변을 하게 한다(요청). FC Online 추적 대상이 아닌(ouid
+ * 없는) 친구도 리포트가 있으면 질문에 이름이 언급될 때 ExtraPersonalityPeople로 같은 방식으로
+ * 붙인다 — FC 전적과 무관한 잡담 질문이어도 마찬가지(요청).
  */
 @Component
 public class InsightFacade {
@@ -83,6 +85,7 @@ public class InsightFacade {
     private final UserFacade userFacade;
     private final GeminiApiClient geminiApiClient;
     private final PersonalityReportClient personalityReportClient;
+    private final ExtraPersonalityPeople extraPersonalityPeople;
 
     public InsightFacade(SeasonRangeResolver seasonRangeResolver,
                           GithubInsightSnapshotClient githubInsightSnapshotClient,
@@ -90,7 +93,8 @@ public class InsightFacade {
                           TrackedUserAliasResolver aliasResolver,
                           UserFacade userFacade,
                           GeminiApiClient geminiApiClient,
-                          PersonalityReportClient personalityReportClient) {
+                          PersonalityReportClient personalityReportClient,
+                          ExtraPersonalityPeople extraPersonalityPeople) {
         this.seasonRangeResolver = seasonRangeResolver;
         this.githubInsightSnapshotClient = githubInsightSnapshotClient;
         this.insightSnapshotBuilder = insightSnapshotBuilder;
@@ -98,6 +102,7 @@ public class InsightFacade {
         this.userFacade = userFacade;
         this.geminiApiClient = geminiApiClient;
         this.personalityReportClient = personalityReportClient;
+        this.extraPersonalityPeople = extraPersonalityPeople;
     }
 
     /**
@@ -136,6 +141,17 @@ public class InsightFacade {
                     .append(" 본인 데이터]\n").append(otherContent.summaryText());
             appendPersonalityReport(dataSummary, other.ouid(), other.nickname());
         }
+
+        // FC Online 추적 대상이 아닌(ouid 없는) 친구도 질문에 이름이 언급되면 성격 리포트를
+        // 붙인다 — FC 전적과 무관한 잡담 질문이어도(요청) 마찬가지로 적용.
+        extraPersonalityPeople.all().forEach((name, storageKey) -> {
+            if (question.contains(name)) {
+                personalityReportClient.fetch(storageKey).ifPresent(text ->
+                        dataSummary.append("\n\n[").append(name)
+                                .append("의 성격 리포트 — 카톡 대화 분석 기반, FC Online 추적 대상 아님, 말투/캐릭터 참고용]\n")
+                                .append(text));
+            }
+        });
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
 

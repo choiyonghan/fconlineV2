@@ -61,3 +61,8 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         sync: false
+      # FC Online 추적 대상이 아닌 친구의 성격 리포트 — "실명:Supabase Storage 키" 콤마 구분
+      # (예: "이용민:leeyongmin,처리:cheori"). 실명이 들어가므로 TRACKED_USER_REAL_NAMES와
+      # 마찬가지로 반드시 Render 대시보드에서 직접 입력한다.
+      - key: PERSONALITY_EXTRA_PEOPLE
+        sync: false

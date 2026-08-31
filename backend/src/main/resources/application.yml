@@ -96,6 +96,13 @@ insight:
     # (DB 테이블 없이 리포지토리 자체를 캐시 저장소로 사용 — InsightFacade 참고).
     raw-base-url: ${INSIGHT_SNAPSHOT_RAW_BASE_URL:https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/insight-snapshots}
 
+personality:
+  # FC Online 추적 대상이 아닌(ouid 없는) 친구의 성격 리포트 — "실명:Supabase Storage 키" 콤마
+  # 구분(예: "이용민:leeyongmin,처리:cheori"). 로마자 키를 쓰는 이유는 PersonalityReportClient
+  # 주석 참고(Supabase Storage가 한글 키를 거절함). 실명이 들어가므로 TRACKED_USER_REAL_NAMES와
+  # 마찬가지로 Render 환경변수로만 채운다.
+  extra-people: ${PERSONALITY_EXTRA_PEOPLE:}
+
 supabase:
   storage:
     # 카톡 성격 리포트(.md, 실명 파일명)를 올려둔 Supabase Storage private bucket —
