@@ -81,13 +81,22 @@ groq:
     # 훨씬 넉넉해서 완전히 갈아탐. OpenAI 호환 Chat Completions API.
     base-url: https://api.groq.com/openai/v1
     key: ${GROQ_API_KEY:}
-    # llama-3.3-70b-versatile는 실제로 이 키의 /v1/models 목록에 없어(2026-08-31 curl로 직접 확인)
-    # 매 호출이 404로 실패했다 — 계정/키마다 노출되는 모델셋이 다른 듯. openai/gpt-oss-120b로 교체:
-    # 그 시점 목록에서 컨텍스트(128K)·tools/json_mode/structured_outputs 지원까지 갖춘 것 중 가장 큼.
+    # 2026-08-31에 두 번 갈아탐:
+    # 1) llama-3.3-70b-versatile → openai/gpt-oss-120b: 전자는 이 키의 /v1/models 목록에 아예
+    #    없어서(계정/키마다 노출 모델셋이 다름) 매 호출이 404였다.
+    # 2) openai/gpt-oss-120b → groq/compound: 실제로 붙여보니 이 키의 무료 티어에서
+    #    gpt-oss-*/qwen* 계열은 전부 "분당 토큰(TPM) 8,000" 고정인데, 우리 질문 1건의 프롬프트가
+    #    데이터 요약을 통째로 넣어 약 1.5만 토큰이라 그 절반짜리 한도로는 단 1번의 질문도 못
+    #    받고 413(Request too large)이 났다(직접 curl로 재현, GroqApiClient 로그의
+    #    "Request too large ... Limit 8000, Requested 14720" 확인). groq/compound는 내부적으로
+    #    meta-llama/llama-4-scout-17b-16e-instruct를 쓰는데 그쪽 TPM이 30,000이라 우리 프롬프트
+    #    크기를 감당한다(이 키에서 직접 노출되는 모델 중 유일). 단, 연속 질문이 짧은 간격으로
+    #    들어오면 그래도 429가 날 수 있어 GroqApiClient의 재시도 대기를 늘려뒀다.
     # 필요하면 GROQ_MODEL로 다른 모델 지정 가능 — 바꾸기 전엔 반드시
-    # `curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models`로
-    # 그 키에 실제로 노출되는 모델 ID인지 먼저 확인할 것.
-    model: ${GROQ_MODEL:openai/gpt-oss-120b}
+    # `curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models`로 그
+    # 키에 실제로 노출되는 모델인지, 그리고 console.groq.com/docs/rate-limits에서 TPM이 우리
+    # 프롬프트 크기(질문 1건당 대략 1만~2만 토큰)를 감당하는지 반드시 먼저 확인할 것.
+    model: ${GROQ_MODEL:groq/compound}
 
 sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}

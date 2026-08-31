@@ -28,10 +28,14 @@ public class GroqApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GroqApiClient.class);
 
-    /** Groq 무료 티어는 분당 요청 한도(RPM)가 있어서 순간적으로 429/503이 날 수 있다 —
-     * 한 번만 짧게 쉬었다 재시도한다(하루 단위 쿼터 초과와 달리 몇 초면 풀리는 경우가 많음). */
-    private static final int MAX_ATTEMPTS = 2;
-    private static final long RETRY_DELAY_MS = 2000;
+    /** Groq 무료 티어는 분당 요청 한도(RPM)뿐 아니라 분당 토큰 한도(TPM)도 있어 순간적으로 429/503이
+     * 날 수 있다 — 하루 단위 쿼터 초과와 달리 몇~십몇 초면 풀리는 경우가 많아 재시도한다. 특히
+     * groq/compound(현재 기본 모델, 2026-08-31 GROQ_MODEL 변경 참고 — 나머지 모델은 TPM 8,000으로
+     * 우리 프롬프트 크기(질문 1건당 약 1.5만 토큰)를 애초에 못 받아 compound가 유일한 선택지였다)는
+     * 실측상 TPM 429 회복까지 최대 17초 정도 걸렸다(직접 curl로 재현) — 이전 고정 2초 대기로는
+     * 부족해서 시도마다 대기를 늘린다(3초→6초).*/
+    private static final int MAX_ATTEMPTS = 3;
+    private static final long RETRY_DELAY_MS = 3000;
 
     private final RestClient groqRestClient;
     private final GroqApiProperties properties;
@@ -82,9 +86,10 @@ public class GroqApiClient {
                         || e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS)
                         && attempt < MAX_ATTEMPTS;
                 if (retryable) {
+                    long delayMs = RETRY_DELAY_MS * attempt; // 시도마다 대기 늘림(3s→6s)
                     log.warn("Groq API {}(일시적 과부하/속도 제한) — {}ms 후 재시도합니다 ({}/{})",
-                            e.getStatusCode(), RETRY_DELAY_MS, attempt, MAX_ATTEMPTS);
-                    sleepBeforeRetry();
+                            e.getStatusCode(), delayMs, attempt, MAX_ATTEMPTS);
+                    sleepBeforeRetry(delayMs);
                     continue;
                 }
                 log.error("Groq API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
@@ -111,9 +116,9 @@ public class GroqApiClient {
         return choices.get(0).path("message").path("content").asText("");
     }
 
-    private static void sleepBeforeRetry() {
+    private static void sleepBeforeRetry(long delayMs) {
         try {
-            Thread.sleep(RETRY_DELAY_MS);
+            Thread.sleep(delayMs);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
             throw new AiApiException("Groq API 재시도 대기 중 인터럽트되었습니다.", ie);
