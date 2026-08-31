@@ -76,14 +76,15 @@ gemini:
   api:
     base-url: https://generativelanguage.googleapis.com/v1beta
     key: ${GEMINI_API_KEY:}
-    # gemini-3.6-flash(막 나온 최신 모델, 2026-07)는 붙긴 하는데 무료 티어 하루 한도가 아직
-    # 20회로 극도로 타이트해서(운영에서 실제로 겪음 — 몇 번 질문했다고 RESOURCE_EXHAUSTED) 쓸모가
-    # 없었다. gemini-3-flash는 이 키의 ListModels 목록에 아예 없어서(404) 존재하지 않는 ID.
-    # 대신 gemini-2.5-flash(2025-06 출시, 완전히 정착된 모델 — "신규 키엔 404"라던 예전 메모는
-    # 이 키의 실제 ListModels 응답으로 확인해보니 틀렸음)로 바꿈 — 오래된 모델일수록 무료 쿼터
-    # 제한이 풀려있을 가능성이 높다. 필요하면 GEMINI_MODEL로 다른 모델 지정 가능
-    # (전체 사용 가능 목록: GET {base-url}/models?key=... 로 직접 확인).
-    model: ${GEMINI_MODEL:gemini-2.5-flash}
+    # 이 프로젝트(2026-08-22 생성, Google 기준 "신규 사용자")는 gemini-3.6-flash 말고는
+    # generateContent를 아예 못 쓴다 — 직접 확인함:
+    #  - gemini-3-flash: 애초에 존재하지 않는 모델 ID(404 Not Found)
+    #  - gemini-2.5-flash: ListModels 목록엔 있지만 "no longer available to new users.
+    #    Please update your code to use models/gemini-3.6-flash" 404로 명시적으로 막혀 있음
+    # gemini-3.6-flash 자체는 붙지만 무료 티어 하루 한도가 20회로 매우 타이트하다(운영에서
+    # 실제로 RESOURCE_EXHAUSTED 겪음) — 이건 이 키/프로젝트에서 유일하게 쓸 수 있는 모델이라
+    # 당장은 바꿀 수 없다(대안은 Gemini 바깥에서 찾는 중).
+    model: ${GEMINI_MODEL:gemini-3.6-flash}
 
 sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}
