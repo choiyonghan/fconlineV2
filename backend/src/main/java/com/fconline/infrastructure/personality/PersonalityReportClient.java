@@ -1,6 +1,7 @@
 package com.fconline.infrastructure.personality;
 
 import com.fconline.infrastructure.cache.CacheNames;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,11 +42,20 @@ public class PersonalityReportClient {
     @Cacheable(value = CacheNames.PERSONALITY_REPORTS, unless = "#result == null || #result.isEmpty()")
     public Optional<String> fetch(String ouid) {
         try {
-            String body = personalityReportRestClient.get()
+            // .body(String.class)를 쓰면 Spring StringHttpMessageConverter가 응답 Content-Type의
+            // charset을 본다 — Supabase Storage가 .md 파일에 charset=utf-8을 안 붙여주면 기본값인
+            // ISO-8859-1로 디코딩돼 한글이 그 시점에 이미 깨진다(운영에서 실제로 겪음: AI 답변에
+            // 리포트에서 그대로 인용한 단어만 mojibake로 나오던 문제). Content-Type을 무시하고
+            // 항상 UTF-8로 디코딩하도록 바이트로 받아 직접 변환한다.
+            byte[] bytes = personalityReportRestClient.get()
                     .uri("/{fileName}", ouid + ".md")
                     .retrieve()
-                    .body(String.class);
-            return (body == null || body.isBlank()) ? Optional.empty() : Optional.of(body);
+                    .body(byte[].class);
+            if (bytes == null || bytes.length == 0) {
+                return Optional.empty();
+            }
+            String body = new String(bytes, StandardCharsets.UTF_8);
+            return body.isBlank() ? Optional.empty() : Optional.of(body);
         } catch (HttpClientErrorException.NotFound e) {
             return Optional.empty();
         } catch (Exception e) {
