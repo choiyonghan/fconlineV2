@@ -474,6 +474,36 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .toList();
     }
 
+    @Override
+    public List<PlayerShotPoint> findAssistedShotPointsByPlayer(String ouid, MatchType matchType, Instant from,
+                                                                  Instant to, String opponentOuid) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        // 골 여부는 안 본다 — xA(기대 어시스트)는 어시스트가 달린 슛이면 노골이어도 잡아야
+        // 정의에 맞는다(실사용 데이터로 확인: 매치당 노골+어시스트 슛이 실제로 다수 존재).
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to)
+                .and(se.x.isNotNull())
+                .and(se.y.isNotNull())
+                .and(se.assist.isTrue())
+                .and(se.assistSpId.isNotNull());
+        if (opponentOuid != null) {
+            where.and(md.opponentOuid.eq(opponentOuid));
+        }
+
+        return queryFactory
+                .select(se.assistSpId, se.x, se.y, se.shootType)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(where)
+                .fetch().stream()
+                .map(row -> new PlayerShotPoint(row.get(se.assistSpId), row.get(se.x), row.get(se.y),
+                        row.get(se.shootType)))
+                .toList();
+    }
+
     /**
      * "실점 xG값"(플레이 성향 · 수비 성향)용 — 우리 DB엔 상대가 나를 향해 쏜 슛 좌표가 직접 저장돼
      * 있지 않다(각 참가자는 자기 자신의 shoot_detail만 동기화한다). 대신 상대도 추적 대상 유저라면,

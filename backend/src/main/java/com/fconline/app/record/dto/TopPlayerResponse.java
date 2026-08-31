@@ -5,13 +5,16 @@ package com.fconline.app.record.dto;
  * 직접 계산한다(그룹 내 최댓값 기준 재조정이 필요해서 응답 시점엔 절대값만 내려준다).
  * xg = 이 선수가 쏜 슛 좌표 전체의 합산 기대 득점(ExpectedGoalsCalculator, "전체 선수 스탯"의
  * xG/결정력 열용) — RecordFacade가 shoot_events를 별도 조회해서 채운다.
- * goalsAgainst = 이 선수가 출전한 매치들의 팀 실점 합계 — 골키퍼 선방률 saves/(saves+goalsAgainst)
- * 계산용 분모(프론트에서 계산, saves=0인 필드 플레이어는 "-"로 숨김).
+ * xa = 이 선수가 어시스트한 슛(골 여부 무관) 전체의 합산 기대 득점, 즉 기대 어시스트 —
+ * 슛 자체의 xG를 어시스트 제공자에게 귀속시키는 방식(공식 xA 모델이 아니라 xG와 같은 근사치,
+ * 2026-08-31 추가). goalsAgainst = 이 선수가 출전한 매치들의 팀 실점 합계 — 골키퍼 선방률
+ * saves/(saves+goalsAgainst) 계산용 분모(프론트에서 계산, saves=0인 필드 플레이어는 "-"로 숨김).
  */
 public record TopPlayerResponse(String spId, String playerName, int appearances,
                                  int goals, int assists, int saves, int tackles, int intercepts, int blocks,
                                  int shootTotal, int effectiveShoot, int passTry, int passSuccess,
                                  int dribbleTry, int dribbleSuccess, int dribbleDistance,
                                  int aerialTry, int aerialSuccess,
-                                 Double avgRating, double contributionScore, double xg, int goalsAgainst) {
+                                 Double avgRating, double contributionScore, double xg, int goalsAgainst,
+                                 double xa) {
 }

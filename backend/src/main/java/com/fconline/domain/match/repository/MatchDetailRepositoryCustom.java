@@ -164,4 +164,14 @@ public interface MatchDetailRepositoryCustom {
      */
     List<PlayerShotPoint> findShotPointsByPlayer(String ouid, MatchType matchType, Instant from, Instant to,
                                                   String opponentOuid);
+
+    /**
+     * "전체 선수 스탯"의 선수별 xA(기대 어시스트) 합산용 — 어시스트가 달린 슛(assist=true, 골 여부
+     * 무관 — 노골 슛도 잡아야 하는 게 xA의 정의)의 좌표+슛유형을 어시스트 제공자(assistSpId)
+     * 기준으로 묶어 반환한다. 슛 자체의 위치/유형으로 계산한 xG를 그대로 어시스트 제공자에게
+     * 귀속시키는 방식이라(패서 위치가 아니라 슈터 위치 기준), findShotPointsByPlayer와 반환 타입을
+     * 공유한다 — PlayerShotPoint.spId() 자리에 assistSpId가 들어간다는 점만 다르다.
+     */
+    List<PlayerShotPoint> findAssistedShotPointsByPlayer(String ouid, MatchType matchType, Instant from, Instant to,
+                                                           String opponentOuid);
 }

@@ -156,6 +156,12 @@ public class MatchDomainService {
         return matchDetailRepository.findShotPointsByPlayer(ouid, matchType, from, to, opponentOuid);
     }
 
+    /** "전체 선수 스탯"의 선수별 xA 합산용 — 어시스트 제공자 기준으로 묶은 슛 좌표(노골 포함). */
+    public List<PlayerShotPoint> assistedShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                                      String opponentOuid) {
+        return matchDetailRepository.findAssistedShotPointsByPlayer(ouid, matchType, from, to, opponentOuid);
+    }
+
     /**
      * "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표 목록(상대가 추적 대상인 매치만).
      * opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의 경기만.

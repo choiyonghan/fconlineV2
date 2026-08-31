@@ -135,6 +135,7 @@ public class RecordFacade {
 
         Map<String, String> playerNames = playerNamesOf(topPlayers);
         Map<String, Double> xgBySpId = xgBySpId(ouid, matchType, from, to, null);
+        Map<String, Double> xaBySpId = xaBySpId(ouid, matchType, from, to, null);
 
         List<TopPlayerResponse> topPlayerResponses = topPlayers.stream()
                 .map(stat -> new TopPlayerResponse(
@@ -147,7 +148,7 @@ public class RecordFacade {
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
                         stat.aerialTry(), stat.aerialSuccess(),
                         stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0),
-                        stat.goalsAgainst()))
+                        stat.goalsAgainst(), xaBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
 
         return new OverallRecordResponse(
@@ -214,6 +215,7 @@ public class RecordFacade {
 
         Map<String, String> playerNames = playerNamesOf(players);
         Map<String, Double> xgBySpId = xgBySpId(ouid, matchType, from, to, opponentOuid);
+        Map<String, Double> xaBySpId = xaBySpId(ouid, matchType, from, to, opponentOuid);
 
         return players.stream()
                 .map(stat -> new TopPlayerResponse(
@@ -226,7 +228,7 @@ public class RecordFacade {
                         stat.dribbleTry(), stat.dribbleSuccess(), stat.dribbleDistance(),
                         stat.aerialTry(), stat.aerialSuccess(),
                         stat.avgRating(), stat.contributionScore(), xgBySpId.getOrDefault(stat.spId(), 0.0),
-                        stat.goalsAgainst()))
+                        stat.goalsAgainst(), xaBySpId.getOrDefault(stat.spId(), 0.0)))
                 .toList();
     }
 
@@ -235,6 +237,16 @@ public class RecordFacade {
                                           String opponentOuid) {
         Map<String, Double> result = new HashMap<>();
         for (PlayerShotPoint p : matchDomainService.playerShotPoints(ouid, matchType, from, to, opponentOuid)) {
+            result.merge(p.spId(), ExpectedGoalsCalculator.calcXg(p.x(), p.y(), p.shootType().label()), Double::sum);
+        }
+        return result;
+    }
+
+    /** "전체 선수 스탯"의 xA 열용 — 어시스트 제공자별로 그 슛의 xG를 합산한다(노골 포함). */
+    private Map<String, Double> xaBySpId(String ouid, MatchType matchType, Instant from, Instant to,
+                                          String opponentOuid) {
+        Map<String, Double> result = new HashMap<>();
+        for (PlayerShotPoint p : matchDomainService.assistedShotPoints(ouid, matchType, from, to, opponentOuid)) {
             result.merge(p.spId(), ExpectedGoalsCalculator.calcXg(p.x(), p.y(), p.shootType().label()), Double::sum);
         }
         return result;

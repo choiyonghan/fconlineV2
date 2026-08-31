@@ -2827,7 +2827,7 @@
   // 최댓값=100 정규화된 합성 점수)/슛정확·패스·드리블·공중볼(이미 %)/선방률(이미 비율)은
   // 나누지 않는다.
   var PLAYERS_GRID_AVG_KEYS = [
-    'goals', 'assists', 'attackPoints', 'xg', 'finishing', 'saves',
+    'goals', 'assists', 'attackPoints', 'xg', 'xa', 'finishing', 'saves',
     'shootTotal', 'effectiveShoot', 'passTry', 'passSuccess',
     'dribbleTry', 'dribbleSuccess', 'dribbleDistance', 'aerialTry', 'aerialSuccess',
     'tackles', 'intercepts', 'blocks'
@@ -2858,6 +2858,7 @@
       { key: 'assists', label: '도움', numeric: true },
       { key: 'attackPoints', label: '공격P', numeric: true },
       { key: 'xg', label: 'xG', numeric: true },
+      { key: 'xa', label: 'xA', numeric: true },
       { key: 'finishing', label: '결정력', numeric: true },
       { key: 'saves', label: '세이브', numeric: true },
       { key: 'savePct', label: '선방률', numeric: true },
@@ -2938,6 +2939,7 @@
       tr.appendChild(el('td', 'num', nf(p.assists)));
       tr.appendChild(el('td', 'num', nf(p.attackPoints)));
       tr.appendChild(el('td', 'num', fmt1(p.xg)));
+      tr.appendChild(el('td', 'num', fmt1(p.xa)));
       tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
       tr.appendChild(el('td', 'num', nf(p.saves)));
       tr.appendChild(el('td', 'num', p.savePct == null ? '-' : fmt1(p.savePct) + '%'));
