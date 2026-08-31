@@ -324,6 +324,7 @@
   var aiQuestionInput = document.getElementById('ai-question');
   var aiAskBtn = document.getElementById('ai-ask-btn');
   var aiAnswerBox = document.getElementById('ai-answer-box');
+  var aiAnswerLoading = document.getElementById('ai-answer-loading');
   var aiAnswerText = document.getElementById('ai-answer-text');
 
   function setAiAsking(asking) {
@@ -331,7 +332,21 @@
     aiAskBtn.textContent = asking ? '답변을 기다리는 중…' : '질문하기';
   }
 
+  /**
+   * Gemini 호출이 20~40초씩 걸릴 때가 있어서(무료 티어), 버튼 텍스트만으로는 멈춘 것처럼
+   * 보이기 쉽다(요청) — 답변 대기 중엔 빈 답변 영역 가운데에 스피너를 띄운다.
+   */
+  function showAiLoading() {
+    aiAnswerBox.classList.remove('error');
+    aiAnswerText.hidden = true;
+    aiAnswerText.textContent = '';
+    aiAnswerLoading.hidden = false;
+    aiAnswerBox.hidden = false;
+  }
+
   function showAiAnswer(text, isError) {
+    aiAnswerLoading.hidden = true;
+    aiAnswerText.hidden = false;
     aiAnswerBox.classList.toggle('error', !!isError);
     renderMarkdownSafe(aiAnswerText, text);
     aiAnswerBox.hidden = false;
@@ -346,6 +361,7 @@
       return;
     }
     setAiAsking(true);
+    showAiLoading();
     apiPost('/api/v1/insights/ask', {
       ouid: state.ouid,
       matchType: state.matchType,
