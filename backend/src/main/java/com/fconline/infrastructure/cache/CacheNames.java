@@ -16,7 +16,9 @@ package com.fconline.infrastructure.cache;
  */
 public final class CacheNames {
 
-    // --- RecordFacade — 전부 TTL 5분 ---
+    // 전부 조회성 데이터라 TTL 3시간으로 통일(RedisCacheConfig.TTL, 요청).
+
+    // --- RecordFacade ---
     public static final String OVERALL_RECORD = "overall-record";
     public static final String ALL_PLAYERS = "all-players";
     public static final String SHOT_HEATMAP = "shot-heatmap";
@@ -28,16 +30,13 @@ public final class CacheNames {
     public static final String PLAYER_GRADES = "player-grades";
     public static final String RECENT_MATCHES = "recent-matches";
 
-    /** InsightFacade.ask()의 (ouid,matchType,seasonId,question) 동일 질문 응답 — TTL 10분. */
+    /** InsightFacade.ask()의 (ouid,matchType,seasonId,question) 동일 질문 응답. */
     public static final String INSIGHT_ANSWERS = "insight-answers";
 
-    // --- OpponentFacade — TTL 5분(records와 동일, 매치 데이터에서 파생) ---
+    // --- OpponentFacade ---
     public static final String OPPONENTS = "opponents";
 
-    // --- UserFacade/SeasonFacade — 거의 안 바뀌는 참조 데이터라 TTL 1시간(RedisCacheConfig).
-    // 다만 시즌은 SeasonResponse.current 필드가 "오늘" 기준이라 너무 길게 잡으면 시즌 경계
-    // 넘어갈 때 최대 TTL만큼 잘못된 current 값을 보여줄 수 있어 records보다는 길지만 하루보단
-    // 짧게(1시간) 잡는다. ---
+    // --- UserFacade/SeasonFacade ---
     public static final String TRACKED_USERS = "tracked-users";
     public static final String SEASONS = "seasons";
     public static final String TEAM_PERIODS = "team-periods";

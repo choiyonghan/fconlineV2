@@ -52,10 +52,13 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableCaching
 public class RedisCacheConfig implements CachingConfigurer {
 
-    private static final Duration RECORDS_TTL = Duration.ofMinutes(5);
-    private static final Duration INSIGHT_ANSWERS_TTL = Duration.ofMinutes(10);
-    /** 추적 유저 명단/시즌 목록처럼 거의 안 바뀌는 참조 데이터용(CacheNames 주석 참고). */
-    private static final Duration REFERENCE_DATA_TTL = Duration.ofHours(1);
+    /**
+     * 여기서 캐싱하는 모든 값은 조회성 데이터(직접 쓰는 API가 없다 — 매치 동기화/AI 답변 생성이
+     * 각자의 배치·요청 경로로 별도로 갱신할 뿐)라 전부 TTL 3시간으로 통일한다(요청). 시즌
+     * current 필드처럼 "오늘" 기준 계산값도 있지만, 3시간 정도의 지연은 이 앱의 성격상 허용
+     * 가능하다고 판단.
+     */
+    private static final Duration TTL = Duration.ofHours(3);
 
     private final CacheErrorHandler cacheErrorHandler;
 
@@ -74,34 +77,34 @@ public class RedisCacheConfig implements CachingConfigurer {
         var tf = objectMapper.getTypeFactory();
 
         Map<String, RedisCacheConfiguration> perCache = Map.ofEntries(
-                Map.entry(CacheNames.OVERALL_RECORD, typedConfig(objectMapper, OverallRecordResponse.class, RECORDS_TTL)),
+                Map.entry(CacheNames.OVERALL_RECORD, typedConfig(objectMapper, OverallRecordResponse.class, TTL)),
                 Map.entry(CacheNames.ALL_PLAYERS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TopPlayerResponse.class), RECORDS_TTL)),
-                Map.entry(CacheNames.SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, RECORDS_TTL)),
-                Map.entry(CacheNames.CONCEDED_SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, RECORDS_TTL)),
-                Map.entry(CacheNames.MATCH_SHOTS, typedConfig(objectMapper, MatchShotsResponse.class, RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TopPlayerResponse.class), TTL)),
+                Map.entry(CacheNames.SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.CONCEDED_SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.MATCH_SHOTS, typedConfig(objectMapper, MatchShotsResponse.class, TTL)),
                 Map.entry(CacheNames.MATCH_SQUAD,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, MatchSquadEntryResponse.class), RECORDS_TTL)),
-                Map.entry(CacheNames.MATCH_STATS, typedConfig(objectMapper, RecentMatchResponse.class, RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, MatchSquadEntryResponse.class), TTL)),
+                Map.entry(CacheNames.MATCH_STATS, typedConfig(objectMapper, RecentMatchResponse.class, TTL)),
                 Map.entry(CacheNames.ASSIST_CHAINS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, AssistChainResponse.class), RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, AssistChainResponse.class), TTL)),
                 Map.entry(CacheNames.PLAYER_GRADES,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, PlayerGradeResponse.class), RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, PlayerGradeResponse.class), TTL)),
                 // RecentMatchesPageCache가 Page 대신 CachedPage(평범한 record)를 캐싱한다 — Page는
                 // 인터페이스라 spring-data-commons의 Page Jackson 모듈이 직렬화("쓰기")만 지원하고
                 // 역직렬화("읽기")는 지원하지 않아서(운영에서 실제로 겪은 에러: "Cannot construct
                 // instance of Page") 그대로 캐싱하면 매번 깨진다. CachedPage 클래스 주석 참고.
                 Map.entry(CacheNames.RECENT_MATCHES,
-                        typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchResponse.class), RECORDS_TTL)),
-                Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, INSIGHT_ANSWERS_TTL)),
+                        typedConfig(objectMapper, tf.constructParametricType(CachedPage.class, RecentMatchResponse.class), TTL)),
+                Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, TTL)),
                 Map.entry(CacheNames.OPPONENTS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, OpponentSummaryResponse.class), RECORDS_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, OpponentSummaryResponse.class), TTL)),
                 Map.entry(CacheNames.TRACKED_USERS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TrackedUserResponse.class), REFERENCE_DATA_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TrackedUserResponse.class), TTL)),
                 Map.entry(CacheNames.SEASONS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), REFERENCE_DATA_TTL)),
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), TTL)),
                 Map.entry(CacheNames.TEAM_PERIODS,
-                        typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), RECORDS_TTL))
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), TTL))
         );
 
         RedisCacheConfiguration fallback = polymorphicFallbackConfig(objectMapper);
@@ -133,7 +136,7 @@ public class RedisCacheConfig implements CachingConfigurer {
                 ObjectMapper.DefaultTyping.EVERYTHING,
                 JsonTypeInfo.As.PROPERTY);
         var serializer = new GenericJackson2JsonRedisSerializer(polymorphicMapper);
-        return baseConfig(RECORDS_TTL).serializeValuesWith(SerializationPair.fromSerializer(serializer));
+        return baseConfig(TTL).serializeValuesWith(SerializationPair.fromSerializer(serializer));
     }
 
     private RedisCacheConfiguration baseConfig(Duration ttl) {
