@@ -28,4 +28,4 @@ AI 질문 답변(`POST /api/v1/insights/ask`)이 매번 종합 전적/선수단 
 ```
 
 `opponentDetailByNickname`은 질문에 해당 닉네임이 등장할 때만 `summaryText` 뒤에 덧붙여
-AI(Groq)에 전달됩니다(`InsightFacade.appendMentionedOpponent`).
+AI(Gemini)에 전달됩니다(`InsightFacade.appendMentionedOpponent`).

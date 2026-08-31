@@ -1,12 +1,12 @@
 ---
 name: ai-insight
-description: fconlineV2의 자연어 질문 답변 기능(/api/v1/insights/ask, InsightFacade, Groq 연동, 인사이트 스냅샷)을 만들거나 고치거나 디버깅할 때 먼저 읽는다. "AI 질문", "insights/ask", "Groq", "InsightFacade", "인사이트 스냅샷", "insight-snapshot" 언급 시 트리거.
+description: fconlineV2의 자연어 질문 답변 기능(/api/v1/insights/ask, InsightFacade, Gemini 연동, 인사이트 스냅샷)을 만들거나 고치거나 디버깅할 때 먼저 읽는다. "AI 질문", "insights/ask", "Gemini", "InsightFacade", "인사이트 스냅샷", "insight-snapshot" 언급 시 트리거.
 ---
 
 # AI 질문 답변(insights/ask) 아키텍처
 
 `POST /api/v1/insights/ask`는 자연어 질문 + 컨텍스트(ouid/matchType/seasonId)를 받아
-Groq(AI)가 통계 데이터를 근거로 답하는 화면 밖 부가 기능이다. 핵심은 **질문마다 DB를
+Gemini(AI)가 통계 데이터를 근거로 답하는 화면 밖 부가 기능이다. 핵심은 **질문마다 DB를
 재조회하지 않는다**는 것 — 매일 아침 배치가 미리 만든 스냅샷 파일을 GitHub에서 읽는다.
 
 ## 데이터 흐름
@@ -25,7 +25,7 @@ InsightFacade.ask() (요청마다, 실시간)
        → raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/insight-snapshots/*.json
   └─ 있으면: 그 파일의 summaryText + (질문에 상대 닉네임이 있으면) opponentDetailByNickname 사용
   └─ 없으면(첫 실행/신규 시즌 등): InsightSnapshotBuilder.build(...)로 즉석 조립 + WARN 로그
-  └─ GroqApiClient.ask(SYSTEM_INSTRUCTION, dataSummary + 질문)
+  └─ GeminiApiClient.ask(SYSTEM_INSTRUCTION, dataSummary + 질문)
 ```
 
 **DB 테이블을 따로 두지 않는다** — GitHub 저장소(`data/insight-snapshots/`)를 캐시로 쓴다.
@@ -36,7 +36,7 @@ InsightFacade.ask() (요청마다, 실시간)
 
 | 파일 | 역할 |
 |---|---|
-| `backend/.../app/insight/facade/InsightFacade.java` | ask() 엔트리 — 스냅샷 조회 + 폴백 + Groq 호출 |
+| `backend/.../app/insight/facade/InsightFacade.java` | ask() 엔트리 — 스냅샷 조회 + 폴백 + Gemini 호출 |
 | `backend/.../app/insight/facade/InsightSnapshotBuilder.java` | 스냅샷 콘텐츠 실제 조립(관련 API 전부 호출) |
 | `backend/.../app/insight/runner/InsightSnapshotCliRunner.java` | 배치 진입점(`--spring.profiles.active=insight-snapshot`) |
 | `backend/.../infrastructure/insight/GithubInsightSnapshotClient.java` | raw.githubusercontent.com에서 스냅샷 fetch |
@@ -52,7 +52,7 @@ InsightFacade.ask() (요청마다, 실시간)
 
 집계값(종합 전적, 선수단 전체 기여도, 득점 유형/시간대 분포, 상대별 승무패)은 캡 없이
 전체 경기를 반영한다 — 캡은 "경기별 개별 로그"에만 걸린다. 늘리면 파일 용량 +
-Groq 프롬프트 토큰(비용)이 커진다.
+Gemini 프롬프트 토큰(비용)이 커진다.
 
 ## 실명 별칭(TrackedUserAliasResolver)
 

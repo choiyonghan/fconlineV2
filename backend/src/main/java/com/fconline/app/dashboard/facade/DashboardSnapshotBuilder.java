@@ -23,7 +23,7 @@ import com.fconline.app.season.facade.SeasonFacade;
 import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
-import com.fconline.infrastructure.groq.GroqApiClient;
+import com.fconline.infrastructure.gemini.GeminiApiClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -61,17 +61,17 @@ public class DashboardSnapshotBuilder {
     private final UserFacade userFacade;
     private final SeasonFacade seasonFacade;
     private final RecordFacade recordFacade;
-    private final GroqApiClient groqApiClient;
+    private final GeminiApiClient geminiApiClient;
     private final TrackedUserAliasResolver aliasResolver;
     private final ObjectMapper objectMapper;
 
     public DashboardSnapshotBuilder(UserFacade userFacade, SeasonFacade seasonFacade, RecordFacade recordFacade,
-                                     GroqApiClient groqApiClient, TrackedUserAliasResolver aliasResolver,
+                                     GeminiApiClient geminiApiClient, TrackedUserAliasResolver aliasResolver,
                                      ObjectMapper objectMapper) {
         this.userFacade = userFacade;
         this.seasonFacade = seasonFacade;
         this.recordFacade = recordFacade;
-        this.groqApiClient = groqApiClient;
+        this.geminiApiClient = geminiApiClient;
         this.aliasResolver = aliasResolver;
         this.objectMapper = objectMapper;
     }
@@ -292,7 +292,7 @@ public class DashboardSnapshotBuilder {
     private RankingResult buildRanking(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
         try {
             String prompt = buildRankingPrompt(users, summaryByOuid);
-            String raw = groqApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
+            String raw = geminiApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
             return parseRanking(raw, users);
         } catch (Exception e) {
             log.error("AI 랭킹 호출/파싱 실패 — 승률 기준 대체 랭킹(고정 유머 해설 포함)으로 대체합니다.", e);

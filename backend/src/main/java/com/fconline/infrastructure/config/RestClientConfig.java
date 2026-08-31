@@ -1,6 +1,6 @@
 package com.fconline.infrastructure.config;
 
-import com.fconline.infrastructure.groq.GroqApiProperties;
+import com.fconline.infrastructure.gemini.GeminiApiProperties;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotProperties;
 import com.fconline.infrastructure.nexon.NexonApiProperties;
 import com.fconline.infrastructure.personality.PersonalityReportProperties;
@@ -48,13 +48,14 @@ public class RestClientConfig {
                 .build();
     }
 
-    /** OpenAI 호환 Chat Completions API(Groq) — GroqApiProperties.key로 Bearer 인증. */
+    /** Gemini Generative Language API — GeminiApiProperties.key를 x-goog-api-key 헤더로 인증
+     * (URL 쿼리스트링에 키를 안 실어 로그/프록시에 노출되는 걸 피함, Gemini가 공식 지원하는 방식). */
     @Bean
-    public RestClient groqRestClient(GroqApiProperties properties) {
+    public RestClient geminiRestClient(GeminiApiProperties properties) {
         return RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader("Authorization", "Bearer " + properties.key())
+                .defaultHeader("x-goog-api-key", properties.key())
                 .requestFactory(requestFactory(AI_READ_TIMEOUT))
                 .build();
     }

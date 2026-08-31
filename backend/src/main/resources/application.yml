@@ -72,31 +72,31 @@ nexon:
     keys: ${NEXON_API_KEY:},${NEXON_API_KEY_2:},${NEXON_API_KEY_3:},${NEXON_API_KEY_4:},${NEXON_API_KEY_5:},${NEXON_API_KEY_6:}
     request-delay-ms: ${NEXON_API_REQUEST_DELAY_MS:300}
 
-groq:
+gemini:
   api:
-    # 원래 Gemini를 썼는데, 이 프로젝트의 Gemini API 키가 Google 기준 "신규 사용자"로 분류돼
-    # gemini-3.6-flash 하나만 쓸 수 있고(gemini-2.5-flash는 404로 명시적으로 막힘, gemini-3-flash는
-    # 애초에 존재하지 않는 ID) 그마저 무료 하루 한도가 20회라 실사용이 불가능했다(운영에서 실제로
-    # RESOURCE_EXHAUSTED 겪음). Groq는 신용카드 없이 하루 14,400회(모델별로 다름)까지 무료라
-    # 훨씬 넉넉해서 완전히 갈아탐. OpenAI 호환 Chat Completions API.
-    base-url: https://api.groq.com/openai/v1
-    key: ${GROQ_API_KEY:}
-    # 2026-08-31에 두 번 갈아탐:
-    # 1) llama-3.3-70b-versatile → openai/gpt-oss-120b: 전자는 이 키의 /v1/models 목록에 아예
-    #    없어서(계정/키마다 노출 모델셋이 다름) 매 호출이 404였다.
-    # 2) openai/gpt-oss-120b → groq/compound: 실제로 붙여보니 이 키의 무료 티어에서
-    #    gpt-oss-*/qwen* 계열은 전부 "분당 토큰(TPM) 8,000" 고정인데, 우리 질문 1건의 프롬프트가
-    #    데이터 요약을 통째로 넣어 약 1.5만 토큰이라 그 절반짜리 한도로는 단 1번의 질문도 못
-    #    받고 413(Request too large)이 났다(직접 curl로 재현, GroqApiClient 로그의
-    #    "Request too large ... Limit 8000, Requested 14720" 확인). groq/compound는 내부적으로
-    #    meta-llama/llama-4-scout-17b-16e-instruct를 쓰는데 그쪽 TPM이 30,000이라 우리 프롬프트
-    #    크기를 감당한다(이 키에서 직접 노출되는 모델 중 유일). 단, 연속 질문이 짧은 간격으로
-    #    들어오면 그래도 429가 날 수 있어 GroqApiClient의 재시도 대기를 늘려뒀다.
-    # 필요하면 GROQ_MODEL로 다른 모델 지정 가능 — 바꾸기 전엔 반드시
-    # `curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models`로 그
-    # 키에 실제로 노출되는 모델인지, 그리고 console.groq.com/docs/rate-limits에서 TPM이 우리
-    # 프롬프트 크기(질문 1건당 대략 1만~2만 토큰)를 감당하는지 반드시 먼저 확인할 것.
-    model: ${GROQ_MODEL:groq/compound}
+    # 2026-08-31 마이그레이션 이력(Gemini → Groq → Gemini):
+    # 1) 원래 Gemini를 썼는데, 당시 프로젝트 키가 Google 기준 "신규 사용자"로 분류돼
+    #    gemini-3.6-flash 하나만 쓸 수 있고(gemini-2.5-flash는 404, gemini-3-flash는 존재하지
+    #    않는 ID) 그마저 무료 하루 한도가 20회라 실사용이 불가능해서(운영에서 RESOURCE_EXHAUSTED
+    #    겪음) Groq(OpenAI 호환)로 완전히 갈아탔다.
+    # 2) Groq에서 모델을 두 번 더 바꿔봤지만(llama-3.3-70b-versatile→openai/gpt-oss-120b→
+    #    groq/compound) 전부 분당 토큰(TPM) 한도가 우리 프롬프트 크기(성격 리포트를 통째로 넣어
+    #    질문 1건당 약 1만~2만 토큰)보다 작아서 413/429가 계속 났다 — gpt-oss-*/qwen* 계열은 TPM
+    #    8,000 고정, groq/compound(TPM 30,000)도 내부적으로 openai/gpt-oss-120b로 라우팅될 때가
+    #    있어 여전히 불안정했다.
+    # 3) 새 구글 계정으로 Gemini API 키를 다시 발급해보니, *-flash-lite 계열
+    #    (gemini-3.1-flash-lite, gemini-3.5-flash-lite)은 신규 사용자에게도 RPD 500 · TPM
+    #    250,000이 열려 있다는 걸 확인했다(https://aistudio.google.com/rate-limit,
+    #    일반 -flash/-pro 계열만 RPD 20으로 막혀있고 -flash-lite는 예외 — 모델마다 등급이 다름).
+    #    실제 프롬프트(성격 리포트 24KB 포함) 그대로 curl 테스트해 9,432 토큰으로 정상 응답까지
+    #    확인하고 최종적으로 Gemini(gemini-3.1-flash-lite)로 복귀했다.
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    key: ${GEMINI_API_KEY:}
+    # 필요하면 GEMINI_MODEL로 다른 모델 지정 가능 — 바꾸기 전엔 반드시
+    # https://aistudio.google.com/rate-limit (로그인 필요)에서 그 모델의 RPD/TPM이 신규
+    # 사용자에게도 우리 프롬프트 크기(질문 1건당 대략 1만 토큰)와 실사용 빈도를 감당하는지
+    # 먼저 확인할 것 — 모델명만 보고 예전 -flash/-pro 계열로 되돌아가면 RPD 20에 다시 걸린다.
+    model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
 
 sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}

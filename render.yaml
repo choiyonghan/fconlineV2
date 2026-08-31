@@ -33,10 +33,12 @@ services:
         sync: false
       - key: NEXON_API_KEY_6
         sync: false
-      # 자연어 질문 분석(/api/v1/insights/ask)용 — Groq 무료 티어 키(console.groq.com,
-      # 신용카드 불필요). 원래 Gemini를 썼는데 이 프로젝트의 무료 쿼터가 하루 20회로 너무
-      # 타이트해서(신규 사용자 제한) Groq(하루 14,400회)로 교체함.
-      - key: GROQ_API_KEY
+      # 자연어 질문 분석(/api/v1/insights/ask)용 — Gemini 무료 티어 키(aistudio.google.com/apikey).
+      # gemini-3.1-flash-lite 등 *-flash-lite 계열로 발급받을 것 — 일반 -flash/-pro 계열은 신규
+      # 사용자 하루 호출 한도가 20회로 너무 타이트해서 한때 Groq로 갈아탔다가(TPM 한도가 우리
+      # 프롬프트 크기에 비해 너무 작아 오히려 더 불안정했음) 다시 Gemini로 돌아왔다 —
+      # backend/src/main/resources/application.yml의 gemini.api 주석 참고.
+      - key: GEMINI_API_KEY
         sync: false
       # "닉네임:실명" 콤마 구분 목록(예: 서울쥐:김상기,욱냥0I:전승욱) — 실명은 public 저장소에
       # 커밋하면 안 되므로 반드시 Render 대시보드에서 직접 입력한다.

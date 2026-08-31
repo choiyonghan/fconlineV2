@@ -9,7 +9,7 @@ import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
 import com.fconline.infrastructure.cache.CacheNames;
-import com.fconline.infrastructure.groq.GroqApiClient;
+import com.fconline.infrastructure.gemini.GeminiApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
 import com.fconline.infrastructure.personality.PersonalityReportClient;
 import java.util.Comparator;
@@ -84,7 +84,7 @@ public class InsightFacade {
     private final InsightSnapshotBuilder insightSnapshotBuilder;
     private final TrackedUserAliasResolver aliasResolver;
     private final UserFacade userFacade;
-    private final GroqApiClient groqApiClient;
+    private final GeminiApiClient geminiApiClient;
     private final PersonalityReportClient personalityReportClient;
     private final ExtraPersonalityPeople extraPersonalityPeople;
 
@@ -93,7 +93,7 @@ public class InsightFacade {
                           InsightSnapshotBuilder insightSnapshotBuilder,
                           TrackedUserAliasResolver aliasResolver,
                           UserFacade userFacade,
-                          GroqApiClient groqApiClient,
+                          GeminiApiClient geminiApiClient,
                           PersonalityReportClient personalityReportClient,
                           ExtraPersonalityPeople extraPersonalityPeople) {
         this.seasonRangeResolver = seasonRangeResolver;
@@ -101,7 +101,7 @@ public class InsightFacade {
         this.insightSnapshotBuilder = insightSnapshotBuilder;
         this.aliasResolver = aliasResolver;
         this.userFacade = userFacade;
-        this.groqApiClient = groqApiClient;
+        this.geminiApiClient = geminiApiClient;
         this.personalityReportClient = personalityReportClient;
         this.extraPersonalityPeople = extraPersonalityPeople;
     }
@@ -109,7 +109,7 @@ public class InsightFacade {
     /**
      * Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL) — 질문 원문(AskRequest.question 포함)까지 키로
      * 묶어서, 완전히 같은 질문이 짧은 시간 안에 다시 들어올 때만 히트한다(같은 사람이 새로고침/
-     * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Groq 티어는 분당/일당
+     * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Gemini 티어는 분당/일당
      * 호출 한도가 있어 이런 중복 호출을 줄이는 게 records 캐시보다 오히려 더 의미 있다.
      */
     @Cacheable(CacheNames.INSIGHT_ANSWERS)
@@ -156,7 +156,7 @@ public class InsightFacade {
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
 
-        String answer = groqApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
+        String answer = geminiApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
         return new AskResponse(answer);
     }
 
