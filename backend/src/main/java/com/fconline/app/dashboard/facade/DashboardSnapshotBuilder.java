@@ -195,6 +195,7 @@ public class DashboardSnapshotBuilder {
                 games, overall.tally().win(), overall.tally().draw(), overall.tally().lose(),
                 games == 0 ? 0 : overall.tally().goalsFor() / (double) games,
                 games == 0 ? 0 : expectedGoalsFor / games,
+                games == 0 ? 0 : totalXaFor / games,
                 actualGoals - expectedGoalsFor,
                 games == 0 ? 0 : points.size() / (double) games,
                 games == 0 ? 0 : overall.tally().goalsAgainst() / (double) games,

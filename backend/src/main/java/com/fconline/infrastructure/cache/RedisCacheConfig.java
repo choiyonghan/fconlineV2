@@ -82,6 +82,7 @@ public class RedisCacheConfig implements CachingConfigurer {
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, TopPlayerResponse.class), TTL)),
                 Map.entry(CacheNames.SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
                 Map.entry(CacheNames.CONCEDED_SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.ASSISTED_SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
                 Map.entry(CacheNames.MATCH_SHOTS, typedConfig(objectMapper, MatchShotsResponse.class, TTL)),
                 Map.entry(CacheNames.MATCH_SQUAD,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, MatchSquadEntryResponse.class), TTL)),

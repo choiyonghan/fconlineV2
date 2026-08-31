@@ -11,9 +11,10 @@ import java.util.List;
  *   <li>결정력 = 실제 득점 총합 − xG 총합(평균이 아니라 표본 전체 합계 기준, 라이브 페이지와 동일)</li>
  *   <li>평균 실점 xG값의 분모는 games가 아니라 concededSampleGames(상대도 추적 대상이라
  *       실점 슛 좌표를 복원할 수 있었던 경기 수)다 — games보다 작거나 같다.</li>
- *   <li>totalXaFor(기대 어시스트 합계, 2026-08-31 추가)는 팀 전체 슛 좌표에서 별도로 다시
+ *   <li>totalXaFor/avgXaFor(기대 어시스트, 2026-08-31 추가)는 팀 전체 슛 좌표에서 별도로 다시
  *       계산하지 않고, 이미 fetch한 players(TopPlayerResponse) 각각의 xa를 그냥 합산한다 —
- *       같은 슛 데이터를 두 번 조회할 필요가 없어서.</li>
+ *       같은 슛 데이터를 두 번 조회할 필요가 없어서. avgXaFor는 totalXaFor/games다(다른
+ *       avgXxxFor 필드들과 동일하게 games==0이면 0).</li>
  * </ul>
  * totalXxx 필드들은 대시보드 순위표(프리미어리그 순위표 스타일 — played/goals/xg/shots/sot 등)용
  * 합계값이다. avgXxx(경기당 평균)와 별도로 둔다 — 표는 합계로, 아코디언 상세는 평균으로 보여준다.
@@ -25,6 +26,7 @@ public record DashboardScopeSummary(
         int losses,
         double avgGoalsFor,
         double avgGoalsForXg,
+        double avgXaFor,
         double finishing,
         double shotsPerGame,
         double avgGoalsAgainst,

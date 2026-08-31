@@ -766,6 +766,7 @@
     { label: '패', get: function (s) { return fmt(s.losses); } },
     { label: '득점', get: function (s) { return fmt1(s.avgGoalsFor); } },
     { label: '득점xG', get: function (s) { return fmt1(s.avgGoalsForXg); } },
+    { label: '어시xA', get: function (s) { return fmt1(s.avgXaFor); } },
     { label: '결정력', get: function (s) { return (s.finishing >= 0 ? '+' : '') + fmt1(s.finishing); } },
     { label: '실점', get: function (s) { return fmt1(s.avgGoalsAgainst); } },
     { label: '실점xG', get: function (s) { return s.avgGoalsAgainstXg == null ? '-' : fmt1(s.avgGoalsAgainstXg); } },
@@ -883,6 +884,7 @@
     }
     mini('평균득점', fmt1(s.avgGoalsFor));
     mini('평균득점 xG값', fmt1(s.avgGoalsForXg));
+    mini('평균어시 xA값', fmt1(s.avgXaFor));
     mini('결정력', (s.finishing >= 0 ? '+' : '') + fmt1(s.finishing), '실제 득점 − xG값');
     mini('경기당 슈팅', fmt1(s.shotsPerGame));
     mini('평균실점', fmt1(s.avgGoalsAgainst));
@@ -1838,7 +1840,7 @@
 
     if (!oppStats && state.matchType !== 'OFFICIAL') {
       container.appendChild(el('p', 'card-empty', '상대가 추적 대상이 아니라서 비교할 수 없어요.'));
-      return { setXg: function () {} };
+      return { setXg: function () {}, setXa: function () {} };
     }
     if (!oppStats) {
       container.appendChild(el('p', 'card-caption', '공식전은 상대가 추적 대상이 아니라 내 기록만 보여드려요.'));
@@ -1853,6 +1855,7 @@
 
     compareRow(container, '득점', mine.goalsFor, mine.goalsAgainst);
     var xgRow = compareRow(container, 'xG값', undefined, oppStats ? undefined : null, { format: fmt1 });
+    var xaRow = compareRow(container, 'xA값', undefined, oppStats ? undefined : null, { format: fmt1 });
     compareRow(container, '점유율', mine.possession, opp('possession'), {
       format: pctFormat, minePct: function (mv) { return mv == null ? 50 : mv; }
     });
@@ -1873,7 +1876,10 @@
     compareRow(container, '옐로카드', mine.yellowCards, opp('yellowCards'));
     compareRow(container, '레드카드', mine.redCards, opp('redCards'));
 
-    return { setXg: function (xgFor, xgAgainst) { xgRow.update(xgFor, oppStats ? xgAgainst : null); } };
+    return {
+      setXg: function (xgFor, xgAgainst) { xgRow.update(xgFor, oppStats ? xgAgainst : null); },
+      setXa: function (xaFor, xaAgainst) { xaRow.update(xaFor, oppStats ? xaAgainst : null); }
+    };
   }
 
   function xgOfShot(p) {
@@ -2402,12 +2408,14 @@
           .catch(function () { return []; })
       : Promise.resolve([]);
 
-    // xG값 행은 match-shots(별도 요청, 아래)가 끝나야 채워진다 — 어느 쪽이 먼저 끝나든 서로
+    // xG값/xA값 행은 match-shots(별도 요청, 아래)가 끝나야 채워진다 — 어느 쪽이 먼저 끝나든 서로
     // 기다리지 않고 준비되는 대로 반영하기 위한 작은 상태 저장소.
     var compareXgState = { for: null, against: null, ready: false };
+    var compareXaState = { for: null, against: null, ready: false };
     var compareRefs = null;
-    function applyCompareXg() {
+    function applyCompareXgXa() {
       if (compareRefs && compareXgState.ready) compareRefs.setXg(compareXgState.for, compareXgState.against);
+      if (compareRefs && compareXaState.ready) compareRefs.setXa(compareXaState.for, compareXaState.against);
     }
 
     Promise.all([mySquadPromise, oppSquadPromise, oppStatsPromise, oppGradesPromise])
@@ -2417,7 +2425,7 @@
         oppGrades.forEach(function (g) { playerGradeMap[g.spId] = g.grade; });
         buildMomWorstSection(momSection, mySquad.concat(oppSquad), m.result);
         compareRefs = buildCompareSection(compareSection, m, oppStats, mySquad, oppSquad);
-        applyCompareXg();
+        applyCompareXgXa();
       })
       .catch(function () { /* MOM/Worst·비교는 부가 정보라 실패해도 나머지 모달 표시는 막지 않는다 */ });
 
@@ -2457,7 +2465,14 @@
         compareXgState.for = expectedGoalsOf(result.myShots);
         compareXgState.against = result.concededShots.length ? expectedGoalsOf(result.concededShots) : null;
         compareXgState.ready = true;
-        applyCompareXg();
+        // xA값 = 이 매치에서 어시스트가 달린 슛(골 여부 무관)만 걸러 xG 합 — match-shots 응답에
+        // 이미 assist 플래그가 있어 별도 API 호출 없이 그대로 계산한다.
+        var myAssisted = result.myShots.filter(function (s) { return s.assist; });
+        var concededAssisted = result.concededShots.filter(function (s) { return s.assist; });
+        compareXaState.for = expectedGoalsOf(myAssisted);
+        compareXaState.against = result.concededShots.length ? expectedGoalsOf(concededAssisted) : null;
+        compareXaState.ready = true;
+        applyCompareXgXa();
       })
       .catch(function () {
         if (seq !== modalRequestSeq) return;
@@ -2599,12 +2614,17 @@
               .catch(function () { return { points: [] }; }),
             apiGet('/api/v1/records/conceded-shot-heatmap',
               { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid })
+              .catch(function () { return { points: [] }; }),
+            // 이 상대전 평균 어시 xA값용(요청 — xG 노출하는 곳엔 전부 xA도 같이).
+            apiGet('/api/v1/records/assisted-shot-heatmap',
+              { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid })
               .catch(function () { return { points: [] }; })
           ]).then(function (results) {
               var matches = results[0];
               var vsOpponentPlayers = results[1];
               var shotPoints = results[2].points;
               var concededPoints = results[3].points;
+              var assistedPoints = results[4].points;
               inner.replaceChildren();
               if (!matches.length) {
                 inner.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.'));
@@ -2640,9 +2660,11 @@
               var shootTotal = sum('shootTotal'), effectiveShoot = sum('effectiveShoot');
               var expectedGoalsFor = expectedGoalsOf(shotPoints);
               var expectedGoalsAgainst = expectedGoalsOf(concededPoints);
+              var expectedAssists = expectedGoalsOf(assistedPoints);
               var summaryGrid = el('div', 'stat-mini-grid opp-summary-grid');
               statMini(summaryGrid, '평균 득점', fmt1(goalsFor / n), '경기당 실제 득점');
               statMini(summaryGrid, '평균 득점 xG값', fmt1(expectedGoalsFor / n), '경기당 기대 득점');
+              statMini(summaryGrid, '평균 어시 xA값', fmt1(expectedAssists / n), '경기당 기대 어시스트');
               statMini(summaryGrid, '평균 실점', fmt1(goalsAgainst / n), '경기당 실제 실점');
               statMini(summaryGrid, '평균 실점 xG값', fmt1(expectedGoalsAgainst / n), '경기당 기대 실점');
               statMini(summaryGrid, '평균 슈팅', fmt1(effectiveShoot / n) + ' / ' + fmt1(shootTotal / n), '유효 / 전체');
@@ -3090,6 +3112,23 @@
     subEl.style.color = diff >= 0 ? 'var(--success-text)' : 'var(--status-critical)';
   }
 
+  /**
+   * xG 타일(updateXgTile)과 대칭 — points는 어시스트가 달린 슛(골 여부 무관, assisted-shot-heatmap
+   * 응답). 실제 어시스트 = 그중 골로 연결된 것만(전통적 "어시스트" 스탯과 동일한 정의), xA = 전체
+   * (노골 포함) xG 합.
+   */
+  function updateXaTile(points) {
+    var valueEl = document.getElementById('xa-tile-value');
+    var subEl = document.getElementById('xa-tile-sub');
+    if (!valueEl) return;
+    var actualAssists = points.filter(function (p) { return p.goal; }).length;
+    var expectedAssists = expectedGoalsOf(points);
+    var diff = actualAssists - expectedAssists;
+    valueEl.textContent = actualAssists + ' : ' + fmt1(expectedAssists);
+    subEl.textContent = (diff > 0 ? '+' : '') + fmt1(diff) + (diff >= 0 ? ' 기대 이상 창출' : ' 기대 이하 창출');
+    subEl.style.color = diff >= 0 ? 'var(--success-text)' : 'var(--status-critical)';
+  }
+
   // ---------------- 플레이 성향 ----------------
   /**
    * tooltip은 문자열(1줄) 또는 문자열 배열(여러 줄) — 있으면 hover/focus 시 showTip으로 보여준다.
@@ -3173,7 +3212,7 @@
 
   function round1(n) { return Math.round(n * 10) / 10; }
 
-  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches) {
+  function renderPlayStyle(overall, points, totalGames, concededPoints, concededSampleGames, matches, assistedPoints) {
     var attackContainer = document.getElementById('playstyle-attack');
     var defenseContainer = document.getElementById('playstyle-defense');
     var passContainer = document.getElementById('playstyle-pass');
@@ -3203,16 +3242,19 @@
     matches = matches || [];
     concededPoints = concededPoints || [];
     concededSampleGames = concededSampleGames || 0;
+    assistedPoints = assistedPoints || [];
 
     // 공격 성향
     var actualGoals = points.filter(function (p) { return p.goal; }).length;
     var expectedGoals = expectedGoalsOf(points);
+    var expectedAssists = expectedGoalsOf(assistedPoints);
     var onTarget = points.filter(function (p) { return p.result !== 'OFF_TARGET'; }).length;
     var shotAccuracy = points.length ? (onTarget / points.length * 100) : null;
 
     // 서브텍스트에 총 수량을 작은 글씨로 같이 보여준다(요청) — 패스 성향 탭과 같은 방식.
     statMini(attackContainer, '평균 득점', fmt1(overall.tally.goalsFor / totalGames), '경기당 실제 득점 · 총 ' + fmt(overall.tally.goalsFor) + '골');
     statMini(attackContainer, '평균 득점 xG값', fmt1(expectedGoals / totalGames), '경기당 기대 득점 · 총 ' + fmt1(expectedGoals) + '골');
+    statMini(attackContainer, '평균 어시 xA값', fmt1(expectedAssists / totalGames), '경기당 기대 어시스트 · 총 ' + fmt1(expectedAssists) + '골');
     statMini(attackContainer, '결정력',
       (actualGoals - expectedGoals >= 0 ? '+' : '') + fmt1(actualGoals - expectedGoals),
       '실제 득점 − xG값 (양수면 기대 이상)');
@@ -3477,7 +3519,10 @@
         .then(function (page) { return page.content; })
         .catch(function () { return []; }),
       // 카드 강화 단계 배지용 — 실패해도 나머지 화면 표시를 막으면 안 되니 조용히 빈 목록 폴백.
-      apiGet('/api/v1/records/player-grades', qs).catch(function () { return []; })
+      apiGet('/api/v1/records/player-grades', qs).catch(function () { return []; }),
+      // xA(기대 어시스트, 요청 — xG 노출하는 곳엔 전부 xA도 같이) — 실패해도 나머지는 정상 표시.
+      apiGet('/api/v1/records/assisted-shot-heatmap', { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId })
+        .catch(function () { return { points: [] }; })
     ]).then(function (r) {
       if (seq !== loadSeq) return; // 응답 도착 전에 선택이 또 바뀐 경우 — 낡은 응답은 버린다
       setStatus(null);
@@ -3485,7 +3530,7 @@
       r[7].forEach(function (g) { playerGradeMap[g.spId] = g.grade; });
       renderAll(user, {
         overall: r[0], opponents: r[1], allPlayers: r[2], assistChains: r[3],
-        heatmap: r[4], concededHeatmap: r[5], matches: r[6]
+        heatmap: r[4], concededHeatmap: r[5], matches: r[6], assistedHeatmap: r[8]
       });
     }).catch(function (err) {
       if (seq !== loadSeq) return;
@@ -3547,6 +3592,15 @@
     xgTile.appendChild(xgSub);
     tiles.appendChild(xgTile);
 
+    // xG 타일과 대칭 — 실제 어시스트(팀 스쿼드 합계) vs 어시스트가 달린 슛들의 xG 합(=xA).
+    var xaTile = el('div', 'tile');
+    xaTile.appendChild(el('p', 'tile-label', '실제 어시스트 vs 실제 xA값'));
+    var xaValue = el('div', 'tile-value', '—'); xaValue.id = 'xa-tile-value';
+    var xaSub = el('div', 'tile-sub', ''); xaSub.id = 'xa-tile-sub';
+    xaTile.appendChild(xaValue);
+    xaTile.appendChild(xaSub);
+    tiles.appendChild(xaTile);
+
     // 선수 스탯 — raw 합계로부터 100점 만점 종합/공격력/수비력, 슛정확/패스/드리블/공중볼 %를 계산
     var enrichedPlayers = enrichPlayers(d.allPlayers);
 
@@ -3578,13 +3632,15 @@
     d.concededHeatmap.points.forEach(function (p) { concededMatchIdSet[p.matchId] = true; });
     var concededSampleGames = Object.keys(concededMatchIdSet).length;
 
-    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches);
+    renderPlayStyle(overall, d.heatmap.points, totalGames, d.concededHeatmap.points, concededSampleGames, d.matches,
+      d.assistedHeatmap.points);
     renderBiorhythm(overall, d.matches, d.heatmap.points, totalGames);
 
     // heatmap (전체 슈팅 + xG값) — 내 슈팅은 우측(상대 골대 방향), 실점(상대가 쏜 슛)은
     // 180도 반전해서 좌측(내 골대 방향)에 함께 표시한다(매치 상세 모달과 동일한 방식).
     renderShotPitch(d.heatmap.points, d.concededHeatmap.points);
     updateXgTile(d.heatmap.points);
+    updateXaTile(d.assistedHeatmap.points);
 
     // 환상의 콤비 (어시스트 체인) — 상위 5건만
     assistTable(document.getElementById('table-assists'), d.assistChains.slice(0, 5));

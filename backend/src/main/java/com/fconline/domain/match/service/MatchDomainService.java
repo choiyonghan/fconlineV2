@@ -150,6 +150,12 @@ public class MatchDomainService {
         return matchDetailRepository.findShotPoints(ouid, matchType, from, to, opponentOuid, goalsOnly);
     }
 
+    /** xA(기대 어시스트) 히트맵용 — 어시스트가 달린 슛 좌표 원시 목록(스코프 전체, 골 여부 무관). */
+    public List<ShotPoint> assistedShotHeatmap(String ouid, MatchType matchType, Instant from, Instant to,
+                                                String opponentOuid) {
+        return matchDetailRepository.findAssistedShotPoints(ouid, matchType, from, to, opponentOuid);
+    }
+
     /** "전체 선수 스탯"의 선수별 xG 합산용 — spId가 붙은 슛 좌표 전체. */
     public List<PlayerShotPoint> playerShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
                                                    String opponentOuid) {

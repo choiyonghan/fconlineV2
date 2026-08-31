@@ -450,6 +450,33 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
     }
 
     @Override
+    public List<ShotPoint> findAssistedShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                                    String opponentOuid) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+        QShootEvent se = QShootEvent.shootEvent;
+
+        BooleanBuilder where = baseWhere(md, m, ouid, matchType, from, to)
+                .and(se.x.isNotNull())
+                .and(se.y.isNotNull())
+                .and(se.assist.isTrue());
+        if (opponentOuid != null) {
+            where.and(md.opponentOuid.eq(opponentOuid));
+        }
+
+        return queryFactory
+                .select(se.x, se.y, se.shootType, se.result, m.matchId)
+                .from(se)
+                .join(se.matchDetail, md)
+                .join(md.match, m)
+                .where(where)
+                .fetch().stream()
+                .map(row -> new ShotPoint(row.get(se.x), row.get(se.y), row.get(se.shootType), row.get(se.result),
+                        row.get(m.matchId)))
+                .toList();
+    }
+
+    @Override
     public List<PlayerShotPoint> findShotPointsByPlayer(String ouid, MatchType matchType, Instant from, Instant to,
                                                           String opponentOuid) {
         QMatchDetail md = QMatchDetail.matchDetail;

@@ -103,6 +103,15 @@ public interface MatchDetailRepositoryCustom {
                                     String opponentOuid, boolean goalsOnly);
 
     /**
+     * xA(기대 어시스트) 히트맵용 — 어시스트가 달린 슛(assist=true, 골 여부 무관)의 좌표 원시
+     * 목록. findShotPoints와 정확히 같은 패턴이지만 goalsOnly 대신 assist=true를 하드 필터로
+     * 건다(누가 어시스트했는지는 안 봄 — 화면이 스코프 전체 합계만 필요해서, 선수별로 나누는
+     * 건 findAssistedShotPointsByPlayer). opponentOuid가 null이면 전체 상대 합산.
+     */
+    List<ShotPoint> findAssistedShotPoints(String ouid, MatchType matchType, Instant from, Instant to,
+                                            String opponentOuid);
+
+    /**
      * "실점 xG값"용 — 상대도 추적 대상 유저인 매치에 한해, 그 상대가 이 유저를 향해 쏜 슛 좌표
      * 목록(상대 본인 관점으로 동기화된 shootEvents를 그대로 가져온다). 상대가 추적 대상이 아니면
      * 그 매치는 결과에서 빠진다. opponentOuid가 null이면 전체 상대 합산, 지정하면 그 상대와의

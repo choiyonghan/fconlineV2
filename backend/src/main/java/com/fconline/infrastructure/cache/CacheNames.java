@@ -23,6 +23,7 @@ public final class CacheNames {
     public static final String ALL_PLAYERS = "all-players";
     public static final String SHOT_HEATMAP = "shot-heatmap";
     public static final String CONCEDED_SHOT_HEATMAP = "conceded-shot-heatmap";
+    public static final String ASSISTED_SHOT_HEATMAP = "assisted-shot-heatmap";
     public static final String MATCH_SHOTS = "match-shots";
     public static final String MATCH_SQUAD = "match-squad";
     public static final String MATCH_STATS = "match-stats";

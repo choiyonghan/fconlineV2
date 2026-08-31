@@ -293,6 +293,37 @@ public class RecordFacade {
     }
 
     /**
+     * xA(기대 어시스트) 히트맵(화면: 플레이 성향 "평균 어시 xA값", 상대별 전적 펼침의 "이 상대전
+     * 평균 어시 xA"). 어시스트가 달린 슛의 좌표 원시 목록을 그대로 내려주고, 프론트가 xG와 똑같이
+     * calcXg로 합산한다(getShotHeatmap과 동일 패턴 — 새 집계 방식을 여기서 발명하지 않는다).
+     */
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getAssistedShotHeatmap(String ouid, MatchType matchType, Long seasonId) {
+        return getAssistedShotHeatmap(ouid, matchType, seasonId, null, null);
+    }
+
+    /** opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 어시 xA 계산용). */
+    @Cacheable(CacheNames.ASSISTED_SHOT_HEATMAP)
+    @Transactional(readOnly = true)
+    public ShotHeatmapResponse getAssistedShotHeatmap(String ouid, MatchType matchType, Long seasonId,
+                                                        String opponentOuid, Long teamPeriodId) {
+        trackedUserRepository.findById(ouid)
+                .orElseThrow(() -> new DomainException("추적 대상이 아닌 유저입니다: " + ouid));
+
+        Season season = seasonRangeResolver.resolve(seasonId);
+        var range = teamPeriodRangeResolver.narrow(season, teamPeriodId);
+        List<ShotPoint> points = matchDomainService.assistedShotHeatmap(
+                ouid, matchType, range.from(), range.to(), opponentOuid);
+
+        List<ShotPointResponse> pointResponses = points.stream()
+                .map(p -> new ShotPointResponse(p.x(), p.y(), p.shootType().label(), p.result().name(),
+                        p.result() == ShootResult.GOAL, p.matchId()))
+                .toList();
+
+        return new ShotHeatmapResponse(ouid, pointResponses);
+    }
+
+    /**
      * "실점 xG값"(플레이 성향 · 수비 성향)용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표.
      * 상대가 추적 대상이 아닌 매치는 결과에 포함되지 않는다(MatchDomainService 주석 참고).
      */

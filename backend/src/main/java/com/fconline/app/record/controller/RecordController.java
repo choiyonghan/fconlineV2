@@ -52,6 +52,20 @@ public class RecordController {
     }
 
     /**
+     * xA(기대 어시스트) 히트맵 — 어시스트가 달린 슛(골 여부 무관)의 좌표 원시 목록. 프론트가
+     * shot-heatmap과 똑같이 calcXg로 합산해서 "평균 어시 xA값"을 계산한다.
+     * opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 어시 xA 계산용).
+     */
+    @GetMapping("/assisted-shot-heatmap")
+    public ShotHeatmapResponse getAssistedShotHeatmap(@RequestParam String ouid,
+                                                        @RequestParam MatchType matchType,
+                                                        @RequestParam(required = false) Long seasonId,
+                                                        @RequestParam(required = false) String opponentOuid,
+                                                        @RequestParam(required = false) Long teamPeriodId) {
+        return recordFacade.getAssistedShotHeatmap(ouid, matchType, seasonId, opponentOuid, teamPeriodId);
+    }
+
+    /**
      * "실점 xG값"용 — 추적 대상 상대가 이 유저를 향해 쏜 슛 좌표(상대가 추적 대상인 매치만 포함).
      * opponentOuid를 지정하면 그 상대와의 경기만("상대별 전적" 펼침의 평균 실점 xG값 계산용).
      */
