@@ -4,12 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fconline.domain.shared.exception.GeminiApiException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.util.UriBuilder;
 
 /**
  * Google Gemini API(무료 티어) 연동. NexonApiClient와 같은 이유로 인프라 계층에 둔다 —
@@ -20,6 +24,11 @@ import org.springframework.web.client.RestClientException;
 public class GeminiApiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiApiClient.class);
+
+    /** Gemini 무료 모델이 "high demand"로 503을 주는 경우가 있어서(운영에서 실제로 겪음) 한 번만
+     * 짧게 쉬었다 재시도한다 — 순간적인 과부하는 보통 몇 초 안에 풀린다. */
+    private static final int MAX_ATTEMPTS = 2;
+    private static final long RETRY_DELAY_MS = 1500;
 
     private final RestClient geminiRestClient;
     private final GeminiApiProperties properties;
@@ -56,25 +65,35 @@ public class GeminiApiClient {
                 "generationConfig", generationConfig
         );
 
-        JsonNode response;
-        try {
-            response = geminiRestClient.post()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/models/{model}:generateContent")
-                            .queryParam("key", properties.key())
-                            .build(properties.model()))
-                    .body(body)
-                    .retrieve()
-                    .body(JsonNode.class);
-        } catch (HttpStatusCodeException e) {
-            log.error("Gemini API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new GeminiApiException("Gemini API 호출에 실패했습니다.", e);
-        } catch (RestClientException e) {
-            // HttpStatusCodeException이 아닌 나머지(타임아웃 등 ResourceAccessException 포함) —
-            // RestClientConfig가 읽기 타임아웃(45초)을 걸어둬서 응답이 안 오면 여기로 떨어진다.
-            // 이걸 안 잡으면 호출부(InsightFacade → 컨트롤러)까지 처리 안 된 예외로 새서 500이 됨.
-            log.error("Gemini API 호출 중 오류(타임아웃 등): {}", e.toString());
-            throw new GeminiApiException("Gemini API 응답이 너무 오래 걸려 실패했습니다. 잠시 후 다시 시도해 주세요.", e);
+        Function<UriBuilder, java.net.URI> uri = uriBuilder -> uriBuilder
+                .path("/models/{model}:generateContent")
+                .queryParam("key", properties.key())
+                .build(properties.model());
+
+        JsonNode response = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                response = geminiRestClient.post().uri(uri).body(body).retrieve().body(JsonNode.class);
+                break;
+            } catch (HttpServerErrorException e) {
+                if (e.getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE && attempt < MAX_ATTEMPTS) {
+                    log.warn("Gemini API 503(일시적 과부하) — {}ms 후 재시도합니다 ({}/{})",
+                            RETRY_DELAY_MS, attempt, MAX_ATTEMPTS);
+                    sleepBeforeRetry();
+                    continue;
+                }
+                log.error("Gemini API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new GeminiApiException("Gemini API 호출에 실패했습니다.", e);
+            } catch (HttpStatusCodeException e) {
+                log.error("Gemini API 호출 실패: status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new GeminiApiException("Gemini API 호출에 실패했습니다.", e);
+            } catch (RestClientException e) {
+                // HttpStatusCodeException이 아닌 나머지(타임아웃 등 ResourceAccessException 포함) —
+                // RestClientConfig가 읽기 타임아웃(45초)을 걸어둬서 응답이 안 오면 여기로 떨어진다.
+                // 이걸 안 잡으면 호출부(InsightFacade → 컨트롤러)까지 처리 안 된 예외로 새서 500이 됨.
+                log.error("Gemini API 호출 중 오류(타임아웃 등): {}", e.toString());
+                throw new GeminiApiException("Gemini API 응답이 너무 오래 걸려 실패했습니다. 잠시 후 다시 시도해 주세요.", e);
+            }
         }
 
         if (response == null) {
@@ -94,5 +113,14 @@ public class GeminiApiClient {
             throw new GeminiApiException("Gemini 응답에 텍스트가 없습니다.");
         }
         return parts.get(0).path("text").asText("");
+    }
+
+    private static void sleepBeforeRetry() {
+        try {
+            Thread.sleep(RETRY_DELAY_MS);
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new GeminiApiException("Gemini API 재시도 대기 중 인터럽트되었습니다.", ie);
+        }
     }
 }
