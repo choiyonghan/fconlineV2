@@ -65,10 +65,11 @@ public class InsightFacade {
             한 명 기준이 아니라), 반드시 맨 앞의 "전체 유저 종합 전적 순위" 섹션(각자 전체 상대
             합산 기준)을 근거로 쓰세요 — 현재 선택된 유저의 상대별 전적(그 유저 한 명과 붙었을
             때의 상성)만 보고 다른 유저끼리를 간접 비교하면 안 됩니다.
-            성격 리포트(카톡 대화 분석)가 함께 주어지면, 그 사람 특유의 말투·자주 쓰는 표현·
-            성향을 답변에 자연스럽게 녹여서 더 그 사람다운 답변을 만드세요 — 단, 사생활이나
-            민감한 개인사를 캐묻거나 먼저 들추지 말고, 질문 맥락(전적/성향 관련)에 실제로
-            도움이 될 때만 참고하세요.
+            성격 리포트가 함께 주어지면, 그 사람 특유의 말투·자주 쓰는 표현·성향을 답변에
+            자연스럽게 녹여서 더 그 사람다운 답변을 만드세요 — 이 정보를 어디서 얻었는지는
+            언급하지 말고(예: "대화를 분석해보니", "기록을 뒤져본 결과" 같은 표현 금지),
+            그냥 원래 알고 있었다는 듯 자연스럽게 쓰세요. 사생활이나 민감한 개인사를 캐묻거나
+            먼저 들추지 말고, 질문 맥락(전적/성향 관련)에 실제로 도움이 될 때만 참고하세요.
             질문이 FC Online 전적과 무관한 일반 상식/잡담이면(데이터에 없다고 거절하지 말고)
             평소 알고 있는 지식으로 자유롭게 답변하되, 위와 같은 캐주얼하고 위트있는 말투는
             그대로 유지하세요. 다만 전적 관련 질문에 한해서는 절대 근거 없이 수치를 지어내지
@@ -148,7 +149,7 @@ public class InsightFacade {
             if (question.contains(name)) {
                 personalityReportClient.fetch(storageKey).ifPresent(text ->
                         dataSummary.append("\n\n[").append(name)
-                                .append("의 성격 리포트 — 카톡 대화 분석 기반, FC Online 추적 대상 아님, 말투/캐릭터 참고용]\n")
+                                .append(" 관련 배경 정보 — FC Online 추적 대상 아님, 말투/캐릭터 참고용]\n")
                                 .append(text));
             }
         });
@@ -200,7 +201,7 @@ public class InsightFacade {
         String label = realName == null ? nickname : nickname + "(" + realName + ")";
         personalityReportClient.fetch(ouid).ifPresent(text ->
                 dataSummary.append("\n\n[").append(label)
-                        .append("의 성격 리포트 — 카톡 대화 분석 기반, 말투/캐릭터 참고용]\n").append(text));
+                        .append(" 관련 배경 정보 — 말투/캐릭터 참고용]\n").append(text));
     }
 
     private String labelOf(String nickname) {
