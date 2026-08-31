@@ -374,7 +374,7 @@
   }
   .ai-answer-box.error { border-left-color: var(--status-critical); }
   .ai-answer-box.error .ai-answer-text { color: var(--status-critical); }
-  /* AI 답변 대기 중 — 빈 답변 영역 가운데에 스피너를 띄운다(요청). Gemini 호출이 20~40초씩
+  /* AI 답변 대기 중 — 빈 답변 영역 가운데에 스피너를 띄운다(요청). AI 호출이 20~40초씩
      걸릴 때가 있어서, 버튼 텍스트("답변을 기다리는 중…")만으로는 멈춘 것처럼 보이기 쉽다. */
   .ai-answer-loading {
     display: flex;

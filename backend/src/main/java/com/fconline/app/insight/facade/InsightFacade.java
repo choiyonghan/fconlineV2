@@ -9,7 +9,7 @@ import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.season.Season;
 import com.fconline.infrastructure.cache.CacheNames;
-import com.fconline.infrastructure.gemini.GeminiApiClient;
+import com.fconline.infrastructure.groq.GroqApiClient;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotClient;
 import com.fconline.infrastructure.personality.PersonalityReportClient;
 import java.util.Comparator;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 자연어 질문 + 현재 조회 컨텍스트(유저/매치타입/시즌)를 받아 Gemini가 분석한 답변을 반환한다.
+ * 자연어 질문 + 현재 조회 컨텍스트(유저/매치타입/시즌)를 받아 AI가 분석한 답변을 반환한다.
  *
  * 질문마다 관련 API를 전부 재호출하면 DB 부하가 쌓이므로, 매일 아침 배치({@code insight-snapshot}
  * 프로파일, InsightSnapshotCliRunner)가 미리 만들어 GitHub 저장소에 커밋해둔 스냅샷 파일을
@@ -38,7 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 식으로 답이 새곤 했다).
  *
  * 전적 데이터와는 별개로, Claude Code가 카톡 대화를 직접 읽고 손으로 써둔 성격 리포트가 있는
- * 유저(전원은 아님)는 그 내용도 PersonalityReportClient로 붙여서, Gemini가 그 사람 특유의
+ * 유저(전원은 아님)는 그 내용도 PersonalityReportClient로 붙여서, AI가 그 사람 특유의
  * 말투/성향을 반영한 더 캐릭터에 맞는 답변을 하게 한다(요청). FC Online 추적 대상이 아닌(ouid
  * 없는) 친구도 리포트가 있으면 질문에 이름이 언급될 때 ExtraPersonalityPeople로 같은 방식으로
  * 붙인다 — FC 전적과 무관한 잡담 질문이어도 마찬가지(요청).
@@ -84,7 +84,7 @@ public class InsightFacade {
     private final InsightSnapshotBuilder insightSnapshotBuilder;
     private final TrackedUserAliasResolver aliasResolver;
     private final UserFacade userFacade;
-    private final GeminiApiClient geminiApiClient;
+    private final GroqApiClient groqApiClient;
     private final PersonalityReportClient personalityReportClient;
     private final ExtraPersonalityPeople extraPersonalityPeople;
 
@@ -93,7 +93,7 @@ public class InsightFacade {
                           InsightSnapshotBuilder insightSnapshotBuilder,
                           TrackedUserAliasResolver aliasResolver,
                           UserFacade userFacade,
-                          GeminiApiClient geminiApiClient,
+                          GroqApiClient groqApiClient,
                           PersonalityReportClient personalityReportClient,
                           ExtraPersonalityPeople extraPersonalityPeople) {
         this.seasonRangeResolver = seasonRangeResolver;
@@ -101,7 +101,7 @@ public class InsightFacade {
         this.insightSnapshotBuilder = insightSnapshotBuilder;
         this.aliasResolver = aliasResolver;
         this.userFacade = userFacade;
-        this.geminiApiClient = geminiApiClient;
+        this.groqApiClient = groqApiClient;
         this.personalityReportClient = personalityReportClient;
         this.extraPersonalityPeople = extraPersonalityPeople;
     }
@@ -109,7 +109,7 @@ public class InsightFacade {
     /**
      * Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL) — 질문 원문(AskRequest.question 포함)까지 키로
      * 묶어서, 완전히 같은 질문이 짧은 시간 안에 다시 들어올 때만 히트한다(같은 사람이 새로고침/
-     * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Gemini 티어는 분당/일당
+     * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Groq 티어는 분당/일당
      * 호출 한도가 있어 이런 중복 호출을 줄이는 게 records 캐시보다 오히려 더 의미 있다.
      */
     @Cacheable(CacheNames.INSIGHT_ANSWERS)
@@ -156,7 +156,7 @@ public class InsightFacade {
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
 
-        String answer = geminiApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
+        String answer = groqApiClient.ask(SYSTEM_INSTRUCTION, userPrompt);
         return new AskResponse(answer);
     }
 

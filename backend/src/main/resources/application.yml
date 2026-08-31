@@ -72,19 +72,18 @@ nexon:
     keys: ${NEXON_API_KEY:},${NEXON_API_KEY_2:},${NEXON_API_KEY_3:},${NEXON_API_KEY_4:},${NEXON_API_KEY_5:},${NEXON_API_KEY_6:}
     request-delay-ms: ${NEXON_API_REQUEST_DELAY_MS:300}
 
-gemini:
+groq:
   api:
-    base-url: https://generativelanguage.googleapis.com/v1beta
-    key: ${GEMINI_API_KEY:}
-    # 이 프로젝트(2026-08-22 생성, Google 기준 "신규 사용자")는 gemini-3.6-flash 말고는
-    # generateContent를 아예 못 쓴다 — 직접 확인함:
-    #  - gemini-3-flash: 애초에 존재하지 않는 모델 ID(404 Not Found)
-    #  - gemini-2.5-flash: ListModels 목록엔 있지만 "no longer available to new users.
-    #    Please update your code to use models/gemini-3.6-flash" 404로 명시적으로 막혀 있음
-    # gemini-3.6-flash 자체는 붙지만 무료 티어 하루 한도가 20회로 매우 타이트하다(운영에서
-    # 실제로 RESOURCE_EXHAUSTED 겪음) — 이건 이 키/프로젝트에서 유일하게 쓸 수 있는 모델이라
-    # 당장은 바꿀 수 없다(대안은 Gemini 바깥에서 찾는 중).
-    model: ${GEMINI_MODEL:gemini-3.6-flash}
+    # 원래 Gemini를 썼는데, 이 프로젝트의 Gemini API 키가 Google 기준 "신규 사용자"로 분류돼
+    # gemini-3.6-flash 하나만 쓸 수 있고(gemini-2.5-flash는 404로 명시적으로 막힘, gemini-3-flash는
+    # 애초에 존재하지 않는 ID) 그마저 무료 하루 한도가 20회라 실사용이 불가능했다(운영에서 실제로
+    # RESOURCE_EXHAUSTED 겪음). Groq는 신용카드 없이 하루 14,400회(모델별로 다름)까지 무료라
+    # 훨씬 넉넉해서 완전히 갈아탐. OpenAI 호환 Chat Completions API.
+    base-url: https://api.groq.com/openai/v1
+    key: ${GROQ_API_KEY:}
+    # Llama 3.3 70B — Groq 무료 티어에서 대화형 답변 품질이 가장 안정적인 축.
+    # 필요하면 GROQ_MODEL로 다른 모델 지정 가능(예: openai/gpt-oss-120b).
+    model: ${GROQ_MODEL:llama-3.3-70b-versatile}
 
 sync:
   match-type: ${SYNC_MATCH_TYPE:CUSTOM}

@@ -23,7 +23,7 @@ import com.fconline.app.season.facade.SeasonFacade;
 import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.facade.UserFacade;
 import com.fconline.domain.match.vo.MatchType;
-import com.fconline.infrastructure.gemini.GeminiApiClient;
+import com.fconline.infrastructure.groq.GroqApiClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -61,17 +61,17 @@ public class DashboardSnapshotBuilder {
     private final UserFacade userFacade;
     private final SeasonFacade seasonFacade;
     private final RecordFacade recordFacade;
-    private final GeminiApiClient geminiApiClient;
+    private final GroqApiClient groqApiClient;
     private final TrackedUserAliasResolver aliasResolver;
     private final ObjectMapper objectMapper;
 
     public DashboardSnapshotBuilder(UserFacade userFacade, SeasonFacade seasonFacade, RecordFacade recordFacade,
-                                     GeminiApiClient geminiApiClient, TrackedUserAliasResolver aliasResolver,
+                                     GroqApiClient groqApiClient, TrackedUserAliasResolver aliasResolver,
                                      ObjectMapper objectMapper) {
         this.userFacade = userFacade;
         this.seasonFacade = seasonFacade;
         this.recordFacade = recordFacade;
-        this.geminiApiClient = geminiApiClient;
+        this.groqApiClient = groqApiClient;
         this.aliasResolver = aliasResolver;
         this.objectMapper = objectMapper;
     }
@@ -292,7 +292,7 @@ public class DashboardSnapshotBuilder {
     private RankingResult buildRanking(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
         try {
             String prompt = buildRankingPrompt(users, summaryByOuid);
-            String raw = geminiApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
+            String raw = groqApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
             return parseRanking(raw, users);
         } catch (Exception e) {
             log.error("AI 랭킹 호출/파싱 실패 — 승률 기준 대체 랭킹(고정 유머 해설 포함)으로 대체합니다.", e);
@@ -330,7 +330,7 @@ public class DashboardSnapshotBuilder {
         JsonNode root = objectMapper.readTree(raw);
         JsonNode array = root.isArray() ? root : root.path("ranking");
         if (!array.isArray() || array.size() != users.size()) {
-            throw new IllegalStateException("Gemini 랭킹 응답 개수가 유저 수와 다릅니다: " + raw);
+            throw new IllegalStateException("AI 랭킹 응답 개수가 유저 수와 다릅니다: " + raw);
         }
 
         Map<String, String> ouidByNickname = users.stream()
@@ -344,7 +344,7 @@ public class DashboardSnapshotBuilder {
             String reason = node.path("reason").asText("");
             String ouid = ouidByNickname.get(nickname);
             if (ouid == null || rank < 1 || rank > users.size() || !seenRanks.add(rank) || !seenNicknames.add(nickname)) {
-                throw new IllegalStateException("Gemini 랭킹 응답이 유효하지 않습니다(닉네임/순위 불일치): " + raw);
+                throw new IllegalStateException("AI 랭킹 응답이 유효하지 않습니다(닉네임/순위 불일치): " + raw);
             }
             entries.add(new DashboardRankingEntry(ouid, nickname, displayNameOf(nickname), rank, reason));
         }
@@ -355,7 +355,7 @@ public class DashboardSnapshotBuilder {
         return new RankingResult(false, null, introText, outroText, entries);
     }
 
-    // ---------------- Gemini 호출 실패 시 대체(fallback) ----------------
+    // ---------------- AI 호출 실패 시 대체(fallback) ----------------
 
     /**
      * 사용자가 실제로 만든(AI에게 물어봐서 받은) "해설자 톤" 예시를 그대로 재현하고 싶어했다 —

@@ -19,7 +19,7 @@ public class InsightController {
         this.insightFacade = insightFacade;
     }
 
-    /** 자연어 질문 + 현재 조회 컨텍스트(유저/매치타입/시즌)를 받아 Gemini가 분석한 답변을 반환한다. */
+    /** 자연어 질문 + 현재 조회 컨텍스트(유저/매치타입/시즌)를 받아 AI가 분석한 답변을 반환한다. */
     @PostMapping("/ask")
     public AskResponse ask(@Valid @RequestBody AskRequest request) {
         return insightFacade.ask(request);

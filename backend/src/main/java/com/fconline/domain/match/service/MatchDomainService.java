@@ -188,7 +188,7 @@ public class MatchDomainService {
     /**
      * 특정 상대와의 매치들에서 나온 골 이벤트 원시값(누구 골인지 + 시각) — AI 인사이트 스냅샷이
      * "선제골 요약"뿐 아니라 매치별 골 타임라인 원문까지 그대로 요약해 넣을 때 쓴다(질문마다
-     * 새 집계 API를 만들지 않고, Gemini가 원시 타임라인을 보고 직접 분석할 수 있게 하기 위함).
+     * 새 집계 API를 만들지 않고, AI가 원시 타임라인을 보고 직접 분석할 수 있게 하기 위함).
      */
     public List<MatchGoalEvent> goalEventsVsOpponent(String ouid, MatchType matchType, Instant from, Instant to,
                                                        String opponentOuid) {

@@ -1,6 +1,6 @@
 package com.fconline.infrastructure.config;
 
-import com.fconline.infrastructure.gemini.GeminiApiProperties;
+import com.fconline.infrastructure.groq.GroqApiProperties;
 import com.fconline.infrastructure.insight.GithubInsightSnapshotProperties;
 import com.fconline.infrastructure.nexon.NexonApiProperties;
 import com.fconline.infrastructure.personality.PersonalityReportProperties;
@@ -16,16 +16,16 @@ import org.springframework.web.client.RestClient;
 /**
  * 모든 외부 RestClient에 타임아웃을 명시한다 — 안 걸면 JDK HttpClient 기본값(사실상 무제한)이라
  * 상대 서버가 응답을 안 주면 요청 스레드가 영원히 물린다(운영에서 실제로 겪음: /insights/ask가
- * Gemini 응답을 못 받고 120초 넘게 안 끊긴 채 남아있었음). 연결(connect) 자체는 이미 존재하는
+ * AI API 응답을 못 받고 120초 넘게 안 끊긴 채 남아있었음). 연결(connect) 자체는 이미 존재하는
  * 서비스들이라 5초면 충분하고, 응답 대기(read)는 서비스 성격에 따라 다르게 준다 — 일반 REST
- * 조회는 30초, Gemini는 긴 답변 생성에 시간이 걸릴 수 있어 45초.
+ * 조회는 30초, AI 답변 생성은 시간이 걸릴 수 있어 45초.
  */
 @Configuration
 public class RestClientConfig {
 
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(30);
-    private static final Duration GEMINI_READ_TIMEOUT = Duration.ofSeconds(45);
+    private static final Duration AI_READ_TIMEOUT = Duration.ofSeconds(45);
 
     @Bean
     public RestClient nexonRestClient(NexonApiProperties properties) {
@@ -48,12 +48,14 @@ public class RestClientConfig {
                 .build();
     }
 
+    /** OpenAI 호환 Chat Completions API(Groq) — GroqApiProperties.key로 Bearer 인증. */
     @Bean
-    public RestClient geminiRestClient(GeminiApiProperties properties) {
+    public RestClient groqRestClient(GroqApiProperties properties) {
         return RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory(GEMINI_READ_TIMEOUT))
+                .defaultHeader("Authorization", "Bearer " + properties.key())
+                .requestFactory(requestFactory(AI_READ_TIMEOUT))
                 .build();
     }
 

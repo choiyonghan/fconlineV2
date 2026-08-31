@@ -81,7 +81,7 @@ public class InsightSnapshotBuilder {
                 .getContent();
 
         // 전체 유저 랭킹은 "현재 선택된 유저"와 무관하게 등록된 유저 전원의 자기 자신 종합
-        // 전적(각자 전체 상대 합산)을 나란히 비교한 것 — 없으면 Gemini가 "전체 유저 기준으로
+        // 전적(각자 전체 상대 합산)을 나란히 비교한 것 — 없으면 AI가 "전체 유저 기준으로
         // 순위 매겨줘" 질문에도 현재 유저의 상대별 전적(그 유저 한 명 기준 상성)만 근거로 답해서
         // 다른 유저끼리의 직접 비교가 아닌 엉뚱한 랭킹을 내놓는 문제가 있었다.
         String allUsersRankingText = buildAllUsersRankingText(matchType, seasonId);
@@ -281,7 +281,7 @@ public class InsightSnapshotBuilder {
     /**
      * 매치별 골 타임라인 원문(누가 몇 분에 넣었는지) — "선제골 요약"처럼 미리 집계해둔 지표뿐
      * 아니라, 아직 전용 집계 로직이 없는 질문(예: "후반에 골을 더 많이 넣는 편이야?", "역전골이
-     * 몇 번 있었어?")도 Gemini가 원시 타임라인을 직접 보고 스스로 분석할 수 있게 한다. 두 참가자
+     * 몇 번 있었어?")도 AI가 원시 타임라인을 직접 보고 스스로 분석할 수 있게 한다. 두 참가자
      * 다 추적 대상이어야 그 매치의 타임라인을 완전히 복원할 수 있어, 그런 매치만 나온다.
      */
     private String buildGoalTimelineText(List<OpponentMatchResponse> matches,
