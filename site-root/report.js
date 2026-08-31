@@ -616,7 +616,7 @@
   // 평균 모드에서 appearances로 나눌 누적 지표들 — 출전(appearances)·평점(avgRating, 이미 경기당
   // 평균)·선방률(savePct, 이미 비율)은 나누지 않는다(요청: "전체/평균" 버튼으로 총합/경기당 전환).
   var DASHBOARD_PLAYERS_GRID_AVG_KEYS = [
-    'goals', 'assists', 'attackPoints', 'xg', 'finishing', 'momCount', 'saves',
+    'goals', 'assists', 'attackPoints', 'xg', 'xa', 'finishing', 'momCount', 'saves',
     'shootTotal', 'effectiveShoot', 'passTry', 'passSuccess',
     'dribbleTry', 'dribbleSuccess', 'dribbleDistanceM', 'aerialTry', 'aerialSuccess',
     'tackles', 'intercepts', 'blocks'
@@ -636,6 +636,7 @@
       { key: 'assists', label: '도움', numeric: true },
       { key: 'attackPoints', label: '공격P', numeric: true },
       { key: 'xg', label: 'xG', numeric: true },
+      { key: 'xa', label: 'xA', numeric: true },
       { key: 'finishing', label: '결정력', numeric: true },
       { key: 'momCount', label: 'MOM', numeric: true },
       { key: 'saves', label: '세이브', numeric: true },
@@ -722,6 +723,7 @@
       tr.appendChild(el('td', 'num', nf(p.assists)));
       tr.appendChild(el('td', 'num', nf(p.attackPoints)));
       tr.appendChild(el('td', 'num', fmt1(p.xg)));
+      tr.appendChild(el('td', 'num', fmt1(p.xa)));
       tr.appendChild(el('td', 'num', (p.finishing >= 0 ? '+' : '') + fmt1(p.finishing)));
       tr.appendChild(el('td', 'num', nf(p.momCount)));
       tr.appendChild(el('td', 'num', nf(p.saves)));

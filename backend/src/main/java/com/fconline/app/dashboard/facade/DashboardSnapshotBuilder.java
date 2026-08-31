@@ -142,7 +142,7 @@ public class DashboardSnapshotBuilder {
                         p.goals(), p.assists(), p.saves(), p.tackles(), p.intercepts(), p.blocks(),
                         p.shootTotal(), p.effectiveShoot(), p.passTry(), p.passSuccess(),
                         p.dribbleTry(), p.dribbleSuccess(), p.dribbleDistance(), p.aerialTry(), p.aerialSuccess(),
-                        p.avgRating(), p.xg(), p.goals() - p.xg(), momCount, p.goalsAgainst()));
+                        p.avgRating(), p.xg(), p.goals() - p.xg(), momCount, p.goalsAgainst(), p.xa()));
             }
         }
         return pooled;
@@ -185,6 +185,7 @@ public class DashboardSnapshotBuilder {
 
         List<AssistChainResponse> chains = recordFacade.getAssistChains(ouid, matchType, seasonId, ASSIST_CHAIN_LIMIT);
         int totalShotsOnTarget = players.stream().mapToInt(TopPlayerResponse::effectiveShoot).sum();
+        double totalXaFor = players.stream().mapToDouble(TopPlayerResponse::xa).sum();
         // 선수단 합산 대신 overall(MatchStats 기반, 매치당 팀 합계) 값을 쓴다 — report.js
         // 개인 리포트 페이지의 패스 성향 카드와 같은 소스로 맞춘 것(이전엔 여기만 선수 합산이었다).
         int totalPassTry = (int) overall.passTryTotal();
@@ -202,6 +203,7 @@ public class DashboardSnapshotBuilder {
                 (int) overall.tally().goalsFor(), (int) overall.tally().goalsAgainst(),
                 points.size(), totalShotsOnTarget, totalPassTry, totalPassSuccess, expectedGoalsFor,
                 concededSampleGames == 0 ? null : expectedGoalsAgainst,
+                totalXaFor,
                 (int) overall.cleanSheets(), pct(overall.cleanSheets(), games),
                 (int) overall.multiConcededGames(), pct(overall.multiConcededGames(), games),
                 low, pct(low, games),
@@ -277,8 +279,9 @@ public class DashboardSnapshotBuilder {
             너는 FC 온라인(피파온라인) 친구 그룹의 전적 데이터를 근거로 "종합 순위 리포트"를 발표하는
             과장되고 유쾌한 스포츠 해설자다. 아래 유저들의 "모두의 커스텀"(현재시즌 커스텀 매치) 통계를
             보고 종합 실력 기준 1위부터 꼴찌까지 순위를 매겨라. 승률과 득실차를 가장 중요하게 보고,
-            결정력(실제 득점-xG), 평균 평점, 클린시트 비율도 참고해라. 표본 경기 수가 너무 적은(예: 5경기
-            미만) 유저는 신뢰도가 낮다는 점도 감안해라.
+            결정력(실제 득점-xG), 기대어시스트(xA, 어시스트한 슛의 기대 득점 합계), 평균 평점,
+            클린시트 비율도 참고해라. 표본 경기 수가 너무 적은(예: 5경기 미만) 유저는 신뢰도가
+            낮다는 점도 감안해라.
 
             톤: 과장된 스포츠 중계·해설 말투(이모지 섞어서 재밌게, 하지만 인신공격이나 진짜 조롱은 금지 —
             성적에 대한 유쾌한 놀림 정도만). 반드시 순수 JSON 오브젝트로만 답하라. 코드블록, 마크다운, 다른
@@ -322,6 +325,7 @@ public class DashboardSnapshotBuilder {
                 .append("평균득점 ").append(String.format("%.2f", s.avgGoalsFor())).append(", ")
                 .append("평균실점 ").append(String.format("%.2f", s.avgGoalsAgainst())).append(", ")
                 .append("결정력 ").append(String.format("%+.1f", s.finishing())).append(", ")
+                .append("기대어시스트(xA) ").append(String.format("%.1f", s.totalXaFor())).append(", ")
                 .append("평균평점 ").append(String.format("%.2f", s.avgRating())).append(", ")
                 .append("클린시트 ").append(String.format("%.0f", s.cleanSheetPct())).append("%\n\n");
     }

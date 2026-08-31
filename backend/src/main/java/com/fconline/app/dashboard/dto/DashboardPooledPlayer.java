@@ -6,13 +6,15 @@ package com.fconline.app.dashboard.dto;
  * 의미 있어서). dribbleDistance는 원본(야드) 그대로 — 미터 환산은 표시 시점(프론트)에 한다.
  * momCount는 이 유저의 매치 중 이 선수가 그 매치의 최고 평점(MOM, 상대도 추적 대상이면 양팀 통틀어)
  * 이었던 횟수. goalsAgainst는 이 선수가 출전한 매치들의 팀 실점 합계 — 골키퍼 선방률
- * saves/(saves+goalsAgainst) 계산용 분모(표시 시점에 프론트에서 계산).
+ * saves/(saves+goalsAgainst) 계산용 분모(표시 시점에 프론트에서 계산). xa(기대 어시스트,
+ * 2026-08-31 추가)는 이 선수가 어시스트한 슛(골 여부 무관)의 xG 합계 — TopPlayerResponse.xa
+ * 그대로.
  */
 public record DashboardPooledPlayer(
         String nickname, String spId, String playerName, int appearances,
         int goals, int assists, int saves, int tackles, int intercepts, int blocks,
         int shootTotal, int effectiveShoot, int passTry, int passSuccess,
         int dribbleTry, int dribbleSuccess, int dribbleDistance, int aerialTry, int aerialSuccess,
-        Double avgRating, double xg, double finishing, int momCount, int goalsAgainst
+        Double avgRating, double xg, double finishing, int momCount, int goalsAgainst, double xa
 ) {
 }

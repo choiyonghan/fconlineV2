@@ -11,7 +11,9 @@ Java/Spring Boot(DDD) 백엔드 + 정적 HTML/JS 프론트엔드로 재구현했
 fconlineV2/
 ├── backend/            Spring Boot 3.5 백엔드 (Controller → Facade → Service → Repository)
 ├── site-root/          메인 프론트엔드 — 정적 HTML/CSS/JS, 빌드 스텝 없음(사이트 루트 "/"로 배포)
-│                       report.html(개인별 실시간 리포트) + index.html(9인 요약 대시보드, AI 랭킹)
+│                       report.html이 유일한 실제 페이지 — 유저 칩 "전체"가 9인 요약 대시보드
+│                       (AI 랭킹), 실제 유저 칩이 개인별 실시간 리포트. index.html은 report.html로
+│                       리다이렉트만 하는 빈 페이지(docs/ADR.md §5 참고 — 한때 2페이지였다가 재통합됨)
 ├── apps/web/           레거시 SvelteKit CSR — 더 이상 기능 개발 안 함, "/app" 서브패스로만 배포됨
 │                       (docs/ADR.md §5 참고 — site-root가 사실상의 메인 프론트다)
 ├── data/               GitHub Actions 배치가 매일 커밋하는 읽기 전용 캐시(JSON) — 새 DB 테이블 대신 씀
@@ -145,7 +147,7 @@ cd site-root
 npx serve .   # 또는 python -m http.server, VSCode Live Server 등 아무거나
 ```
 
-`report.js`/`dashboard.js`가 백엔드 URL을 하드코딩하고 있으므로(로컬 백엔드를 보게 하려면 그
+`report.js`가 백엔드 URL을 하드코딩하고 있으므로(로컬 백엔드를 보게 하려면 그
 부분을 직접 `http://localhost:8080`으로 바꿔야 한다 — 별도 `.env` 개념 없음), 라이브 백엔드를
 그대로 바라보며 프론트만 로컬에서 고칠 수도 있다.
 
@@ -173,15 +175,15 @@ npm run dev
   ("Deploy from a branch"면 GitHub이 README.md를 대신 렌더링해 보여준다). `apps/web` 빌드 시
   `vars.VITE_API_BASE_URL`(아래 백엔드 URL)을 주입한다 — 저장소 Settings → Secrets and
   variables → Actions → **Variables** 탭에 등록해야 한다. `site-root/`는 백엔드 URL을 코드에
-  하드코딩하므로(`report.js`/`dashboard.js` 상단) 이 변수와 무관하게 동작한다 — 백엔드 URL이
-  바뀌면 그 두 파일도 직접 고쳐야 한다.
+  하드코딩하므로(`report.js` 상단) 이 변수와 무관하게 동작한다 — 백엔드 URL이
+  바뀌면 그 파일도 직접 고쳐야 한다.
 - **백엔드**: GitHub Pages는 정적 파일만 서빙하므로, 정적 프론트가 실제로 데이터를 부르려면
   백엔드가 어딘가 상시 떠 있어야 한다. `backend/Dockerfile` + `render.yaml`(Render Blueprint)로
   준비해뒀다 — Render 대시보드 → New → Blueprint → 이 저장소 선택하면 `render.yaml`을 읽어
   자동 구성한다. `sync: false`로 표시된 환경변수(DB 접속정보, Nexon 키, `GEMINI_API_KEY` 등)는
   Render 대시보드에서 직접 입력해야 한다(파일에 실제 값을 커밋하면 안 됨). Render 무료 티어는
   15분 미접속 시 슬립되는데, 별도 워크플로우가 10분마다 헬스체크를 찔러 재우지 않는다
-  (`docs/ADR.md` §6). 배포된 URL을 `site-root/report.js`·`dashboard.js`의 `BASE_URL`과 위
+  (`docs/ADR.md` §6). 배포된 URL을 `site-root/report.js`의 `BASE_URL`과 위
   `VITE_API_BASE_URL` 변수 양쪽에 반영해야 프론트가 그 백엔드를 바라보게 된다.
 
 ## Nexon match-detail 매핑 (해결됨)
