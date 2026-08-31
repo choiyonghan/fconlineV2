@@ -123,7 +123,7 @@ public class InsightFacade {
                 .map(TrackedUserResponse::nickname)
                 .findFirst()
                 .orElse(null);
-        appendPersonalityReport(dataSummary, primaryNickname);
+        appendPersonalityReport(dataSummary, ouid, primaryNickname);
 
         List<TrackedUserResponse> otherMentioned = allTrackedUsers.stream()
                 .filter(u -> !u.ouid().equals(ouid))
@@ -134,7 +134,7 @@ public class InsightFacade {
             InsightSnapshotContent otherContent = loadContent(other.ouid(), matchType, season.getId());
             dataSummary.append("\n\n[질문에서 언급된 다른 추적 유저: ").append(labelOf(other.nickname()))
                     .append(" 본인 데이터]\n").append(otherContent.summaryText());
-            appendPersonalityReport(dataSummary, other.nickname());
+            appendPersonalityReport(dataSummary, other.ouid(), other.nickname());
         }
 
         String userPrompt = dataSummary + "\n\n[질문]\n" + question;
@@ -172,20 +172,19 @@ public class InsightFacade {
     }
 
     /**
-     * 실명 매핑(TrackedUserAliasResolver)이 있고 Supabase Storage에 리포트가 실제로 올라와 있는
-     * 유저만 성격 리포트를 덧붙인다 — 7명 전원이 다 있는 게 아니라 일부는 조용히 생략된다.
+     * Supabase Storage에 리포트가 실제로 올라와 있는(ouid.md 키) 유저만 성격 리포트를 덧붙인다 —
+     * 전원이 다 있는 게 아니라 일부는 조용히 생략된다. 파일 키는 ouid를 쓴다(PersonalityReportClient
+     * 주석 참고 — 한글 실명을 키로 쓰면 Supabase Storage가 InvalidKey로 거절해서 겪은 문제).
      */
-    private void appendPersonalityReport(StringBuilder dataSummary, String nickname) {
+    private void appendPersonalityReport(StringBuilder dataSummary, String ouid, String nickname) {
         if (nickname == null) {
             return;
         }
         String realName = aliasResolver.realNameOf(nickname);
-        if (realName == null) {
-            return;
-        }
-        personalityReportClient.fetch(realName).ifPresent(text ->
-                dataSummary.append("\n\n[").append(nickname).append("(").append(realName)
-                        .append(")의 성격 리포트 — 카톡 대화 분석 기반, 말투/캐릭터 참고용]\n").append(text));
+        String label = realName == null ? nickname : nickname + "(" + realName + ")";
+        personalityReportClient.fetch(ouid).ifPresent(text ->
+                dataSummary.append("\n\n[").append(label)
+                        .append("의 성격 리포트 — 카톡 대화 분석 기반, 말투/캐릭터 참고용]\n").append(text));
     }
 
     private String labelOf(String nickname) {
