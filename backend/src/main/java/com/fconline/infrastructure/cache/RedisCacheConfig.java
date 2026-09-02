@@ -54,11 +54,13 @@ public class RedisCacheConfig implements CachingConfigurer {
 
     /**
      * 여기서 캐싱하는 모든 값은 조회성 데이터(직접 쓰는 API가 없다 — 매치 동기화/AI 답변 생성이
-     * 각자의 배치·요청 경로로 별도로 갱신할 뿐)라 전부 TTL 3시간으로 통일한다(요청). 시즌
-     * current 필드처럼 "오늘" 기준 계산값도 있지만, 3시간 정도의 지연은 이 앱의 성격상 허용
-     * 가능하다고 판단.
+     * 각자의 배치·요청 경로로 별도로 갱신할 뿐)라 전부 같은 TTL로 통일한다(요청). 시즌
+     * current 필드처럼 "오늘" 기준 계산값도 있지만, 이 정도 지연은 이 앱의 성격상 허용
+     * 가능하다고 판단. 원래 3시간이었는데, 2026-09-02에 team-periods 캐시가 배포 직후의 옛
+     * 값을 오래 물고 있는 걸 실제로 겪은 뒤 30분으로 줄임(요청) — 그래도 캐시 자체를 없애는
+     * 것보단, 배포 직후 값이 바뀌는 데이터를 다루는 빈도가 낮으니 짧은 TTL로 절충.
      */
-    private static final Duration TTL = Duration.ofHours(3);
+    private static final Duration TTL = Duration.ofMinutes(30);
 
     private final CacheErrorHandler cacheErrorHandler;
 

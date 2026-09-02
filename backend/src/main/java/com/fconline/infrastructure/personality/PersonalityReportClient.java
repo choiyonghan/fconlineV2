@@ -34,7 +34,7 @@ public class PersonalityReportClient {
     }
 
     /**
-     * Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL) — 리포트 내용은 누가 새로 고쳐 올리기
+     * Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL) — 리포트 내용은 누가 새로 고쳐 올리기
      * 전까진 안 바뀌는 데이터라 매 질문마다 Supabase Storage를 다시 칠 필요가 없다. 리포트가
      * 없는 유저(빈 Optional)는 캐싱하지 않는다(unless) — RedisCacheConfig가 null 값 저장을
      * 막아둬서 그대로 캐싱을 시도하면 매번 IllegalArgumentException 경고만 쌓인다.

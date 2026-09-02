@@ -57,7 +57,7 @@ public class OpponentFacade {
         return listOpponents(ouid, matchType, seasonId, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL). */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL). */
     @Cacheable(CacheNames.OPPONENTS)
     @Transactional(readOnly = true)
     public List<OpponentSummaryResponse> listOpponents(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {

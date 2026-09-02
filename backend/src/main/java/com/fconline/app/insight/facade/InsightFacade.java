@@ -107,7 +107,7 @@ public class InsightFacade {
     }
 
     /**
-     * Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL) — 질문 원문(AskRequest.question 포함)까지 키로
+     * Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL) — 질문 원문(AskRequest.question 포함)까지 키로
      * 묶어서, 완전히 같은 질문이 짧은 시간 안에 다시 들어올 때만 히트한다(같은 사람이 새로고침/
      * 중복 클릭하거나, 여러 명이 예시 질문을 그대로 눌러보는 경우). 무료 Gemini 티어는 분당/일당
      * 호출 한도가 있어 이런 중복 호출을 줄이는 게 records 캐시보다 오히려 더 의미 있다.

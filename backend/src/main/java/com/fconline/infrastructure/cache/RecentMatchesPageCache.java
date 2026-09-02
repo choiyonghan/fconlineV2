@@ -40,7 +40,7 @@ public class RecentMatchesPageCache {
         this.recentMatchMapper = recentMatchMapper;
     }
 
-    /** TTL 3시간(RedisCacheConfig.TTL) — 다른 조회성 캐시들과 통일. */
+    /** TTL 30분(RedisCacheConfig.TTL) — 다른 조회성 캐시들과 통일. */
     @Cacheable(CacheNames.RECENT_MATCHES)
     @Transactional(readOnly = true)
     public CachedPage<RecentMatchResponse> fetch(String ouid, MatchType matchType, Instant from, Instant to,

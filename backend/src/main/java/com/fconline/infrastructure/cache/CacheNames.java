@@ -16,7 +16,7 @@ package com.fconline.infrastructure.cache;
  */
 public final class CacheNames {
 
-    // 전부 조회성 데이터라 TTL 3시간으로 통일(RedisCacheConfig.TTL, 요청).
+    // 전부 조회성 데이터라 TTL 30분으로 통일(RedisCacheConfig.TTL, 요청).
 
     // --- RecordFacade ---
     public static final String OVERALL_RECORD = "overall-record";

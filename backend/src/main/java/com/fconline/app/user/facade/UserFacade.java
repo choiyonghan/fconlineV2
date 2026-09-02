@@ -23,7 +23,7 @@ public class UserFacade {
 
     /**
      * report.html이 유저 칩을 처음 클릭할 때마다 부르는 API — 추적 유저 명단은 관리자가 수동으로
-     * 추가/제외할 때만 바뀌는 참조 데이터라 Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL)으로 삼는다.
+     * 추가/제외할 때만 바뀌는 참조 데이터라 Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL)으로 삼는다.
      */
     @Cacheable(CacheNames.TRACKED_USERS)
     @Transactional(readOnly = true)
@@ -35,7 +35,7 @@ public class UserFacade {
 
     /**
      * "사용한 팀" 필터 칩 UI용 — 매치타입/시즌 아래에 이 유저의 팀 기간을 버튼으로 보여준다(요청).
-     * Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL).
+     * Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL).
      */
     @Cacheable(CacheNames.TEAM_PERIODS)
     @Transactional(readOnly = true)

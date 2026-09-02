@@ -102,7 +102,7 @@ public class RecordFacade {
     }
 
     /**
-     * teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간, RedisCacheConfig.TTL —
+     * teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분, RedisCacheConfig.TTL —
      * 조회성 데이터는 전부 이 값으로 통일, 요청) — 반복 새로고침·9명 대시보드 배치가 만드는
      * DB 부하를 줄인다.
      */
@@ -198,7 +198,7 @@ public class RecordFacade {
         return getAllPlayers(ouid, matchType, seasonId, opponentOuid, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간) — getOverallRecord 주석 참고. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분) — getOverallRecord 주석 참고. */
     @Cacheable(CacheNames.ALL_PLAYERS)
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getAllPlayers(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
@@ -271,7 +271,7 @@ public class RecordFacade {
         return getShotHeatmap(ouid, matchType, seasonId, opponentOuid, goalsOnly, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간) — getOverallRecord 주석 참고. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분) — getOverallRecord 주석 참고. */
     @Cacheable(CacheNames.SHOT_HEATMAP)
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getShotHeatmap(String ouid, MatchType matchType, Long seasonId, String opponentOuid,
@@ -339,7 +339,7 @@ public class RecordFacade {
         return getConcededShotHeatmap(ouid, matchType, seasonId, opponentOuid, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간) — getOverallRecord 주석 참고. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분) — getOverallRecord 주석 참고. */
     @Cacheable(CacheNames.CONCEDED_SHOT_HEATMAP)
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String ouid, MatchType matchType, Long seasonId,
@@ -456,7 +456,7 @@ public class RecordFacade {
         return getAssistChains(ouid, matchType, seasonId, limit, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간) — getOverallRecord 주석 참고. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분) — getOverallRecord 주석 참고. */
     @Cacheable(CacheNames.ASSIST_CHAINS)
     @Transactional(readOnly = true)
     public List<AssistChainResponse> getAssistChains(String ouid, MatchType matchType, Long seasonId, Integer limit,
@@ -493,7 +493,7 @@ public class RecordFacade {
         return getPlayerGrades(ouid, matchType, seasonId, null);
     }
 
-    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 3시간) — getOverallRecord 주석 참고. */
+    /** teamPeriodId(선택) — "사용한 팀" 필터. Redis 캐시 대상(TTL 30분) — getOverallRecord 주석 참고. */
     @Cacheable(CacheNames.PLAYER_GRADES)
     @Transactional(readOnly = true)
     public List<PlayerGradeResponse> getPlayerGrades(String ouid, MatchType matchType, Long seasonId, Long teamPeriodId) {
@@ -527,7 +527,7 @@ public class RecordFacade {
     /**
      * 상대 무관, 이 유저의 진짜 최신 경기 목록(화면: 최근 경기 — 더보기 페이징). 대시보드
      * "🕐 최근 경기 (전체 9명)" 섹션이 9명 각자에 대해 이 API를 매번 라이브로 호출하므로
-     * (report.js) DB 조회 자체는 RecentMatchesPageCache가 캐싱한다(TTL 3시간) — 이 메서드는
+     * (report.js) DB 조회 자체는 RecentMatchesPageCache가 캐싱한다(TTL 30분) — 이 메서드는
      * Page 자체를 캐시하지 않는다(Page는 인터페이스라 역직렬화가 안 됨, CachedPage 주석 참고).
      */
     @Transactional(readOnly = true)
@@ -538,7 +538,7 @@ public class RecordFacade {
 
     /**
      * teamPeriodId(선택) — "사용한 팀" 필터. 실제 DB 조회(원시 매치 목록 + 팀 기간)와 매핑은
-     * RecentMatchesPageCache가 전부 맡는다(TTL 3시간) — Page 자체를 캐싱하지 않는 이유는
+     * RecentMatchesPageCache가 전부 맡는다(TTL 30분) — Page 자체를 캐싱하지 않는 이유는
      * CachedPage 주석 참고.
      */
     @Transactional(readOnly = true)
