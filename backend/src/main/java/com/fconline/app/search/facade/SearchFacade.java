@@ -13,6 +13,7 @@ import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.ShotPointResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.app.search.dto.SearchMatchStatsResponse;
+import com.fconline.app.search.dto.SearchProgressResponse;
 import com.fconline.domain.match.gateway.NexonMatchData;
 import com.fconline.domain.match.gateway.NexonParticipantData;
 import com.fconline.domain.match.gateway.NexonParticipantData.ShootEventData;
@@ -25,6 +26,7 @@ import com.fconline.domain.meta.repository.PlayerMetaRepository;
 import com.fconline.domain.shared.exception.DomainException;
 import com.fconline.infrastructure.cache.CacheNames;
 import com.fconline.infrastructure.search.SearchMatchDetailCache;
+import com.fconline.infrastructure.search.SearchProgressTracker;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,9 +65,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class SearchFacade {
 
     /** 매치 1건당 Nexon 호출 1회(300ms 딜레이)라 너무 크게 잡으면 검색 한 번이 오래 걸린다 —
-     * 기본 15건(약 5초), 최대 30건(약 9초)로 제한한다. */
+     * 기본 15건, 최대 100건(Nexon 매치 목록 API 자체가 한 유저당 그 이상은 안 준다 — 사용자 확인,
+     * NexonApiClient.findRecentMatchIds 주석 참고). 100건이면 매치 상세만 최대 30~40초 걸릴 수
+     * 있어 프론트가 SearchProgressTracker를 폴링해 로딩바로 진행률을 보여준다(요청). */
     private static final int DEFAULT_LIMIT = 15;
-    private static final int MAX_LIMIT = 30;
+    private static final int MAX_LIMIT = 100;
     /** SquadEntry.SUBSTITUTE_POSITION_CODE와 동일한 매직넘버 — 벤치에 머물다 안 뛴 선수 제외용. */
     private static final int SUBSTITUTE_POSITION_CODE = 28;
 
@@ -84,10 +88,27 @@ public class SearchFacade {
 
     private final SearchMatchDetailCache matchDetailCache;
     private final PlayerMetaRepository playerMetaRepository;
+    private final SearchProgressTracker progressTracker;
 
-    public SearchFacade(SearchMatchDetailCache matchDetailCache, PlayerMetaRepository playerMetaRepository) {
+    public SearchFacade(SearchMatchDetailCache matchDetailCache, PlayerMetaRepository playerMetaRepository,
+                         SearchProgressTracker progressTracker) {
         this.matchDetailCache = matchDetailCache;
         this.playerMetaRepository = playerMetaRepository;
+        this.progressTracker = progressTracker;
+    }
+
+    /** 검색 화면 로딩바용 — 프론트가 검색 폼 제출 직후부터 이 값을 폴링한다. total=0이면 아직
+     * 매치 목록도 못 받아온 초기 상태(SearchProgressTracker 클래스 주석 참고). */
+    public SearchProgressResponse getProgress(String nickname, MatchType matchType) {
+        return progressTracker.snapshot(progressKey(nickname, matchType))
+                .map(s -> new SearchProgressResponse(s[0], s[1]))
+                .orElse(new SearchProgressResponse(0, 0));
+    }
+
+    /** 프론트는 검색 시작 시점엔 아직 ouid를 몰라서(7개 API 응답이 오기 전) ouid가 아니라
+     * 사용자가 입력한 닉네임으로 진행률을 조회한다 — 그래서 이 키도 ouid 대신 닉네임을 쓴다. */
+    private String progressKey(String nickname, MatchType matchType) {
+        return nickname.trim() + "|" + matchType;
     }
 
     // ---------------- 화면별 조회 API (RecordController와 대응) ----------------
@@ -97,7 +118,7 @@ public class SearchFacade {
     @Transactional(readOnly = true)
     public OverallRecordResponse getOverall(String nickname, MatchType matchType, Integer limit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
 
         int wins = 0;
         int draws = 0;
@@ -188,7 +209,7 @@ public class SearchFacade {
     @Transactional(readOnly = true)
     public List<TopPlayerResponse> getPlayers(String nickname, MatchType matchType, Integer limit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         return aggregatePlayers(matches, null);
     }
 
@@ -198,7 +219,7 @@ public class SearchFacade {
     public ShotHeatmapResponse getShotHeatmap(String nickname, MatchType matchType, Integer limit,
                                                boolean goalsOnly) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         List<ShotPointResponse> points = new ArrayList<>();
         for (MatchCtx ctx : matches) {
             for (ShootEventData shot : ctx.me().shootEvents()) {
@@ -215,7 +236,7 @@ public class SearchFacade {
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getConcededShotHeatmap(String nickname, MatchType matchType, Integer limit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         List<ShotPointResponse> points = new ArrayList<>();
         for (MatchCtx ctx : matches) {
             NexonParticipantData opp = findOpponent(ctx.data(), ouid);
@@ -232,7 +253,7 @@ public class SearchFacade {
     @Transactional(readOnly = true)
     public ShotHeatmapResponse getAssistedShotHeatmap(String nickname, MatchType matchType, Integer limit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         List<ShotPointResponse> points = new ArrayList<>();
         for (MatchCtx ctx : matches) {
             for (ShootEventData shot : ctx.me().shootEvents()) {
@@ -250,7 +271,7 @@ public class SearchFacade {
     public List<AssistChainResponse> getAssistChains(String nickname, MatchType matchType, Integer limit,
                                                        Integer chainLimit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         int effectiveChainLimit = chainLimit == null
                 ? DEFAULT_ASSIST_CHAIN_LIMIT
                 : Math.max(1, Math.min(chainLimit, MAX_ASSIST_CHAIN_LIMIT));
@@ -289,7 +310,7 @@ public class SearchFacade {
     @Transactional(readOnly = true)
     public List<RecentMatchResponse> getRecentMatches(String nickname, MatchType matchType, Integer limit) {
         String ouid = resolveOuid(nickname);
-        List<MatchCtx> matches = resolveMatches(ouid, matchType, limit);
+        List<MatchCtx> matches = resolveMatches(nickname, ouid, matchType, limit);
         return matches.stream()
                 .map(ctx -> toRecentMatchResponse(ctx.data().matchId(), ctx.data().matchDate(), ctx.me()))
                 .toList();
@@ -357,12 +378,15 @@ public class SearchFacade {
                 .orElseThrow(() -> new DomainException("존재하지 않는 닉네임입니다: " + nickname));
     }
 
-    private List<MatchCtx> resolveMatches(String ouid, MatchType matchType, Integer limit) {
+    private List<MatchCtx> resolveMatches(String nickname, String ouid, MatchType matchType, Integer limit) {
         int effectiveLimit = clampLimit(limit);
         List<String> matchIds = matchDetailCache.findRecentMatchIds(ouid, matchType, effectiveLimit);
+        String progressKey = progressKey(nickname, matchType);
+        progressTracker.start(progressKey, matchIds.size());
         List<MatchCtx> result = new ArrayList<>();
         for (String matchId : matchIds) {
             NexonMatchData data = matchDetailCache.getOrFetch(matchId);
+            progressTracker.markFetched(progressKey, matchId);
             NexonParticipantData me = findParticipant(data, ouid);
             if (me == null) {
                 continue; // 방어적: 이론상 항상 있어야 하지만 응답이 깨진 경우 이 매치만 건너뜀

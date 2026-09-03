@@ -1160,6 +1160,45 @@
     statusEl.style.color = isError ? 'var(--status-critical)' : '';
   }
 
+  // 백엔드 최대치와 동일(SearchFacade.MAX_LIMIT) — Nexon 매치 목록 API 자체가 한 유저당
+  // 그 이상은 안 준다(요청, NexonApiClient.findRecentMatchIds 주석 참고).
+  var SEARCH_MATCH_LIMIT = 100;
+
+  // ---------------- 검색 로딩바 (요청 — 최대 100건이라 매치 상세만 30~40초 걸릴 수 있어
+  // "몇 건째"를 실시간으로 보여준다) ----------------
+  var progressEl = document.getElementById('search-progress');
+  var progressFillEl = document.getElementById('search-progress-fill');
+  var progressTextEl = document.getElementById('search-progress-text');
+  var progressTimer = null;
+
+  function pollProgress(nickname, matchType, seq) {
+    apiGet('/api/v1/search/players/progress', { nickname: nickname, matchType: matchType }).then(function (p) {
+      if (seq !== searchSeq || !progressTimer) return; // 검색이 이미 끝났거나(폴링 정지) 낡은 응답
+      if (!p || !p.total) {
+        progressFillEl.style.width = '3%';
+        progressTextEl.textContent = '매치 목록을 확인하는 중…';
+        return;
+      }
+      var pct = Math.round((p.fetched / p.total) * 100);
+      progressFillEl.style.width = Math.max(pct, 3) + '%';
+      progressTextEl.textContent = p.fetched + ' / ' + p.total + '경기 상세를 Nexon에서 불러오는 중…';
+    }).catch(function () { /* 폴링 실패는 조용히 무시 — 다음 틱에 다시 시도 */ });
+  }
+
+  function startProgressPolling(nickname, matchType, seq) {
+    stopProgressPolling();
+    progressEl.hidden = false;
+    progressFillEl.style.width = '0%';
+    progressTextEl.textContent = '매치 목록을 확인하는 중…';
+    pollProgress(nickname, matchType, seq);
+    progressTimer = setInterval(function () { pollProgress(nickname, matchType, seq); }, 700);
+  }
+
+  function stopProgressPolling() {
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    progressEl.hidden = true;
+  }
+
   var searchSeq = 0;
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -1169,23 +1208,26 @@
     var seq = ++searchSeq;
     resultEl.hidden = true;
     submitBtn.disabled = true;
-    setStatus('"' + nickname + '" 최근 경기를 Nexon에서 직접 불러오는 중입니다… (매치 수만큼 호출해서 몇 초 걸려요)');
+    setStatus('"' + nickname + '" 최근 경기를 Nexon에서 직접 불러오는 중입니다… (최대 ' + SEARCH_MATCH_LIMIT + '경기라 몇십 초 걸릴 수 있어요)');
+    startProgressPolling(nickname, currentMatchType, seq);
 
     // CSR — report.js와 동일하게 화면(API)마다 따로 호출해 Promise.all로 병렬 로딩한다(요청).
-    // 전부 같은 (nickname, matchType) 조합이라 백엔드 SearchMatchDetailCache가 매치 상세를
-    // 공유해서, 여기서 여러 API를 동시에 불러도 Nexon 매치 상세 호출은 매치당 한 번만 나간다.
-    var qs = { nickname: nickname, matchType: currentMatchType };
+    // 전부 같은 (nickname, matchType, limit) 조합이라 백엔드 SearchMatchDetailCache가 매치
+    // 상세를 공유해서, 여기서 여러 API를 동시에 불러도 Nexon 매치 상세 호출은 매치당 한 번만
+    // 나간다(SearchMatchDetailCache의 sync=true 캐시).
+    var qs = { nickname: nickname, matchType: currentMatchType, limit: SEARCH_MATCH_LIMIT };
     Promise.all([
       apiGet('/api/v1/search/players/overall', qs),
       apiGet('/api/v1/search/players/players', qs),
-      apiGet('/api/v1/search/players/shot-heatmap', { nickname: qs.nickname, matchType: qs.matchType, goalsOnly: false }),
+      apiGet('/api/v1/search/players/shot-heatmap', { nickname: qs.nickname, matchType: qs.matchType, limit: qs.limit, goalsOnly: false }),
       apiGet('/api/v1/search/players/conceded-shot-heatmap', qs).catch(function () { return { points: [] }; }),
       apiGet('/api/v1/search/players/assisted-shot-heatmap', qs).catch(function () { return { points: [] }; }),
-      apiGet('/api/v1/search/players/assist-chains', { nickname: qs.nickname, matchType: qs.matchType, chainLimit: 100 }),
+      apiGet('/api/v1/search/players/assist-chains', { nickname: qs.nickname, matchType: qs.matchType, limit: qs.limit, chainLimit: 100 }),
       apiGet('/api/v1/search/players/recent-matches', qs)
     ]).then(function (r) {
       if (seq !== searchSeq) return;
       setStatus(null);
+      stopProgressPolling();
       submitBtn.disabled = false;
       renderResult(nickname, currentMatchType, {
         overall: r[0], players: r[1], heatmap: r[2], concededHeatmap: r[3],
@@ -1193,6 +1235,7 @@
       });
     }).catch(function (err) {
       if (seq !== searchSeq) return;
+      stopProgressPolling();
       submitBtn.disabled = false;
       setStatus('검색 실패 — ' + (err && err.message ? err.message : '알 수 없는 오류') + ' (닉네임 철자를 확인해 주세요)', true);
     });

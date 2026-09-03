@@ -8,6 +8,7 @@ import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
 import com.fconline.app.search.dto.SearchMatchStatsResponse;
+import com.fconline.app.search.dto.SearchProgressResponse;
 import com.fconline.app.search.facade.SearchFacade;
 import com.fconline.domain.match.vo.MatchType;
 import java.util.List;
@@ -100,6 +101,13 @@ public class SearchController {
                                                         @RequestParam MatchType matchType,
                                                         @RequestParam(required = false) Integer limit) {
         return searchFacade.getRecentMatches(nickname, matchType, limit);
+    }
+
+    /** 검색 화면 로딩바용 — 위 7개 API를 쏘는 시점부터 프론트가 이 값을 폴링한다(요청,
+     * SearchProgressTracker 클래스 주석 참고). 캐시하지 않는다 — 매번 최신 진행 상황이어야 의미가 있다. */
+    @GetMapping("/progress")
+    public SearchProgressResponse getProgress(@RequestParam String nickname, @RequestParam MatchType matchType) {
+        return searchFacade.getProgress(nickname, matchType);
     }
 
     /** 매치 상세 모달의 득점/실점 상세 — 위 API들이 반환한 matchId를 그대로 넘긴다. */

@@ -460,8 +460,17 @@ ouid로 교체).
 - `app/search`(신규 패키지) — `SearchFacade`가 `NexonMatchGateway`(기존 sync가 쓰던 것과
   동일한 포트: `findOuid`/`findRecentMatchIds`/`fetchMatchDetail`)를 그대로 재사용해서
   ouid 조회 → 최근 matchId 목록 → 매치마다 상세 조회를 순서대로 수행한다. 매치 1건당
-  Nexon 호출 1번(딜레이 300ms)이라, 기본 15건(약 5초)·최대 30건(약 9초)로 `limit`을
-  clamp해 응답 시간을 제한한다.
+  Nexon 호출 1번(딜레이 300ms)이라, 기본 15건·최대 100건(사용자 확인 — Nexon
+  `/user/match`가 1회 호출당 20건까지만 주기 때문에 `NexonApiClient.findRecentMatchIds`가
+  `offset`으로 페이지를 넘겨가며 20건씩 5번 이어붙인다)로 `limit`을 clamp해 응답 시간을
+  제한한다. 이 페이지네이션 수정은 `MatchSyncFacade`(추적 대상 sync 배치)도 같은
+  게이트웨이 메서드를 쓰므로 같이 덕을 본다 — `application.yml`의
+  `sync.match-fetch-limit`이 기본값 100인데 이전까진 호출 1번(limit=100 그대로 전달)이라
+  Nexon이 앞 20건만 주고 있었을 가능성이 있다(공식 문서에 명시된 제약은 아니라 확신할 수는
+  없음). limit=100이면 매치 상세만 30~40초 걸릴 수 있어, `SearchProgressTracker`
+  (infrastructure.search, 인메모리 `Set<matchId>`로 진행 중인 매치를 추적)를 프론트가
+  0.7초 간격으로 폴링해 "N / 100경기" 로딩바를 보여준다(요청, `/api/v1/search/players/
+  progress`).
 - **CSR — 화면 하나당 API 하나(요청, 2026-09-03)**: 처음엔 `search()` 한 번이 tally/
   선수 기여도/히트맵/어시스트 체인/최근 경기를 전부 묶어 반환했는데, `report.js`가
   `/api/v1/records/*`를 화면 위젯마다 따로 불러 `Promise.all`로 병렬 로딩하는 것과

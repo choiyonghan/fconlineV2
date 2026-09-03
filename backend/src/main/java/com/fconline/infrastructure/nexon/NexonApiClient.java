@@ -77,18 +77,38 @@ public class NexonApiClient implements NexonMatchGateway {
         }
     }
 
+    /**
+     * Nexon {@code /user/match}는 1회 호출당 최대 {@value #MATCH_LIST_PAGE_SIZE}건만 돌려준다
+     * (사용자 확인 — 공식 문서에 명시된 제약은 아니지만, 이전까지는 이 사실을 모르고 sync 배치가
+     * {@code limit=100}을 한 번에 요청해왔던 탓에 실제로는 매일 최근 20건만 조회하고 있었을
+     * 가능성이 높다). {@code offset}으로 페이지를 넘겨가며 20건씩 나눠 받아 이어붙인다 — limit이
+     * 20 이하면 기존과 동일하게 호출 1번으로 끝난다. 받은 페이지가 요청한 페이지 크기보다 작으면
+     * (그 유저의 매치 이력이 거기서 끝났다는 뜻) 더 부를 매치가 없으니 조기 종료한다.
+     */
+    private static final int MATCH_LIST_PAGE_SIZE = 20;
+
     @Override
     public List<String> findRecentMatchIds(String ouid, MatchType matchType, int limit) {
-        JsonNode body = get("/user/match", Map.of(
-                "ouid", ouid,
-                "matchtype", String.valueOf(matchType.code()),
-                "offset", "0",
-                "limit", String.valueOf(limit)
-        ));
-
         List<String> ids = new ArrayList<>();
-        if (body.isArray()) {
-            body.forEach(node -> ids.add(node.asText()));
+        int offset = 0;
+        while (ids.size() < limit) {
+            int pageSize = Math.min(MATCH_LIST_PAGE_SIZE, limit - ids.size());
+            JsonNode body = get("/user/match", Map.of(
+                    "ouid", ouid,
+                    "matchtype", String.valueOf(matchType.code()),
+                    "offset", String.valueOf(offset),
+                    "limit", String.valueOf(pageSize)
+            ));
+
+            List<String> page = new ArrayList<>();
+            if (body.isArray()) {
+                body.forEach(node -> page.add(node.asText()));
+            }
+            ids.addAll(page);
+            offset += pageSize;
+            if (page.size() < pageSize) {
+                break;
+            }
         }
         return ids;
     }
