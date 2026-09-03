@@ -13,9 +13,11 @@ import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
+import com.fconline.app.search.dto.SearchResultResponse;
 import com.fconline.app.season.dto.SeasonResponse;
 import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.dto.UserTeamPeriodResponse;
+import com.fconline.domain.match.gateway.NexonMatchData;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +110,11 @@ public class RedisCacheConfig implements CachingConfigurer {
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), TTL)),
                 Map.entry(CacheNames.TEAM_PERIODS,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), TTL)),
+                Map.entry(CacheNames.SEARCH_PLAYER, typedConfig(objectMapper, SearchResultResponse.class, TTL)),
+                // 매치 결과는 한 번 끝나면 안 바뀌는 데이터라 다른 조회성 캐시(TTL)보다 훨씬
+                // 길게(24시간) 잡는다 — SearchMatchDetailCache 클래스 주석 참고.
+                Map.entry(CacheNames.SEARCH_MATCH_DETAIL,
+                        typedConfig(objectMapper, NexonMatchData.class, Duration.ofHours(24))),
                 // 성격 리포트는 그냥 마크다운 원문(String)이라 Jackson JSON 포장 없이 바이트 그대로
                 // 저장한다 — 리포트 안에 따옴표·줄바꿈이 많아 JSON 이스케이프를 거칠 이유가 없다.
                 Map.entry(CacheNames.PERSONALITY_REPORTS,

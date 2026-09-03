@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="favicon.svg" />
+<title>유저 검색</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="scorebug">
+    <div class="scorebug-top">
+      <h1 id="page-title">🔍 유저 검색</h1>
+      <a class="search-back-link" href="report.html">← 대시보드로</a>
+    </div>
+    <p class="card-caption">
+      추적 중인 9명이 아닌 아무 닉네임이나 검색할 수 있어요. Nexon API를 그 자리에서 직접
+      불러오기 때문에(매치 1건당 호출 1번) 다른 페이지보다 조회에 몇 초 더 걸려요.
+    </p>
+    <form id="search-form" class="search-form">
+      <input type="text" id="search-nickname" class="search-input" placeholder="닉네임 입력" autocomplete="off" required />
+      <div class="segmented" id="search-matchtype" role="group" aria-label="매치 타입">
+        <button type="button" data-mt="CUSTOM" aria-pressed="true">커스텀</button>
+        <button type="button" data-mt="OFFICIAL" aria-pressed="false">공식전</button>
+      </div>
+      <button type="submit" class="search-submit-btn" id="search-submit-btn">검색</button>
+    </form>
+  </header>
+
+  <p id="search-status" class="card-caption" role="status" aria-live="polite" hidden></p>
+
+  <div id="search-result" hidden>
+    <div class="search-result-head" id="search-result-head"></div>
+    <section class="tiles" id="search-tiles" aria-label="검색 결과 요약"></section>
+
+    <div class="card" id="search-players-card" style="margin-top:14px;">
+      <p class="card-title">👥 선수 기여도</p>
+      <p class="card-caption" id="search-players-caption"></p>
+      <div class="table-scroll" id="search-players-table"></div>
+    </div>
+
+    <div class="card" id="search-matches-card" style="margin-top:14px;">
+      <p class="card-title">최근 경기</p>
+      <p class="card-caption" id="search-matches-caption"></p>
+      <div class="match-chip-row" id="search-matches-list"></div>
+    </div>
+  </div>
+
+  <footer class="note">
+    <strong>이 페이지는 DB를 쓰지 않습니다.</strong> 추적 대상 9명과 달리 검색 대상은 배치가
+    미리 동기화해둔 데이터가 없어서, 검색할 때마다 Nexon API로 최근 경기를 그 자리에서 가져와
+    직접 집계합니다 — 같은 닉네임을 다시 검색하면 서버 캐시 덕분에 더 빠르게 뜰 수 있어요.
+    선수 기여도의 xG/xA, 경기당 지표 공식은 다른 페이지와 완전히 동일합니다.
+  </footer>
+</div>
+
+<div id="loading-overlay" class="loading-overlay" role="status" aria-live="polite" hidden>
+  <div class="loading-box">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loading-text">불러오는 중입니다…</p>
+  </div>
+</div>
+
+<div id="tooltip" role="tooltip"></div>
+
+<div id="modal-overlay" class="modal-overlay" hidden>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head">
+      <h2 id="modal-title"></h2>
+      <button type="button" id="modal-close" class="modal-close" aria-label="닫기">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<script src="report-seasons.js"></script>
+<script src="search.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ fconlineV2에서 내린 굵직한 아키텍처 결정을 한 문서에 모아 �
 9. [배치는 인앱 스케줄러 대신 GitHub Actions cron](#9-배치는-인앱-스케줄러-대신-github-actions-cron)
 10. [성격 리포트: Supabase Storage + ouid 키](#10-성격-리포트-supabase-storage--ouid-키)
 11. [API에 없는 지표(xG·MOM)는 자체 데이터로 근사 산출](#11-api에-없는-지표xgmom는-자체-데이터로-근사-산출)
+12. [임의 유저 검색은 DB 없이 Nexon 실시간 조회 + 원본 캐시](#12-임의-유저-검색은-db-없이-nexon-실시간-조회--원본-캐시)
 
 ---
 
@@ -441,3 +442,56 @@ ouid로 교체).
 추가) / xG 계산을 백엔드 전용 API로 통합해 프론트가 그 결과만 쓰기(현재 미채택 — JS
 쪽이 클라이언트 세션 캐시로 즉석 계산하는 이점이 있어 이중 구현 상태 유지 중, 향후
 정리 후보).
+
+---
+
+## 12. 임의 유저 검색은 DB 없이 Nexon 실시간 조회 + 원본 캐시
+
+- **Status**: Accepted (2026-09-03) · **관련 커밋**: (이 문서와 같은 커밋)
+
+**배경.** 지금까지 모든 화면은 `tracked_users`(추적 대상 9명)만 다뤘다 — sync 배치가
+미리 Nexon에서 받아 DB에 저장해둔 데이터를 읽는 구조라 빠르고 xG/xA/시즌 집계처럼
+무거운 계산도 가능하다. "9명이 아닌 아무 닉네임이나 검색"은 이 전제가 아예 성립하지
+않는다 — 검색 대상은 `tracked_users`에 없어 sync가 손댄 적이 없다.
+
+**결정.** 검색 화면(`site-root/search.html`)은 DB를 전혀 쓰지 않고, 닉네임→ouid부터
+매치 상세까지 매번 Nexon Open API를 직접 호출한다:
+
+- `app/search`(신규 패키지) — `SearchFacade`가 `NexonMatchGateway`(기존 sync가 쓰던 것과
+  동일한 포트: `findOuid`/`findRecentMatchIds`/`fetchMatchDetail`)를 그대로 재사용해서
+  ouid 조회 → 최근 matchId 목록 → 매치마다 상세 조회를 순서대로 수행한다. 매치 1건당
+  Nexon 호출 1번(딜레이 300ms)이라, 기본 15건(약 5초)·최대 30건(약 9초)로 `limit`을
+  clamp해 응답 시간을 제한한다.
+- xG/xA/결정력/선수 기여도(contributionScore) 등 지표 공식은 새로 만들지 않고
+  `ExpectedGoalsCalculator`와 `RecordFacade`의 집계 로직(matchEndType=0 필터, substitute
+  position=28 제외, `goals*3+assists*2+(태클+인터셉트+블록+세이브)*0.5`)을 그대로 옮겼다 —
+  DB의 QueryDSL group-by 대신 이 파사드 안에서 순수 Java로 직접 집계한다는 점만 다르다
+  (매치 수가 최대 30건이라 DB 없이도 충분히 가볍다).
+- **매치 결과 캐시**: `SearchMatchDetailCache`(infrastructure, `@Cacheable`)가 matchId
+  1건의 Nexon match-detail 원본을 캐싱한다 — 매치는 한 번 끝나면 다시 안 바뀌는 데이터라
+  다른 조회성 캐시(TTL 30분, [§8](#8-redisupstash-캐시는-옵트인--fail-open))보다 훨씬
+  길게(24시간) 잡는다. `search()` 집계 루프뿐 아니라 매치 상세 모달의 match-shots/
+  match-squad/match-stats도 전부 이 캐시 하나를 통해서만 Nexon을 건드리므로, 검색 직후
+  그 매치를 클릭해도 재호출이 없다. **반드시 별도 빈으로 분리해야 한다** — SearchFacade
+  안에 두면 self-invocation으로 `@Cacheable` 프록시를 우회한다([§8]의 같은 함정).
+- Nexon match-detail 응답은 한 번의 호출로 양쪽 참가자(나·상대) 데이터를 전부 담고
+  있어서(`NexonMatchData.participants()`가 2건), DB 기반 방식과 달리 **상대가 추적
+  대상인지 여부와 무관하게 항상 "상대 팀 비교"가 가능하다** — 검색 대상의 상대가 누구든
+  Nexon이 자기 시점 shootEvents/squadEntries를 그대로 준다.
+- `RecordController`(`/api/v1/records/*`)와 URL을 분리해 `/api/v1/search/players/*`로 뒀다 —
+  같은 매치 상세라도 "DB에서 읽는다"와 "지금 Nexon을 친다"는 완전히 다른 성능/신뢰성
+  특성이라, 코드를 안 봐도 URL만으로 구분되게 하려는 의도.
+
+**결과.** *좋아진 점*: 새 인프라·마이그레이션 없이 기존 Nexon 게이트웨이 포트를 그대로
+재사용, 캐시 덕분에 반복 검색·매치 클릭이 빠름, DB 오염(추적 대상 아닌 사람 데이터가
+`tracked_users` 스키마에 섞이는 것) 없음. *트레이드오프*: 응답이 몇 초 걸린다(DB
+기반 화면과는 체감 속도가 다르다는 걸 검색 폼 안내 문구로 명시). 시즌 전체 집계나
+어시스트 체인처럼 "긴 이력"이 필요한 지표는 애초에 불가능(Nexon이 주는 최근 경기
+목록에 상한이 있음) — 검색 화면은 의도적으로 "최근 N경기 요약"까지만 다룬다. 검색이
+몰리면 sync 배치와 같은 Nexon 키 풀을 다투게 된다(현재는 우려할 만큼 트래픽이 없어
+보류, 필요해지면 별도 키 세트 분리 검토).
+
+**검토했던 대안.** 검색 대상도 DB에 저장(발견 즉시 `tracked_users`에 추가하듯 동기화) —
+"추적 대상 9명"이라는 이 프로젝트의 정체성 자체를 흐리고, 모르는 사람 데이터가 무한정
+쌓이는 걸 막을 장치가 필요해져 기각. 원본 캐시 없이 매번 Nexon 재조회 — 구현은
+단순하지만 반복 검색/매치 클릭마다 불필요하게 Nexon 쿼터를 태워 기각.

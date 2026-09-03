@@ -44,6 +44,17 @@ public final class CacheNames {
     public static final String SEASONS = "seasons";
     public static final String TEAM_PERIODS = "team-periods";
 
+    // --- SearchFacade(추적 대상이 아닌 임의 유저 검색, DB 미사용 — 전부 Nexon 실시간 조회) ---
+    /** search(nickname,matchType,limit) 결과 전체(요약+선수 기여도+최근 경기 목록). */
+    public static final String SEARCH_PLAYER = "search-player";
+    /**
+     * matchId 1건의 Nexon match-detail 원본(NexonMatchData) — 매치 결과는 한 번 끝나면 다시
+     * 안 바뀌므로 다른 조회성 캐시(TTL 30분)보다 훨씬 길게 잡는다(RedisCacheConfig에서 별도
+     * Duration 지정). search()가 집계할 때 채워두면, 검색 직후 그 매치를 클릭해도(match-shots/
+     * match-squad) Nexon을 다시 안 친다 — SearchMatchDetailCache 클래스 참고.
+     */
+    public static final String SEARCH_MATCH_DETAIL = "search-match-detail";
+
     private CacheNames() {
     }
 }

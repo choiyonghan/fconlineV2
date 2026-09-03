@@ -2,7 +2,7 @@
 
 FC Online 상대전적 트래커 v2. [v1(choiyonghan/fconline)](https://github.com/choiyonghan/fconline) 소스 분석을 바탕으로
 Java/Spring Boot(DDD) 백엔드 + 정적 HTML/JS 프론트엔드로 재구현했다. **"왜 이렇게 만들었는지"는
-[`docs/ADR.md`](docs/ADR.md)에 굵직한 결정 11가지로 정리해뒀다** — 특히 프론트 구조나 AI 벤더처럼
+[`docs/ADR.md`](docs/ADR.md)에 굵직한 결정 12가지로 정리해뒀다** — 특히 프론트 구조나 AI 벤더처럼
 한 번 바꿔봤던 결정을 다시 건드리기 전에 먼저 읽는 걸 권한다.
 
 ## 구조
@@ -11,9 +11,11 @@ Java/Spring Boot(DDD) 백엔드 + 정적 HTML/JS 프론트엔드로 재구현했
 fconlineV2/
 ├── backend/            Spring Boot 3.5 백엔드 (Controller → Facade → Service → Repository)
 ├── site-root/          메인 프론트엔드 — 정적 HTML/CSS/JS, 빌드 스텝 없음(사이트 루트 "/"로 배포)
-│                       report.html이 유일한 실제 페이지 — 유저 칩 "전체"가 9인 요약 대시보드
-│                       (AI 랭킹), 실제 유저 칩이 개인별 실시간 리포트. index.html은 report.html로
-│                       리다이렉트만 하는 빈 페이지(docs/ADR.md §5 참고 — 한때 2페이지였다가 재통합됨)
+│                       report.html이 추적 대상 9명의 실제 페이지 — 유저 칩 "전체"가 9인 요약
+│                       대시보드(AI 랭킹), 실제 유저 칩이 개인별 실시간 리포트. index.html은
+│                       report.html로 리다이렉트만 하는 빈 페이지(docs/ADR.md §5 참고 — 한때
+│                       2페이지였다가 재통합됨). search.html은 9명이 아닌 임의 닉네임을 검색하는
+│                       별도 페이지 — DB를 안 쓰고 Nexon을 그 자리에서 직접 조회한다(docs/ADR.md §12)
 ├── apps/web/           레거시 SvelteKit CSR — 더 이상 기능 개발 안 함, "/app" 서브패스로만 배포됨
 │                       (docs/ADR.md §5 참고 — site-root가 사실상의 메인 프론트다)
 ├── data/               GitHub Actions 배치가 매일 커밋하는 읽기 전용 캐시(JSON) — 새 DB 테이블 대신 씀
