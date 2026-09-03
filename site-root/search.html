@@ -38,10 +38,95 @@
     <div class="search-result-head" id="search-result-head"></div>
     <section class="tiles" id="search-tiles" aria-label="검색 결과 요약"></section>
 
-    <div class="card" id="search-players-card" style="margin-top:14px;">
-      <p class="card-title">👥 선수 기여도</p>
-      <p class="card-caption" id="search-players-caption"></p>
-      <div class="table-scroll" id="search-players-table"></div>
+    <div class="card" style="margin-bottom:14px;">
+      <p class="card-title">🌊 바이오리듬</p>
+      <p class="card-caption" id="biorhythm-caption"></p>
+      <div class="stat-mini-grid" id="biorhythm-summary"></div>
+      <div id="chart-biorhythm"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <p class="card-title">선수 기여도 TOP 7</p>
+        <p class="card-caption">종합 점수 = 골×3 + 어시스트×2 + (태클+인터셉트+블록+세이브)×0.5, 1위를 100점 기준으로 재조정</p>
+        <div id="chart-players"></div>
+        <button type="button" class="more-btn" id="players-more-btn">전체 선수 스탯 그리드에서 더보기 ↓</button>
+      </div>
+      <div class="card">
+        <p class="card-title">득점 유형 분포</p>
+        <p class="card-caption">전체 득점 중 슛 유형별 비중</p>
+        <div id="chart-goaltypes"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">득점/실점 시간대 분포</p>
+        <p class="card-caption">15분 단위 구간별 득점(위, 파랑) · 실점(아래, 빨강) 수</p>
+        <div id="chart-goaltime"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">슈팅 위치 &amp; 실제 xG값</p>
+        <p class="card-caption" id="heatmap-caption"></p>
+        <div class="pitch-wrap" id="chart-heatmap"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <p class="card-title">🎮 플레이 성향</p>
+        <p class="card-caption" id="playstyle-caption"></p>
+
+        <div class="segmented" id="playstyle-tabs" role="group" aria-label="플레이 성향 탭">
+          <button type="button" data-tab="attack" aria-pressed="true">⚔️ 공격 성향</button>
+          <button type="button" data-tab="defense" aria-pressed="false">🛡️ 수비 성향</button>
+          <button type="button" data-tab="pass" aria-pressed="false">🔁 패스 성향</button>
+          <button type="button" data-tab="dirty" aria-pressed="false">😈 더티 성향</button>
+          <button type="button" data-tab="possession" aria-pressed="false">⚖️ 점유율</button>
+        </div>
+
+        <div class="playstyle-box" id="playstyle-panel-attack">
+          <div class="stat-mini-grid" id="playstyle-attack"></div>
+          <p class="card-caption" style="margin-top:10px;">경기별 득점 vs xG값 추이(표본 전체)</p>
+          <div id="chart-playstyle-attack"></div>
+        </div>
+        <div class="playstyle-box" id="playstyle-panel-defense" hidden>
+          <div class="stat-mini-grid" id="playstyle-defense"></div>
+          <p class="card-caption" id="defense-trend-caption" style="margin-top:10px;"></p>
+          <div id="chart-playstyle-defense"></div>
+        </div>
+        <div class="playstyle-box" id="playstyle-panel-pass" hidden>
+          <div class="stat-mini-grid stat-mini-grid-3col" id="playstyle-pass"></div>
+          <p class="card-caption" style="margin-top:10px;">경기별 패스 시도 vs 성공 추이(표본 전체)</p>
+          <div id="chart-playstyle-pass"></div>
+        </div>
+        <div class="playstyle-box" id="playstyle-panel-dirty" hidden>
+          <p class="card-caption">파울/카드/게임 일시정지 등 매너와 관련된 지표입니다.</p>
+          <div class="stat-mini-grid" id="playstyle-dirty"></div>
+        </div>
+        <div class="playstyle-box" id="playstyle-panel-possession" hidden>
+          <div class="stat-mini-grid" id="playstyle-possession"></div>
+          <p class="card-caption" style="margin-top:10px;">경기별 점유율 추이(표본 전체)</p>
+          <div id="chart-playstyle-possession"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="card-title">⚡ 환상의 콤비</p>
+        <p class="card-caption">누가 누구에게 어시스트해서 득점했는지, 상위 5조합</p>
+        <div class="table-scroll" id="table-assists"></div>
+        <p class="card-caption" style="margin-top:14px;">양방향 합산 TOP5 (A→B + B→A를 한 조합으로 합산)</p>
+        <div class="table-scroll" id="table-assist-duos"></div>
+      </div>
+    </div>
+
+    <div class="card" id="players-grid-card" style="margin-top:14px;">
+      <div class="dashboard-player-ranking-head">
+        <p class="card-title">전체 선수 스탯</p>
+        <div class="segmented dashboard-ranking-toggle" id="players-grid-toggle">
+          <button type="button" id="players-grid-total-btn" aria-pressed="true">전체(총합)</button>
+          <button type="button" id="players-grid-avg-btn" aria-pressed="false">평균(경기당)</button>
+        </div>
+      </div>
+      <p class="card-caption">열 제목을 클릭하면 정렬됩니다. 공격력/수비력/종합은 그룹 내 1위를 100점으로 맞춘 합성 점수, xG는 이 선수가 쏜 슛 좌표 전체의 합산 기대 득점, 결정력은 실제 득점−xG값, 슛정확·패스·드리블·공중볼은 성공률이며 옆에 시도·성공 횟수(드리블은 거리도)를 같이 보여줍니다. 선방률은 세이브/(세이브+실점)이며 경기당 평균 1세이브 이상인 선수만 표시됩니다.</p>
+      <div class="table-scroll" id="table-allplayers"></div>
     </div>
 
     <div class="card" id="search-matches-card" style="margin-top:14px;">

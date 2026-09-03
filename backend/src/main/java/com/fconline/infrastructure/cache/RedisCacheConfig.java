@@ -13,7 +13,6 @@ import com.fconline.app.record.dto.PlayerGradeResponse;
 import com.fconline.app.record.dto.RecentMatchResponse;
 import com.fconline.app.record.dto.ShotHeatmapResponse;
 import com.fconline.app.record.dto.TopPlayerResponse;
-import com.fconline.app.search.dto.SearchResultResponse;
 import com.fconline.app.season.dto.SeasonResponse;
 import com.fconline.app.user.dto.TrackedUserResponse;
 import com.fconline.app.user.dto.UserTeamPeriodResponse;
@@ -110,7 +109,25 @@ public class RedisCacheConfig implements CachingConfigurer {
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, SeasonResponse.class), TTL)),
                 Map.entry(CacheNames.TEAM_PERIODS,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, UserTeamPeriodResponse.class), TTL)),
-                Map.entry(CacheNames.SEARCH_PLAYER, typedConfig(objectMapper, SearchResultResponse.class, TTL)),
+                Map.entry(CacheNames.SEARCH_OVERALL, typedConfig(objectMapper, OverallRecordResponse.class, TTL)),
+                Map.entry(CacheNames.SEARCH_PLAYERS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, TopPlayerResponse.class), TTL)),
+                Map.entry(CacheNames.SEARCH_SHOT_HEATMAP, typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.SEARCH_CONCEDED_SHOT_HEATMAP,
+                        typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.SEARCH_ASSISTED_SHOT_HEATMAP,
+                        typedConfig(objectMapper, ShotHeatmapResponse.class, TTL)),
+                Map.entry(CacheNames.SEARCH_ASSIST_CHAINS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, AssistChainResponse.class), TTL)),
+                Map.entry(CacheNames.SEARCH_RECENT_MATCHES,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, RecentMatchResponse.class), TTL)),
+                // 닉네임→ouid — Spring이 Optional<String> 반환 메서드를 캐싱할 때 언랩된 String만
+                // 캐시 매니저로 넘긴다(존재하지 않으면 disableCachingNullValues()라 아예 캐싱 안 됨,
+                // 즉 "없는 닉네임"은 매번 재조회된다 — 의도된 동작). 유료 변경이 아니면 거의 안
+                // 바뀌는 데이터라 TTL을 24시간으로 길게 잡는다.
+                Map.entry(CacheNames.SEARCH_OUID, typedConfig(objectMapper, String.class, Duration.ofHours(24))),
+                Map.entry(CacheNames.SEARCH_RECENT_MATCH_IDS,
+                        typedConfig(objectMapper, tf.constructCollectionType(List.class, String.class), TTL)),
                 // 매치 결과는 한 번 끝나면 안 바뀌는 데이터라 다른 조회성 캐시(TTL)보다 훨씬
                 // 길게(24시간) 잡는다 — SearchMatchDetailCache 클래스 주석 참고.
                 Map.entry(CacheNames.SEARCH_MATCH_DETAIL,

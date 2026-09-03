@@ -45,13 +45,28 @@ public final class CacheNames {
     public static final String TEAM_PERIODS = "team-periods";
 
     // --- SearchFacade(추적 대상이 아닌 임의 유저 검색, DB 미사용 — 전부 Nexon 실시간 조회) ---
-    /** search(nickname,matchType,limit) 결과 전체(요약+선수 기여도+최근 경기 목록). */
-    public static final String SEARCH_PLAYER = "search-player";
+    // RecordFacade와 마찬가지로 화면(API)마다 캐시 이름을 분리한다 — 이 클래스 위쪽 주석의
+    // 키 충돌 경고와 동일한 이유. getOverall/getPlayers/getShotHeatmap 등은 전부 같은 파라미터
+    // 모양(nickname,matchType,limit)이라 특히 더 그렇다.
+    public static final String SEARCH_OVERALL = "search-overall";
+    public static final String SEARCH_PLAYERS = "search-players";
+    public static final String SEARCH_SHOT_HEATMAP = "search-shot-heatmap";
+    public static final String SEARCH_CONCEDED_SHOT_HEATMAP = "search-conceded-shot-heatmap";
+    public static final String SEARCH_ASSISTED_SHOT_HEATMAP = "search-assisted-shot-heatmap";
+    public static final String SEARCH_ASSIST_CHAINS = "search-assist-chains";
+    public static final String SEARCH_RECENT_MATCHES = "search-recent-matches";
+
+    /** SearchMatchDetailCache.findOuid — 닉네임은 유료 변경이 아니면 거의 안 바뀌는 데이터라
+     * 다른 조회성 캐시(TTL 30분)보다 길게 잡는다(24시간, RedisCacheConfig에서 별도 지정). */
+    public static final String SEARCH_OUID = "search-ouid";
+    /** SearchMatchDetailCache.findRecentMatchIds — 새 매치가 방금 끝났을 수도 있어 다른 캐시와
+     * 같은 TTL(30분)로 둔다. */
+    public static final String SEARCH_RECENT_MATCH_IDS = "search-recent-match-ids";
     /**
      * matchId 1건의 Nexon match-detail 원본(NexonMatchData) — 매치 결과는 한 번 끝나면 다시
      * 안 바뀌므로 다른 조회성 캐시(TTL 30분)보다 훨씬 길게 잡는다(RedisCacheConfig에서 별도
-     * Duration 지정). search()가 집계할 때 채워두면, 검색 직후 그 매치를 클릭해도(match-shots/
-     * match-squad) Nexon을 다시 안 친다 — SearchMatchDetailCache 클래스 참고.
+     * Duration 지정). 위 SEARCH_* 조회 API들이 전부 이 캐시 하나만 거쳐서 Nexon match-detail을
+     * 읽으므로, 한 번 조회된 매치는 어느 API를 통해서든 재사용된다 — SearchMatchDetailCache 참고.
      */
     public static final String SEARCH_MATCH_DETAIL = "search-match-detail";
 

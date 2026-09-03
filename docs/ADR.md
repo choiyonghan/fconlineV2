@@ -462,25 +462,45 @@ ouid로 교체).
   ouid 조회 → 최근 matchId 목록 → 매치마다 상세 조회를 순서대로 수행한다. 매치 1건당
   Nexon 호출 1번(딜레이 300ms)이라, 기본 15건(약 5초)·최대 30건(약 9초)로 `limit`을
   clamp해 응답 시간을 제한한다.
+- **CSR — 화면 하나당 API 하나(요청, 2026-09-03)**: 처음엔 `search()` 한 번이 tally/
+  선수 기여도/히트맵/어시스트 체인/최근 경기를 전부 묶어 반환했는데, `report.js`가
+  `/api/v1/records/*`를 화면 위젯마다 따로 불러 `Promise.all`로 병렬 로딩하는 것과
+  패턴이 달라 두 페이지 사이에 코드를 옮기기 어려웠다. `SearchController`를
+  `RecordController`와 동일한 하위 경로(`overall`/`players`/`shot-heatmap`/
+  `conceded-shot-heatmap`/`assisted-shot-heatmap`/`assist-chains`/`recent-matches`)로
+  쪼개 `getOverall`/`getPlayers`/...로 나눴고, `search.js`도 report.js와 같은
+  `Promise.all` 병렬 호출 + 동일 응답 타입(OverallRecordResponse/ShotHeatmapResponse/...)
+  구조로 맞춰, report.js의 렌더링 함수(barChart/divergingBarChart/lineChart/pitchHeatmap/
+  renderPlayStyle/renderBiorhythm 등)를 그대로 포팅해 바이오리듬·플레이 성향·득점 유형/
+  시간대 분포·환상의 콤비 같은 섹션을 report.html과 동일하게 추가할 수 있었다.
+- **캐시 이름도 API마다 분리**(`CacheNames.SEARCH_OVERALL`/`SEARCH_PLAYERS`/... 9종) —
+  RecordFacade 쪽과 같은 이유([§8]의 "메서드마다 캐시 이름을 따로 둔다" 규칙)로, 여러
+  API가 같은 `(nickname, matchType, limit)` 파라미터 모양을 공유하는데 캐시 이름까지
+  같으면 서로 다른 API의 결과가 같은 Redis 키로 충돌한다.
 - xG/xA/결정력/선수 기여도(contributionScore) 등 지표 공식은 새로 만들지 않고
   `ExpectedGoalsCalculator`와 `RecordFacade`의 집계 로직(matchEndType=0 필터, substitute
-  position=28 제외, `goals*3+assists*2+(태클+인터셉트+블록+세이브)*0.5`)을 그대로 옮겼다 —
-  DB의 QueryDSL group-by 대신 이 파사드 안에서 순수 Java로 직접 집계한다는 점만 다르다
-  (매치 수가 최대 30건이라 DB 없이도 충분히 가볍다).
-- **매치 결과 캐시**: `SearchMatchDetailCache`(infrastructure, `@Cacheable`)가 matchId
-  1건의 Nexon match-detail 원본을 캐싱한다 — 매치는 한 번 끝나면 다시 안 바뀌는 데이터라
-  다른 조회성 캐시(TTL 30분, [§8](#8-redisupstash-캐시는-옵트인--fail-open))보다 훨씬
-  길게(24시간) 잡는다. `search()` 집계 루프뿐 아니라 매치 상세 모달의 match-shots/
-  match-squad/match-stats도 전부 이 캐시 하나를 통해서만 Nexon을 건드리므로, 검색 직후
-  그 매치를 클릭해도 재호출이 없다. **반드시 별도 빈으로 분리해야 한다** — SearchFacade
-  안에 두면 self-invocation으로 `@Cacheable` 프록시를 우회한다([§8]의 같은 함정).
+  position=28 제외, `goals*3+assists*2+(태클+인터셉트+블록+세이브)*0.5`, 클린시트/다실점/
+  고저점유율 임계값, 15분 단위 득점 시간대 버킷)을 그대로 옮겼다 — DB의 QueryDSL
+  group-by 대신 `SearchFacade` 안에서 순수 Java로 직접 집계한다는 점만 다르다(매치 수가
+  최대 30건이라 DB 없이도 충분히 가볍다).
+- **매치 결과 캐시**: `SearchMatchDetailCache`(infrastructure, `@Cacheable`)가 3종을
+  캐싱한다 — 닉네임→ouid(24시간, 유료 변경 아니면 거의 안 바뀜), 최근 matchId 목록(30분,
+  다른 조회성 캐시와 동일), matchId 1건의 Nexon match-detail 원본(24시간, 매치는 한 번
+  끝나면 다시 안 바뀌는 데이터). `getOverall`/`getPlayers`/... 전 API와 매치 상세 모달의
+  match-shots/match-squad/match-stats가 전부 이 캐시 하나만 통해서 Nexon을 건드리므로,
+  같은 화면 로드에서 여러 API가 겹치는 matchId를 봐도(위 CSR 분리로 실제로 겹친다)
+  Nexon 매치 상세 호출은 매치당 한 번만 나가고, 검색 직후 그 매치를 클릭해도 재호출이
+  없다. **반드시 별도 빈으로 분리해야 한다** — SearchFacade 안에 두면 self-invocation으로
+  `@Cacheable` 프록시를 우회한다([§8]의 같은 함정).
 - Nexon match-detail 응답은 한 번의 호출로 양쪽 참가자(나·상대) 데이터를 전부 담고
   있어서(`NexonMatchData.participants()`가 2건), DB 기반 방식과 달리 **상대가 추적
-  대상인지 여부와 무관하게 항상 "상대 팀 비교"가 가능하다** — 검색 대상의 상대가 누구든
-  Nexon이 자기 시점 shootEvents/squadEntries를 그대로 준다.
+  대상인지 여부와 무관하게 항상 "상대 팀 비교"·"평균 실점 xG값"이 가능하다** — 검색
+  대상의 상대가 누구든 Nexon이 자기 시점 shootEvents/squadEntries를 그대로 준다.
 - `RecordController`(`/api/v1/records/*`)와 URL을 분리해 `/api/v1/search/players/*`로 뒀다 —
   같은 매치 상세라도 "DB에서 읽는다"와 "지금 Nexon을 친다"는 완전히 다른 성능/신뢰성
-  특성이라, 코드를 안 봐도 URL만으로 구분되게 하려는 의도.
+  특성이라, 코드를 안 봐도 URL만으로 구분되게 하려는 의도. 하위 경로 이름 자체는
+  RecordController와 동일하게 맞춰(위 CSR 항목) 두 페이지의 프론트 코드가 대칭을 이루게
+  했다.
 
 **결과.** *좋아진 점*: 새 인프라·마이그레이션 없이 기존 Nexon 게이트웨이 포트를 그대로
 재사용, 캐시 덕분에 반복 검색·매치 클릭이 빠름, DB 오염(추적 대상 아닌 사람 데이터가
