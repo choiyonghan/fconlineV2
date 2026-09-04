@@ -41,13 +41,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 메인 대시보드(report.html, 유저 칩 "전체") 스냅샷 조립. 매일 아침 배치({@code dashboard-snapshot}
- * 프로파일, DashboardSnapshotCliRunner)가 호출해 data/dashboard-snapshot.json을 만든다 — 백엔드가
+ * 프로파일, DashboardSnapshotCliRunner)가 {@link #build(MatchType)}을 CUSTOM/OFFICIAL 두 번 호출해
+ * data/dashboard-snapshot.json · data/dashboard-snapshot-official.json을 각각 만든다 — 백엔드가
  * 잠들어 있어도(Render 무료 티어 콜드 스타트) 대시보드는 이 정적 파일만 읽어 즉시 뜨게 하려는
  * 목적. 기존 RecordFacade/SeasonFacade/UserFacade만 재사용하고 새 DB 테이블/마이그레이션은 없다.
  *
- * 스코프는 "모두의 커스텀"(matchType=CUSTOM, 현재시즌 날짜 범위) 하나뿐이다 — 공식전은 대시보드에
- * 안 남긴다(요청). SeasonRangeResolver.resolve(null)이 "전체 기간"이 아니라 "오늘 기준 진행 중인
- * 시즌"으로 해석되므로(app.common.SeasonRangeResolver), currentSeason.id()를 명시적으로 넘긴다.
+ * 스코프는 matchType 파라미터로 CUSTOM/OFFICIAL 둘 다 지원한다(요청, 2026-09-04 확대 — 원래는
+ * "모두의 커스텀" 하나뿐이었다). 둘 다 currentSeason.id()를 명시적으로 넘긴다 —
+ * SeasonRangeResolver.resolve(null)이 "전체 기간"이 아니라 "오늘 기준 진행 중인 시즌"으로
+ * 해석되므로(app.common.SeasonRangeResolver), CUSTOM도 OFFICIAL도 항상 현재 시즌 하나로 스코프를
+ * 고정한다(OFFICIAL은 애초에 시즌 단위 랭크전이라 이게 자연스럽다).
  */
 @Component
 public class DashboardSnapshotBuilder {
@@ -77,10 +80,9 @@ public class DashboardSnapshotBuilder {
     }
 
     @Transactional(readOnly = true)
-    public DashboardSnapshotFile build() {
+    public DashboardSnapshotFile build(MatchType matchType) {
         List<TrackedUserResponse> users = userFacade.listTrackedUsers();
         SeasonResponse currentSeason = resolveCurrentSeason();
-        MatchType matchType = MatchType.CUSTOM;
         Long seasonId = currentSeason.id();
 
         Map<String, DashboardScopeSummary> summaryByOuid = new LinkedHashMap<>();
@@ -98,10 +100,10 @@ public class DashboardSnapshotBuilder {
             snapshots.put(u.ouid(), new DashboardUserSnapshot(u.ouid(), u.nickname(), summaryByOuid.get(u.ouid())));
         }
 
-        RankingResult ranking = buildRanking(users, summaryByOuid);
+        RankingResult ranking = buildRanking(matchType, users, summaryByOuid);
         List<DashboardPooledPlayer> allPlayers = buildPooledPlayers(users, matchType, seasonId, playersByOuid);
 
-        return new DashboardSnapshotFile(Instant.now(), currentSeason.name(),
+        return new DashboardSnapshotFile(matchType, Instant.now(), currentSeason.name(),
                 ranking.failed(), ranking.note(), ranking.introText(), ranking.outroText(),
                 ranking.entries(), snapshots, allPlayers);
     }
@@ -276,9 +278,15 @@ public class DashboardSnapshotBuilder {
                                   List<DashboardRankingEntry> entries) {
     }
 
-    private static final String RANKING_SYSTEM_INSTRUCTION = """
+    /** rankingSystemInstruction/buildRankingPrompt에 끼워 넣는 스코프 설명 — matchType별로 문구만 다르다. */
+    private static String scopeLabel(MatchType matchType) {
+        return matchType == MatchType.OFFICIAL ? "현재 시즌 공식전(랭크 매치)" : "\"모두의 커스텀\"(현재시즌 커스텀 매치)";
+    }
+
+    private static String rankingSystemInstruction(MatchType matchType) {
+        return """
             너는 FC 온라인(피파온라인) 친구 그룹의 전적 데이터를 근거로 "종합 순위 리포트"를 발표하는
-            과장되고 유쾌한 스포츠 해설자다. 아래 유저들의 "모두의 커스텀"(현재시즌 커스텀 매치) 통계를
+            과장되고 유쾌한 스포츠 해설자다. 아래 유저들의 %s 통계를
             보고 종합 실력 기준 1위부터 꼴찌까지 순위를 매겨라. 승률과 득실차를 가장 중요하게 보고,
             결정력(실제 득점-xG), 기대어시스트(xA, 어시스트한 슛의 기대 득점 합계), 평균 평점,
             클린시트 비율도 참고해라. 표본 경기 수가 너무 적은(예: 5경기 미만) 유저는 신뢰도가
@@ -291,12 +299,14 @@ public class DashboardSnapshotBuilder {
              "ranking":[{"nickname":"정확히 입력받은 닉네임 그대로","rank":1,"reason":"전적 요약 + 2~3문장 유쾌한 해설"}, ...],
              "outroText":"전체 총평 1문단(재밌게)"}
             입력받은 유저 수와 정확히 같은 개수의 ranking 항목을, rank는 1부터 그 수까지 중복 없이 채워라.
-            """;
+            """.formatted(scopeLabel(matchType));
+    }
 
-    private RankingResult buildRanking(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
+    private RankingResult buildRanking(MatchType matchType, List<TrackedUserResponse> users,
+                                        Map<String, DashboardScopeSummary> summaryByOuid) {
         try {
-            String prompt = buildRankingPrompt(users, summaryByOuid);
-            String raw = geminiApiClient.askJson(RANKING_SYSTEM_INSTRUCTION, prompt);
+            String prompt = buildRankingPrompt(matchType, users, summaryByOuid);
+            String raw = geminiApiClient.askJson(rankingSystemInstruction(matchType), prompt);
             return parseRanking(raw, users);
         } catch (Exception e) {
             log.error("AI 랭킹 호출/파싱 실패 — 승률 기준 대체 랭킹(고정 유머 해설 포함)으로 대체합니다.", e);
@@ -304,9 +314,10 @@ public class DashboardSnapshotBuilder {
         }
     }
 
-    private String buildRankingPrompt(List<TrackedUserResponse> users, Map<String, DashboardScopeSummary> summaryByOuid) {
+    private String buildRankingPrompt(MatchType matchType, List<TrackedUserResponse> users,
+                                       Map<String, DashboardScopeSummary> summaryByOuid) {
         StringBuilder sb = new StringBuilder();
-        sb.append("유저 ").append(users.size()).append("명(모두의 커스텀 기준):\n\n");
+        sb.append("유저 ").append(users.size()).append("명(").append(scopeLabel(matchType)).append(" 기준):\n\n");
         for (TrackedUserResponse u : users) {
             sb.append("- 닉네임: ").append(u.nickname()).append("\n");
             appendScopeLine(sb, summaryByOuid.get(u.ouid()));

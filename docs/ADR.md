@@ -167,8 +167,16 @@ Artifact로) 만들어 쓰던 매치 리포트 정적 페이지를 "라이브 �
 `index.html`은 `report.html`로 리다이렉트만 하는 빈 페이지로 남겼다. 즉 **현재
 `report.html`(과 `report.js` 하나)이 유일한 실제 진입점**이고, "대시보드"는 별도 페이지가
 아니라 그 안의 한 상태("전체" 칩 선택)다. 대시보드 기본 화면은 여전히 백엔드를 안 거친다
-— 유저 칩 목록조차 `data/dashboard-snapshot.json`의 `ranking`에서 뽑고, 실제 유저 칩을
-누르는 순간에만 라이브 API를 지연 로드한다.
+— 유저 칩 목록조차 스냅샷의 `ranking`에서 뽑고, 실제 유저 칩을 누르는 순간에만 라이브
+API를 지연 로드한다.
+
+대시보드는 원래 `data/dashboard-snapshot.json`(CUSTOM 고정) 파일 하나였는데, "전체" 화면도
+공식전을 보고 싶다는 요청(2026-09-04)으로 매치타입 토글이 대시보드 모드에서도 살아난다 —
+`DashboardSnapshotCliRunner`가 CUSTOM/OFFICIAL 스코프를 각각 `DashboardSnapshotBuilder.build
+(MatchType)`으로 독립 실행해 `dashboard-snapshot.json` · `dashboard-snapshot-official.json` 두
+파일을 쓰고(한쪽이 실패해도 다른 쪽은 정상 커밋되게 `dashboard-snapshot.yml`의 커밋 스텝을
+`if: always()`로), 프론트는 토글 값에 따라 두 URL 중 하나를 fetch한다(매치타입별로 별도
+promise 캐시). 두 스코프 다 "현재 시즌" 하나로 고정이라 시즌 선택 UI는 여전히 숨긴다.
 
 **결과.** *좋아진 점*: 빌드 도구 없이 파일을 바로 고칠 수 있어 반복 속도가 빠름(1인
 유지보수 특성상 이점이 큼), 전용 API 없는 집계도 클라이언트 세션 캐시로 즉석 계산해

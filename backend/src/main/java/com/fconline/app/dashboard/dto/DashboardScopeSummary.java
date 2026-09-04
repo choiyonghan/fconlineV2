@@ -3,8 +3,8 @@ package com.fconline.app.dashboard.dto;
 import java.util.List;
 
 /**
- * 한 유저의 "모두의 커스텀"(matchType=CUSTOM, 현재시즌 날짜 범위) 서머리 — 대시보드는 공식전
- * 스코프는 안 보여준다(요청). 지표 공식은 전부
+ * 한 유저의 대시보드 스코프(CUSTOM 또는 OFFICIAL, 둘 다 현재시즌 기준 — DashboardSnapshotFile.matchType
+ * 참고) 서머리. 지표 공식은 전부
  * {@code report.js}의 {@code renderPlayStyle}(플레이 성향 카드)이 라이브 페이지에서 쓰는 것과
  * 동일하게 맞췄다 — 새 지표를 여기서 발명하지 않는다:
  * <ul>

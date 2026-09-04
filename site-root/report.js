@@ -5,13 +5,17 @@
 
   /**
    * 유저 칩 맨 앞의 "전체" 가짜 유저 — 기본 선택값(개인별 실시간 리포트 대신 9명 요약
-   * 대시보드를 먼저 보여준다). 백엔드를 전혀 거치지 않고 DASHBOARD_SNAPSHOT_URL(매일 아침
-   * dashboard-snapshot.yml이 커밋해둔 정적 JSON)만 읽는다 — 백엔드 콜드 스타트와 무관하게
-   * 항상 즉시 뜨는 게 목적. 실제 트래킹 유저 ouid와 절대 겹치지 않는 값이라 buildChips/
-   * setActiveChip 등 기존 칩 로직을 그대로 재사용할 수 있다.
+   * 대시보드를 먼저 보여준다). 백엔드를 전혀 거치지 않고 DASHBOARD_SNAPSHOT_URL_BY_MATCHTYPE
+   * (매일 아침 dashboard-snapshot.yml이 커밋해둔 정적 JSON, CUSTOM/OFFICIAL 각각 별도 파일 —
+   * 요청, 2026-09-04 확대)만 읽는다 — 백엔드 콜드 스타트와 무관하게 항상 즉시 뜨는 게 목적.
+   * 실제 트래킹 유저 ouid와 절대 겹치지 않는 값이라 buildChips/setActiveChip 등 기존 칩
+   * 로직을 그대로 재사용할 수 있다.
    */
   var ALL_OUID = '__ALL__';
-  var DASHBOARD_SNAPSHOT_URL = 'https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/dashboard-snapshot.json';
+  var DASHBOARD_SNAPSHOT_URL_BY_MATCHTYPE = {
+    CUSTOM: 'https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/dashboard-snapshot.json',
+    OFFICIAL: 'https://raw.githubusercontent.com/choiyonghan/fconlineV2/main/data/dashboard-snapshot-official.json'
+  };
 
   /**
    * "욱식 점수"는 닉네임에 "욱"이 들어가는 두 유저(지린성에사는욱구, 욱냥0I)만의 재미 요소 규칙
@@ -296,9 +300,20 @@
       state.matchType = btn.getAttribute('data-mt');
       mtButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
       persist();
-      loadSelection();
+      // "전체" 칩(대시보드)도 이제 매치타입 토글을 쓴다(요청, 2026-09-04) — CUSTOM/OFFICIAL
+      // 스냅샷 파일이 따로 있어서 개인 리포트처럼 loadSelection()으로 백엔드를 부르지 않고
+      // loadDashboardSummary()가 해당 스냅샷을 다시 fetch한다.
+      if (state.ouid === ALL_OUID) {
+        loadDashboardSummary();
+      } else {
+        loadSelection();
+      }
     });
   });
+  // HTML의 aria-pressed 기본값은 항상 CUSTOM인데, localStorage에 저장된 이전 선택이 OFFICIAL일
+  // 수 있다(위 state 초기화 참고) — "전체" 모드는 예전엔 이 토글이 숨겨져 있어 무관했지만
+  // 이제 진입 즉시 반영돼야 하므로, 로드 시점에 실제 state.matchType으로 한 번 동기화한다.
+  mtButtons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mt') === state.matchType)); });
 
   // 플레이 성향 탭 — 공격/수비/점유율 중 하나만 보여준다. 데이터와 무관한 순수 UI 상태라
   // 한 번만 연결해두면 되고, loadSelection과 별개로 항상 동작한다.
@@ -396,13 +411,15 @@
   var seasonFilterGroup = document.getElementById('season-filter-group');
   var userReportContent = document.getElementById('user-report-content');
   var dashboardSummaryEl = document.getElementById('dashboard-summary');
-  var dashboardSnapshotPromise = null; // 칩을 왔다갔다 눌러도 재요청하지 않도록 메모이즈
+  var dashboardSnapshotPromiseByType = {}; // 칩/매치타입을 왔다갔다 눌러도 재요청하지 않도록 매치타입별로 메모이즈
 
   /** "전체" 칩 선택 시 개인 리포트 섹션들을 숨기고 대시보드 섹션만, 나머지는 반대로. */
   function showAllMode(isAll) {
     userReportContent.hidden = isAll;
     dashboardSummaryEl.hidden = !isAll;
-    matchtypeFilterGroup.hidden = isAll; // 대시보드는 항상 "모두의 커스텀" 고정 스코프라 무의미
+    // matchtypeFilterGroup은 "전체" 모드에서도 이제 보여준다(요청 — CUSTOM/OFFICIAL 스냅샷이
+    // 둘 다 있어서 더는 커스텀 고정 스코프가 아니다). 시즌 선택만 여전히 무의미해서 숨긴다 —
+    // 두 스코프 다 항상 "현재 시즌" 하나로 고정이라(DashboardSnapshotBuilder 참고).
     seasonFilterGroup.hidden = isAll;
     if (isAll) document.getElementById('page-title').textContent = '전체 유저 요약';
   }
@@ -410,16 +427,16 @@
   /** 백엔드를 전혀 거치지 않는다(raw.githubusercontent.com 정적 fetch) — 초기 진입 시 chip
       목록도 이 응답의 data.ranking(ouid+nickname)에서 뽑아 쓴다(init 참고), 그래야 첫 화면이
       백엔드 콜드 스타트와 완전히 무관해진다. 실패하면 호출부가 알아서 폴백한다. */
-  function fetchDashboardSnapshot() {
-    if (!dashboardSnapshotPromise) {
-      dashboardSnapshotPromise = fetch(DASHBOARD_SNAPSHOT_URL, { cache: 'no-store' })
+  function fetchDashboardSnapshot(matchType) {
+    if (!dashboardSnapshotPromiseByType[matchType]) {
+      dashboardSnapshotPromiseByType[matchType] = fetch(DASHBOARD_SNAPSHOT_URL_BY_MATCHTYPE[matchType], { cache: 'no-store' })
         .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
         .catch(function (err) {
-          dashboardSnapshotPromise = null; // 실패하면 다음 시도 때 재요청할 수 있게 캐시를 비운다
+          dashboardSnapshotPromiseByType[matchType] = null; // 실패하면 다음 시도 때 재요청할 수 있게 캐시를 비운다
           throw err;
         });
     }
-    return dashboardSnapshotPromise;
+    return dashboardSnapshotPromiseByType[matchType];
   }
 
   function renderDashboardError(err) {
@@ -429,20 +446,37 @@
       '위에서 유저를 직접 선택하면 실시간 데이터를 볼 수 있어요.'));
   }
 
-  /** "전체" 칩을 다시 누를 때(칩은 이미 만들어져 있는 상태) 쓴다 — 최초 진입 시 chip 구성까지
-      같이 하는 init()과는 별개 경로. */
+  /** "전체" 칩(또는 그 상태에서 매치타입 토글)을 누를 때 쓴다 — 최초 진입 시 chip 구성까지
+      같이 하는 init()도 내부적으로 이 함수를 그대로 쓴다. */
   function loadDashboardSummary() {
     dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
-    return fetchDashboardSnapshot().then(renderDashboardSummary).catch(renderDashboardError);
+    var matchType = state.matchType;
+    return fetchDashboardSnapshot(matchType).then(function (data) {
+      renderDashboardSummary(data);
+      var items = (data.ranking || []).map(function (r) { return { ouid: r.ouid, nickname: r.nickname }; });
+      items.forEach(function (u) { dashboardTrackedOuids[u.ouid] = true; });
+      if (items.length) {
+        buildUserChips(items); // 매치타입을 바꿔도 같은 9명이라 멱등 — 다시 그려도 무해하다.
+        loadRecentActivityFeed(items, matchType);
+      } else if (!allUsers.length) {
+        ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
+      }
+    }).catch(function (err) {
+      renderDashboardError(err);
+      if (!allUsers.length) {
+        ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
+      }
+    });
   }
 
   function renderDashboardSummary(data) {
     dashboardSummaryEl.replaceChildren();
 
     var d = new Date(data.generatedAt);
+    var mtLabel = data.matchType === 'OFFICIAL' ? '공식전' : '커스텀';
     var updatedLine = el('p', 'card-caption', '업데이트: ' + d.toLocaleString('ko-KR', {
       year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
-    }) + ' · ' + (data.currentSeasonName || '') + ' 커스텀 매치 기준');
+    }) + ' · ' + (data.currentSeasonName || '') + ' ' + mtLabel + ' 매치 기준');
     dashboardSummaryEl.appendChild(updatedLine);
 
     if (data.introText) {
@@ -1086,11 +1120,11 @@
    * 용도로 바꿨다(요청) — 어차피 백엔드를 호출하니 결과를 버리지 않고 화면에 쓴다.
    * 유저 목록은 백엔드가 아니라 스냅샷의 data.ranking에서 온다(init 참고).
    */
-  function loadRecentActivityFeed(users) {
+  function loadRecentActivityFeed(users, matchType) {
     var container = document.getElementById('dashboard-recent-activity');
     if (!container) return;
     var requests = users.map(function (u) {
-      return apiGet('/api/v1/records/recent-matches', { ouid: u.ouid, matchType: 'CUSTOM', page: 0, size: 10 })
+      return apiGet('/api/v1/records/recent-matches', { ouid: u.ouid, matchType: matchType, page: 0, size: 10 })
         .then(function (page) {
           return (page.content || []).map(function (m) {
             m.__ouid = u.ouid;
@@ -1111,18 +1145,19 @@
         return true;
       });
       deduped.sort(function (a, b) { return new Date(b.matchDate) - new Date(a.matchDate); });
-      renderDashboardRecentActivity(container, deduped.slice(0, 10));
+      renderDashboardRecentActivity(container, deduped.slice(0, 10), matchType);
     }).catch(function () {
       container.replaceChildren();
     });
   }
 
-  function renderDashboardRecentActivity(container, matches) {
+  function renderDashboardRecentActivity(container, matches, matchType) {
     container.replaceChildren();
     container.hidden = !matches.length;
     if (!matches.length) return;
+    var mtLabel = matchType === 'OFFICIAL' ? '공식전' : '커스텀';
     container.appendChild(el('p', 'card-title', '🕐 최근 경기 (전체 9명)'));
-    container.appendChild(el('p', 'card-caption', '9명 전체 기준 가장 최근 커스텀 매치 10건 — 클릭하면 상세 정보가 열립니다.'));
+    container.appendChild(el('p', 'card-caption', '9명 전체 기준 가장 최근 ' + mtLabel + ' 매치 10건 — 클릭하면 상세 정보가 열립니다.'));
     var wrap = el('div', 'table-scroll');
     var table = document.createElement('table');
     var thead = document.createElement('thead');
@@ -1152,8 +1187,10 @@
       tr.appendChild(el('td', 'num', m.goalsFor + ' : ' + m.goalsAgainst));
       var openFn = function () {
         // 이 매치의 주인 관점으로 모달을 열어야 match-shots/match-squad 등이 맞게 조회된다.
+        // matchType은 하드코딩하지 않고 이 피드를 불러올 때 실제로 요청한 값을 그대로 쓴다
+        // (요청 — "전체" 모드도 이제 CUSTOM/OFFICIAL 토글이 있어서 피드 자체가 매치타입별로 다르다).
         state.ouid = m.__ouid;
-        state.matchType = 'CUSTOM';
+        state.matchType = matchType;
         openMatchModal(m);
       };
       tr.addEventListener('click', openFn);
@@ -1169,22 +1206,7 @@
     state.ouid = ALL_OUID;
     showAllMode(true);
     setStatus(null);
-    dashboardSummaryEl.replaceChildren(el('p', 'card-caption', '대시보드를 불러오는 중…'));
-
-    fetchDashboardSnapshot().then(function (data) {
-      renderDashboardSummary(data);
-      var items = (data.ranking || []).map(function (r) { return { ouid: r.ouid, nickname: r.nickname }; });
-      items.forEach(function (u) { dashboardTrackedOuids[u.ouid] = true; });
-      if (items.length) {
-        buildUserChips(items);
-        loadRecentActivityFeed(items);
-      } else {
-        ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
-      }
-    }).catch(function (err) {
-      renderDashboardError(err);
-      ensureLiveData().then(function () { buildUserChips(byDisplayOrder(allUsers)); }).catch(function () {});
-    });
+    loadDashboardSummary();
   }
 
   function barChart(container, rows, opts) {

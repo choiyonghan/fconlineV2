@@ -1,10 +1,12 @@
 name: Build Dashboard Snapshot
 
-# 메인 대시보드(site-root/index.html)는 백엔드(Render 무료 티어)가 잠들어 있어도 즉시 뜨게
-# 하려고 실시간 API 호출을 하지 않는다 — 이 배치가 하루 한 번 9명 트래커 유저의 요약 +
-# AI(Gemini) 랭킹을 미리 만들어 data/dashboard-snapshot.json으로 커밋해두면, 프론트가
-# raw.githubusercontent.com에서 그 파일만 fetch한다(insight-snapshot.yml과 같은 컨벤션).
-# sync.yml(KST 09:15 매치 동기화)과 insight-snapshot.yml(KST 09:30) 다음 순서로 09:45에 돈다.
+# 메인 대시보드(site-root/report.html, 유저 칩 "전체")는 백엔드(Render 무료 티어)가 잠들어
+# 있어도 즉시 뜨게 하려고 실시간 API 호출을 하지 않는다 — 이 배치가 하루 한 번 9명 트래커
+# 유저의 요약 + AI(Gemini) 랭킹을 CUSTOM/OFFICIAL 두 스코프 각각
+# data/dashboard-snapshot.json · data/dashboard-snapshot-official.json으로 커밋해두면, 프론트가
+# raw.githubusercontent.com에서 현재 매치타입 토글에 맞는 파일만 fetch한다(insight-snapshot.yml과
+# 같은 컨벤션). sync.yml(KST 09:15 매치 동기화)과 insight-snapshot.yml(KST 09:30) 다음 순서로
+# 09:45에 돈다.
 on:
   schedule:
     - cron: '45 0 * * *' # KST 09:45
@@ -47,11 +49,19 @@ jobs:
         run: |
           java -jar backend/build/libs/*.jar --spring.profiles.active=dashboard-snapshot
 
-      - name: Commit and push snapshot file
+      # CUSTOM/OFFICIAL 중 한쪽만 실패해도(DashboardSnapshotCliRunner가 둘을 독립적으로 시도)
+      # 성공한 쪽 파일은 커밋되게 if: always()로 이전 스텝 실패와 무관하게 실행한다 — 워크플로우
+      # 실행 자체는 이전 스텝의 종료 코드 때문에 여전히 "실패"로 표시돼 문제가 드러난다.
+      - name: Commit and push snapshot files
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/dashboard-snapshot.json
+          # 두 파일 중 하나가 그 스코프 빌드 실패로 아예 안 만들어졌을 수도 있으니(예: 첫 실행,
+          # 또는 한쪽만 예외) 존재하는 파일만 add한다 — 없는 경로를 add하면 스텝 자체가 실패한다.
+          for f in data/dashboard-snapshot.json data/dashboard-snapshot-official.json; do
+            [ -f "$f" ] && git add "$f"
+          done
           if git diff --cached --quiet; then
             echo "변경 없음 — 커밋 생략"
           else
