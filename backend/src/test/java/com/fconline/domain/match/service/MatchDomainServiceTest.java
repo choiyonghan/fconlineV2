@@ -56,10 +56,38 @@ class MatchDomainServiceTest {
                         tuple("1-15", 1L), // 3
                         tuple("16-30", 1L), // 16
                         tuple("31-45", 1L), // 44
+                        tuple("전반추가시간", 0L),
                         tuple("46-60", 1L), // 46
                         tuple("61-75", 1L), // 75
                         tuple("76-90", 1L), // 90
+                        tuple("후반추가시간", 0L),
                         tuple("연장전", 3L) // 95, 120, 91
+                );
+    }
+
+    /**
+     * 후반 추가시간이 길면(예: 후반 45+3분) 절대분이 90을 넘는다 — 예전엔 이 경우를 그냥
+     * "연장전"으로 묻었는데, period=2(후반)인 이상 실제 연장전이 아니라 정규시간 추가시간
+     * 득점이다. GoalTimeBuckets.labelFor가 절대분이 아니라 period+로컬분을 직접 보고
+     * "전반추가시간"/"후반추가시간"으로 따로 집계하는지 검증한다.
+     */
+    @Test
+    void 전후반_추가시간_골은_연장전이_아니라_추가시간_버킷으로_집계한다() {
+        MatchDomainService service = new MatchDomainService(matchDetailRepository);
+        when(matchDetailRepository.findGoalMinutes("me", MatchType.CUSTOM, null, null))
+                .thenReturn(List.of(
+                        new GoalTimeRaw(47, 1), // 전반 45+2분 추가시간
+                        new GoalTimeRaw(48, 2)  // 후반 45+3분 추가시간 -> 절대분 93(과거엔 "연장전"으로 오집계)
+                ));
+
+        List<GoalTimeCount> result = service.goalTimeDistribution("me", MatchType.CUSTOM, null, null);
+
+        assertThat(result)
+                .filteredOn(c -> c.count() > 0)
+                .extracting(GoalTimeCount::bucketLabel, GoalTimeCount::count)
+                .containsExactly(
+                        tuple("전반추가시간", 1L),
+                        tuple("후반추가시간", 1L)
                 );
     }
 

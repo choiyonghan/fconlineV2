@@ -458,6 +458,9 @@
   .vbar-value { font-size: 11px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; font-variant-numeric: tabular-nums; }
   .vbar-fill { width: 100%; max-width: 30px; border-radius: 4px 4px 0 0; }
   .vbar-label { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; white-space: nowrap; }
+  /* 득점/실점 시간대 분포의 "전반추가시간"/"후반추가시간" 라벨은 숫자 구간(예: "76-90")보다
+     길어서 nowrap이면 좁은 컬럼 폭을 넘쳐 옆 컬럼과 겹친다 — 이 차트 라벨만 줄바꿈을 허용한다. */
+  .vbar-label-wrap { white-space: normal; word-break: keep-all; line-height: 1.2; max-width: 100%; }
 
   /* diverging vertical bars (goal vs conceded time distribution) */
   .vbars-diverging { display: flex; align-items: stretch; gap: 6px; padding-top: 4px; }

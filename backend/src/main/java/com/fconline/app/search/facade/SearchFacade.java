@@ -19,6 +19,7 @@ import com.fconline.domain.match.gateway.NexonParticipantData;
 import com.fconline.domain.match.gateway.NexonParticipantData.ShootEventData;
 import com.fconline.domain.match.gateway.NexonParticipantData.SquadEntryData;
 import com.fconline.domain.match.vo.ExpectedGoalsCalculator;
+import com.fconline.domain.match.vo.GoalTimeBuckets;
 import com.fconline.domain.match.vo.MatchType;
 import com.fconline.domain.match.vo.ShootResult;
 import com.fconline.domain.meta.PlayerMeta;
@@ -77,11 +78,6 @@ public class SearchFacade {
     private static final int MULTI_CONCEDED_THRESHOLD = 3;
     private static final int HIGH_POSSESSION_THRESHOLD = 55;
     private static final int LOW_POSSESSION_THRESHOLD = 45;
-
-    /** MatchDomainService의 동명 상수와 동일 — 득점 시간대 15분 버킷. */
-    private static final int[] BUCKET_UPPER_BOUNDS = {15, 30, 45, 60, 75, 90};
-    private static final String EXTRA_TIME_LABEL = "연장전";
-    private static final int[] PERIOD_OFFSET_MINUTES = {0, 0, 45, 90, 105, 120};
 
     private static final int DEFAULT_ASSIST_CHAIN_LIMIT = 10;
     private static final int MAX_ASSIST_CHAIN_LIMIT = 200;
@@ -447,41 +443,20 @@ public class SearchFacade {
     /** conceded=false면 득점 시간대, true면 상대(opponent)의 득점 시간대(=내 실점 시간대). */
     private List<GoalTimeBucketResponse> goalTimeDistributionOf(List<MatchCtx> matches, boolean conceded) {
         Map<String, Long> counts = new LinkedHashMap<>();
-        for (int upper : BUCKET_UPPER_BOUNDS) {
-            counts.put(bucketLabel(upper), 0L);
+        for (String label : GoalTimeBuckets.ORDERED_LABELS) {
+            counts.put(label, 0L);
         }
-        counts.put(EXTRA_TIME_LABEL, 0L);
 
         for (MatchCtx ctx : matches) {
             NexonParticipantData source = conceded ? findOpponent(ctx.data(), ctx.me().ouid()) : ctx.me();
             if (source == null) continue;
             for (ShootEventData shot : source.shootEvents()) {
                 if (shot.result() != ShootResult.GOAL || shot.goalTimeMinutes() == null) continue;
-                int absoluteMinute = shot.goalTimeMinutes() + periodOffset(shot.period());
-                counts.merge(bucketLabelFor(absoluteMinute), 1L, Long::sum);
+                String label = GoalTimeBuckets.labelFor(shot.goalTimeMinutes(), shot.period());
+                counts.merge(label, 1L, Long::sum);
             }
         }
         return counts.entrySet().stream().map(e -> new GoalTimeBucketResponse(e.getKey(), e.getValue())).toList();
-    }
-
-    private int periodOffset(Integer period) {
-        if (period == null || period < 1 || period >= PERIOD_OFFSET_MINUTES.length) {
-            return 0;
-        }
-        return PERIOD_OFFSET_MINUTES[period];
-    }
-
-    private String bucketLabelFor(int minute) {
-        for (int upper : BUCKET_UPPER_BOUNDS) {
-            if (minute <= upper) {
-                return bucketLabel(upper);
-            }
-        }
-        return EXTRA_TIME_LABEL;
-    }
-
-    private String bucketLabel(int upper) {
-        return (upper - 14) + "-" + upper;
     }
 
     private ShotPointResponse toShotPointResponse(ShootEventData shot, String matchId) {

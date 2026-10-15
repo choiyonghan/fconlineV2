@@ -242,7 +242,7 @@
       downBox.appendChild(downValue);
 
       col.appendChild(upBox);
-      col.appendChild(el('div', 'vbar-label', r.label));
+      col.appendChild(el('div', 'vbar-label vbar-label-wrap', r.label));
       col.appendChild(downBox);
       wrap.appendChild(col);
     });
@@ -1268,6 +1268,8 @@
     var timeRows = overall.goalTimeDistribution.map(function (t) { return { label: t.periodLabel, value: t.count }; });
     var concededTimeRows = (overall.concededGoalTimeDistribution || []).map(function (t) { return { label: t.periodLabel, value: t.count }; });
     divergingBarChart(document.getElementById('chart-goaltime'), timeRows, concededTimeRows);
+    document.getElementById('goaltime-caption').textContent =
+      totalGames + '경기 표본 · 15분 단위 구간별 득점(위, 파랑) · 실점(아래, 빨강) 수 · 전후반 추가시간 구간 별도 집계';
 
     var concededMatchIdSet = {};
     d.concededHeatmap.points.forEach(function (p) { concededMatchIdSet[p.matchId] = true; });
