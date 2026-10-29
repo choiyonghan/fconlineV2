@@ -963,6 +963,14 @@
     text-decoration: none; white-space: nowrap; align-self: center;
   }
   .search-back-link:hover { color: var(--series-1); }
+  /* 시즌 어워드 페이지(awards.html) 링크 — 검색 링크와 같은 줄, 한 시즌에 한 번 쓰는 특별 메뉴라
+     금색으로 구분한다. */
+  .awards-link {
+    font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #e8c547;
+    text-decoration: none; white-space: nowrap; align-self: center;
+    border: 1px solid rgba(232, 197, 71, 0.35); border-radius: 4px; padding: 4px 9px;
+  }
+  .awards-link:hover { background: rgba(232, 197, 71, 0.12); }
   .search-form {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px;
   }
