@@ -963,14 +963,25 @@
     text-decoration: none; white-space: nowrap; align-self: center;
   }
   .search-back-link:hover { color: var(--series-1); }
-  /* 시즌 어워드 페이지(awards.html) 링크 — 검색 링크와 같은 줄, 한 시즌에 한 번 쓰는 특별 메뉴라
-     금색으로 구분한다. */
+  /* 헤더 오른쪽 바로가기 묶음 — 어워드 두 덱 + 유저 검색. scorebug-top이 space-between이라
+     링크를 낱개로 두면 제목과 검색 링크 사이에 흩어져 자리가 어색해진다. 한 덩어리로 묶어
+     오른쪽 끝에 붙인다. 어워드는 한 시즌에 한 번 쓰는 특별 메뉴라 금색 칩으로 구분한다. */
+  .header-actions {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    margin-left: auto; align-self: center;
+  }
+  .header-actions-label {
+    font-family: var(--font-display); font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    white-space: nowrap; margin-right: 2px;
+  }
   .awards-link {
     font-family: var(--font-display); font-size: 12px; font-weight: 700; color: #e8c547;
-    text-decoration: none; white-space: nowrap; align-self: center;
+    text-decoration: none; white-space: nowrap;
     border: 1px solid rgba(232, 197, 71, 0.35); border-radius: 4px; padding: 4px 9px;
   }
   .awards-link:hover { background: rgba(232, 197, 71, 0.12); }
+  /* 어워드 칩 묶음과 검색 링크 사이를 벌려 서로 다른 메뉴라는 걸 보이게 한다. */
+  .header-actions .search-back-link { margin-left: 10px; }
   .search-form {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px;
   }

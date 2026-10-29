@@ -17,9 +17,14 @@
     <div class="scorebug-top">
       <h1 id="page-title">매치 리포트</h1>
       <p class="visitor-badge" id="visitor-badge" hidden></p>
-      <a class="awards-link" href="awards.html">🏆 시즌2 어워드</a>
-      <a class="awards-link" href="awards-people.html">👥 사람 합산</a>
-      <a class="search-back-link" href="search.html">🔍 다른 유저 검색</a>
+      <!-- 헤더 링크는 한 덩어리로 묶어 오른쪽에 붙인다 — scorebug-top이 space-between이라
+           따로 두면 링크들이 제목과 검색 사이에 흩어져 자리가 어색해진다. -->
+      <nav class="header-actions" aria-label="바로가기">
+        <span class="header-actions-label">🏆 시즌2 어워드</span>
+        <a class="awards-link" href="awards.html">계정별</a>
+        <a class="awards-link" href="awards-people.html">사람 합산</a>
+        <a class="search-back-link" href="search.html">🔍 다른 유저 검색</a>
+      </nav>
     </div>
     <div class="filters">
       <div class="filter-group">
