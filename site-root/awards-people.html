@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FC ONLINE 시즌2 어워드 · 사람 합산</title>
+<link rel="icon" href="favicon.svg"><meta name="description" content="FC ONLINE 시즌2 어워드 · 사람 합산 — 커스텀 매치 전 기록 기준, 39개 부문">
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a2128;
+    --panel-2: #151b21;
+    --gold: #e8c547;
+    --gold-dim: #4a3d10;
+    --text: #f5f7fa;
+    --muted: #8c98a4;
+    --silver: #c0c8d0;
+    --bronze: #b08d57;
+    --green: #4ade80;
+    --red: #f87171;
+    --line: #2a333c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 16:9 무대 — 뷰포트에 맞춰 스케일하지 않고 비율만 유지해 글자가 또렷하게 남게 한다. */
+  #stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  .deck { width: min(100vw, calc(100vh * 16 / 9)); height: min(100vh, calc(100vw * 9 / 16)); position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: clamp(18px, 3.2vmin, 46px) clamp(20px, 3.6vmin, 54px) clamp(40px, 5vmin, 64px);
+    display: flex; flex-direction: column;
+    opacity: 0; visibility: hidden;
+    transition: opacity .28s ease;
+  }
+  .slide.active { opacity: 1; visibility: visible; }
+
+  /* 폰트 크기는 전부 데크 높이(cqh) 기준 — 창 크기를 바꿔도 레이아웃이 안 깨진다. */
+  .deck { container-type: size; }
+  .slide { font-size: 2.1cqh; }
+
+  /* ---------- 표지 ---------- */
+  .cover { justify-content: center; }
+  .cover-kicker { color: var(--muted); letter-spacing: .5em; font-size: 2.3cqh; }
+  .cover-title { font-size: 11cqh; font-weight: 800; line-height: 1.05; margin: 1.4cqh 0 2.2cqh; }
+  .cover-rule { width: 100%; height: .5cqh; background: var(--gold); margin-bottom: 3cqh; }
+  .cover-sub { color: var(--gold); font-size: 2.6cqh; letter-spacing: .06em; }
+  .cover-stats { display: flex; gap: 6cqh; margin-top: 7cqh; }
+  .cover-stats .v { font-size: 6cqh; font-weight: 800; color: var(--gold); line-height: 1; }
+  .cover-stats .k { font-size: 2cqh; color: var(--muted); margin-top: .9cqh; }
+  .cover-meta { color: var(--muted); font-size: 1.8cqh; margin-top: auto; }
+
+  /* ---------- 공통 헤더 ---------- */
+  .head { display: flex; align-items: flex-start; gap: 2cqh; }
+  .head h2 { font-size: 5.6cqh; font-weight: 800; line-height: 1.15; }
+  .head .basis { color: var(--muted); font-size: 2cqh; margin-top: 1cqh; }
+  .counter { margin-left: auto; color: var(--gold); font-weight: 700; font-size: 2.4cqh; white-space: nowrap; }
+  .rule { height: 2px; background: var(--line); margin: 2.2cqh 0; }
+
+  /* ---------- 어워드 ---------- */
+  .podium { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .first {
+    display: flex; align-items: center; gap: 2.6cqh;
+    background: var(--panel); border: 1.5px solid var(--gold); border-radius: 1.4cqh;
+    padding: 2.6cqh 3cqh;
+  }
+  .first .medal { font-size: 7cqh; line-height: 1; }
+  .first .who { font-size: 4.4cqh; font-weight: 800; line-height: 1.2; }
+  .first .detail { color: var(--gold); font-size: 2.5cqh; margin-top: 1cqh; }
+
+  .runner {
+    display: flex; align-items: center; gap: 2.2cqh;
+    background: var(--panel-2); border: 1px solid #232c34; border-radius: .9cqh;
+    padding: 1.5cqh 3cqh; margin-top: 1.4cqh;
+  }
+  .runner .medal { font-size: 3.4cqh; line-height: 1; }
+  .runner .who { font-size: 2.5cqh; font-weight: 700; }
+  .runner.s2 .who { color: var(--silver); }
+  .runner.s3 .who { color: var(--bronze); }
+  .runner .detail { margin-left: auto; color: var(--muted); font-size: 2.1cqh; text-align: right; }
+
+  .comment {
+    margin-top: auto;
+    background: #1c1708; border: 1px solid var(--gold-dim); border-radius: 1cqh;
+    padding: 1.8cqh 2.4cqh;
+  }
+  .comment .label { color: var(--gold); font-size: 1.8cqh; font-weight: 700; margin-bottom: .9cqh; }
+  .comment .body { color: #ede3c6; font-size: 2.4cqh; font-style: italic; line-height: 1.5; }
+
+  /* ---------- 섹션 간지 ---------- */
+  .section { justify-content: center; }
+  .section .count { color: var(--gold); letter-spacing: .25em; font-size: 2.2cqh; }
+  .section .bar { width: 10cqh; height: .6cqh; background: var(--gold); margin: 2.4cqh 0; }
+  .section h2 { font-size: 8.5cqh; font-weight: 800; }
+  .section p { color: var(--muted); font-size: 2.4cqh; margin-top: 1.6cqh; }
+
+  /* ---------- 순위표 ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 2.2cqh; }
+  th, td { padding: 1.15cqh .6cqh; border-bottom: 1px solid var(--line); text-align: center; }
+  th { color: var(--gold); background: var(--panel); font-weight: 700; }
+  td.name { text-align: left; padding-left: 1.4cqh; }
+  tr.top td { font-weight: 700; }
+  tr.top td.rank { color: var(--gold); }
+  td.rank { color: var(--muted); font-weight: 700; }
+  .pos { color: var(--green); } .neg { color: var(--red); }
+
+  /* ---------- 기준/한계 ---------- */
+  .notes { display: grid; grid-template-columns: 16cqh 1fr; gap: 1.5cqh 2.4cqh; align-content: start; }
+  .notes dt { color: var(--gold); font-weight: 700; font-size: 2cqh; }
+  .notes dd { color: var(--silver); font-size: 1.95cqh; line-height: 1.45; }
+  .notes.lg { gap: 2.6cqh 2.8cqh; grid-template-columns: 18cqh 1fr; margin-top: 2cqh; }
+  .notes.lg dt { font-size: 2.7cqh; }
+  .notes.lg dd { font-size: 2.5cqh; line-height: 1.5; }
+
+  /* ---------- 하단 바 ---------- */
+  .footbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 3.4cqh;
+    background: var(--panel); display: flex; align-items: center;
+    padding: 0 3cqh; font-size: 1.6cqh; color: var(--muted);
+  }
+  .footbar .right { margin-left: auto; }
+  .footbar .back { color: var(--gold); text-decoration: none; font-weight: 700; }
+  .footbar .back:hover { text-decoration: underline; }
+  .footbar .sep { margin: 0 1.2cqh; color: var(--muted); }
+
+  #progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--gold); z-index: 20; transition: width .25s ease; }
+
+  /* ---------- 전체 보기 ---------- */
+  #overview {
+    position: fixed; inset: 0; background: rgba(8, 11, 14, .97); z-index: 30;
+    overflow-y: auto; padding: 3vh 3vw; display: none;
+  }
+  #overview.open { display: block; }
+  #overview h3 { font-size: 24px; margin-bottom: 4px; }
+  #overview .hint { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .card {
+    background: var(--panel); border: 1px solid #262f38; border-radius: 10px;
+    padding: 12px 14px; cursor: pointer; transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .card .t { font-weight: 700; font-size: 14px; }
+  .card .w { color: var(--gold); font-size: 12px; margin-top: 6px; }
+  .card .n { color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+  #help {
+    position: fixed; top: 10px; right: 12px; z-index: 25;
+    color: var(--muted); font-size: 11px; background: rgba(15,20,25,.85);
+    padding: 5px 9px; border-radius: 6px; border: 1px solid #242d36;
+  }
+  #help { transition: opacity .6s ease; }
+  #help.gone { opacity: 0; pointer-events: none; }
+  @media (max-width: 640px) { #help { display: none; } }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="stage"><div class="deck" id="deck"></div></div>
+<div id="overview"></div>
+<div id="help">← → 이동 · O 전체보기 · F 전체화면</div>
+
+<script>
+const DATA = {"snapshotAt":"2026-10-29T06:06:43.823970238Z","awards":[{"id":"champion","icon":"🏆","title":"시즌2 챔피언","basis":"보정 승점 (경기당, 승3·무1)","section":"사람 부문","corrected":true,"prior":86,"leagueRate":1.4312546957175056,"rows":[{"who":"설동민","value":2.003030372790266,"detail":"보정 승점 2.00 · 실측 273전 181승 53무 39패"},{"who":"최용한","value":1.75776712236447,"detail":"보정 승점 1.76 · 실측 215전 124승 34무 57패"},{"who":"김상기","value":1.4392239991413545,"detail":"보정 승점 1.44 · 실측 110전 46승 21무 43패"}],"comment":"273전 181승, 보정 승점 2.00. 계정 두 개를 합치니 더 무서워졌습니다. 2위와 0.25 차이인데 이건 \"근소하게 앞섰다\"가 아니라 \"혼자 다른 게임을 했다\"에 가깝습니다."},{"id":"topscorer","icon":"⚽","title":"득점왕","basis":"시즌 총 득점 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"전승욱","value":910,"detail":"910골 · 488전"},{"who":"최용한","value":763,"detail":"763골 · 215전"},{"who":"설동민","value":740,"detail":"740골 · 273전"}],"comment":"910골. 2위와 150골 차이입니다. 그리고 1,468실점. 역시 압도적 1위입니다. 넣는 것도 먹히는 것도 리그 최고인 사람에게 드리는 상이며, 누적 부문이라 보정으로 가려드릴 수도 없습니다."},{"id":"gpg","icon":"🎯","title":"효율왕","basis":"보정 경기당 득점","section":"사람 부문","corrected":true,"prior":86,"leagueRate":2.4267468069120963,"rows":[{"who":"최용한","value":3.228239951476546,"detail":"보정 3.23골/경기 · 실측 763골 / 215전"},{"who":"설동민","value":2.6426190122407807,"detail":"보정 2.64골/경기 · 실측 740골 / 273전"},{"who":"김상기","value":2.4882664560940833,"detail":"보정 2.49골/경기 · 실측 279골 / 110전"}],"comment":"215경기에서 763골, 보정해도 경기당 3.23골. 계정을 합쳐 표본이 215경기가 됐는데도 안 떨어졌습니다. 상대 골키퍼 여섯 명이 연대 서명할 사안입니다."},{"id":"wall","icon":"🧱","title":"철벽상","basis":"보정 경기당 실점 — 적을수록 1등","section":"사람 부문","corrected":true,"prior":86,"leagueRate":2.3891810668670175,"rows":[{"who":"설동민","value":1.6865447681074193,"detail":"보정 1.69실점/경기 · 실측 400실점 / 273전"},{"who":"김정현","value":2.2200979197038526,"detail":"보정 2.22실점/경기 · 실측 465실점 / 216전"},{"who":"윤철희","value":2.317126710874465,"detail":"보정 2.32실점/경기 · 실측 61실점 / 29전"}],"comment":"273경기 400실점, 보정 1.69. 2위(김정현 2.22)와 0.5골 넘게 차이납니다. 이 리그에서 수비가 뭔지 아는 사람은 여섯 중 하나뿐이라는 게 숫자로 확정됐습니다."},{"id":"sieve","icon":"🕳️","title":"체망 수비상","basis":"보정 경기당 실점 — 많을수록 1등","section":"사람 부문","corrected":true,"prior":86,"leagueRate":2.3891810668670175,"rows":[{"who":"전승욱","value":2.9154522155933162,"detail":"보정 2.92실점/경기 · 실측 1468실점 / 488전"},{"who":"김상기","value":2.4207631211763445,"detail":"보정 2.42실점/경기 · 실측 269실점 / 110전"},{"who":"최용한","value":2.400231135383932,"detail":"보정 2.40실점/경기 · 실측 517실점 / 215전"}],"comment":"488경기 1,468실점, 보정 2.92. 계정을 합쳐도 실점 1위 자리는 흔들림이 없습니다. 어느 계정으로 들어가든 결과가 같다는 건, 문제가 계정이 아니었다는 뜻입니다."},{"id":"goaldiff","icon":"📊","title":"득실차왕","basis":"득점 − 실점 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"설동민","value":340,"detail":"+340 · 740득 400실"},{"who":"최용한","value":246,"detail":"+246 · 763득 517실"},{"who":"김정현","value":28,"detail":"+28 · 493득 465실"}],"comment":"740득 400실, 득실 +340. 2위(+246)와도 100 가까이 벌렸습니다. 나머지 네 명의 득실을 다 합쳐도 이 사람을 못 넘습니다. 시상식이 아니라 청문회를 열어야 합니다."},{"id":"rating","icon":"⭐","title":"평점왕","basis":"보정 팀 평균 평점","section":"사람 부문","corrected":true,"prior":86,"leagueRate":8.251885800150264,"rows":[{"who":"설동민","value":8.583766514799228,"detail":"보정 8.58점 · 실측 8.69점 / 273전"},{"who":"최용한","value":8.503096939577816,"detail":"보정 8.50점 · 실측 8.60점 / 215전"},{"who":"김정현","value":8.286298605340804,"detail":"보정 8.29점 · 실측 8.30점 / 216전"}],"comment":"보정 평점 8.58로 1위. 같은 선수 카드가 전승욱 씨 손에서는 7.8점이 나옵니다. 선수는 죄가 없다는 게 두 시즌째 증명되고 있습니다."},{"id":"possession","icon":"🎩","title":"점유율 지배자","basis":"보정 평균 점유율","section":"사람 부문","corrected":true,"prior":86,"leagueRate":49.83621337340345,"rows":[{"who":"설동민","value":52.24210125379581,"detail":"보정 52.2% · 실측 53.0% · 고점유 92경기"},{"who":"김정현","value":52.09905413944602,"detail":"보정 52.1% · 실측 53.0% · 고점유 76경기"},{"who":"윤철희","value":49.37316826184954,"detail":"보정 49.4% · 실측 48.0% · 고점유 1경기"}],"comment":"보정 52.2%로 점유율 1위 — 2위 김정현(52.1%)과 0.1%p 차이입니다. 둘이 공을 두고 싸운 게 아니라 서로 양보하다 끝난 수준의 격차입니다."},{"id":"nopossession","icon":"🪨","title":"공 양보상","basis":"보정 평균 점유율 — 낮을수록 1등","section":"사람 부문","corrected":true,"prior":86,"leagueRate":49.83621337340345,"rows":[{"who":"최용한","value":47.939914784427565,"detail":"보정 47.9% · 실측 47.2% · 저점유 64경기"},{"who":"전승욱","value":48.38835252632874,"detail":"보정 48.4% · 실측 48.1% · 저점유 137경기"},{"who":"김상기","value":49.366909949554575,"detail":"보정 49.4% · 실측 49.0% · 저점유 19경기"}],"comment":"보정 점유율 47.9%로 꼴찌인데 득점은 763골로 2위. 공을 안 가진 채로 이만큼 넣는다는 건, 점유율이라는 지표에 사과를 요구할 만한 기록입니다."},{"id":"shootacc","icon":"🔫","title":"명사수상","basis":"보정 팀 슈팅 정확도","section":"사람 부문","corrected":true,"prior":575,"leagueRate":0.7575536949399345,"rows":[{"who":"최용한","value":0.7861729688467066,"detail":"보정 78.6% · 실측 1,316/1,653"},{"who":"윤철희","value":0.7685582400423677,"detail":"보정 76.9% · 실측 117/144"},{"who":"설동민","value":0.7616503513380751,"detail":"보정 76.2% · 실측 1,352/1,772"}],"comment":"1,653번 쏴서 1,316번 유효, 보정 78.6%. 2,618번 쏘고 73.6%인 분(전승욱)과 비교하면 — 많이 쏘는 것과 잘 쏘는 것은 전혀 다른 기술이라는 교보재입니다."},{"id":"shootmiss","icon":"💩","title":"삽질상","basis":"보정 팀 슈팅 정확도 — 낮을수록 1등","section":"사람 부문","corrected":true,"prior":575,"leagueRate":0.7575536949399345,"rows":[{"who":"전승욱","value":0.7355444330067217,"detail":"보정 73.6% · 실측 1,913/2,618"},{"who":"김상기","value":0.7461600671807261,"detail":"보정 74.6% · 실측 615/833"},{"who":"김정현","value":0.7603526584579412,"detail":"보정 76.0% · 실측 930/1,221"}],"comment":"2,618번 쐈습니다. 리그 최다. 보정해도 73.6%로 꼴찌. 700번 가까이 골대가 아닌 어딘가로 보냈습니다. 그 정도면 슛이 아니라 장외 홈런입니다."},{"id":"pass","icon":"🔗","title":"티키타카상","basis":"보정 팀 패스 성공률","section":"사람 부문","corrected":true,"prior":9021,"leagueRate":0.8804732660317365,"rows":[{"who":"김정현","value":0.8992069978895632,"detail":"보정 89.9% · 실측 21,937/24,208"},{"who":"설동민","value":0.8966637886665899,"detail":"보정 89.7% · 실측 27,575/30,590"},{"who":"윤철희","value":0.8811886576474763,"detail":"보정 88.1% · 실측 3,110/3,522"}],"comment":"24,208번 패스에 보정 성공률 89.9%로 1위. 그리고 보정 순위는 4위입니다. 패스 성공률이 순위표로 환전이 안 된다는 걸 24,208번에 걸쳐 증명했습니다."},{"id":"dribble","icon":"💃","title":"드리블 장인상","basis":"보정 팀 드리블 성공률","section":"사람 부문","corrected":true,"prior":6156,"leagueRate":0.8821706089205742,"rows":[{"who":"설동민","value":0.8966066206728311,"detail":"보정 89.7% · 실측 18,576/20,619"},{"who":"윤철희","value":0.8953126908844431,"detail":"보정 89.5% · 실측 2,278/2,454"},{"who":"최용한","value":0.8875544375354198,"detail":"보정 88.8% · 실측 12,174/13,679"}],"comment":"20,619번 드리블해서 18,576번 성공, 보정 89.7%. 시도 횟수도 성공률도 1위입니다. 수비하는 쪽 입장에서는 그냥 공을 못 뺏는 사람이 한 명 있는 겁니다."},{"id":"aerial","icon":"🦅","title":"공중볼 제왕","basis":"보정 공중볼 경합 승률","section":"사람 부문","corrected":true,"prior":686,"leagueRate":0.11759697256385998,"rows":[{"who":"전승욱","value":0.12821169246207662,"detail":"보정 12.8% · 실측 515/3,960"},{"who":"설동민","value":0.1219293582196905,"detail":"보정 12.2% · 실측 255/2,067"},{"who":"김정현","value":0.11455235465580699,"detail":"보정 11.5% · 실측 171/1,511"}],"comment":"보정 12.8%로 공중볼 1위. 3,960번 경합해서 515번 이겼습니다. 리그 1위가 12.8%라는 건, 여섯 명 전원이 제공권을 포기하고 바닥 축구만 했다는 뜻입니다."},{"id":"aerialworst","icon":"🐣","title":"제자리 점프상","basis":"보정 공중볼 경합 승률 — 낮을수록 1등","section":"사람 부문","corrected":true,"prior":686,"leagueRate":0.11759697256385998,"rows":[{"who":"최용한","value":0.1046723697423447,"detail":"보정 10.5% · 실측 192/1,919"},{"who":"윤철희","value":0.10630169242089772,"detail":"보정 10.6% · 실측 15/214"},{"who":"김상기","value":0.11083376856707126,"detail":"보정 11.1% · 실측 95/899"}],"comment":"1,919번 경합해서 192번 승리, 보정 10.5%. 열 번 떠서 한 번 땁니다. 공이 뜨면 그냥 다음 수비를 준비하는 게 합리적인 선택이었습니다."},{"id":"cleansheet","icon":"🧊","title":"클린시트왕","basis":"보정 무실점 경기 비율","section":"사람 부문","corrected":true,"prior":86,"leagueRate":0.09541697971450037,"rows":[{"who":"설동민","value":0.18163192271712267,"detail":"보정 18.2% · 실측 57경기 / 273전"},{"who":"김정현","value":0.10333066309750673,"detail":"보정 10.3% · 실측 23경기 / 216전"},{"who":"김상기","value":0.08778500130330118,"detail":"보정 8.8% · 실측 9경기 / 110전"}],"comment":"273경기 중 57경기 무실점, 보정 18.2%. 2위(김정현 10.3%)의 거의 두 배입니다. 이 사람과 붙으면 득점 자체가 이벤트입니다."},{"id":"disaster","icon":"💥","title":"대참사상","basis":"보정 3실점 이상 경기 비율","section":"사람 부문","corrected":true,"prior":86,"leagueRate":0.4237415477084899,"rows":[{"who":"전승욱","value":0.5565187684720038,"detail":"보정 55.7% · 실측 283경기 / 488전"},{"who":"최용한","value":0.43003911329877126,"detail":"보정 43.0% · 실측 93경기 / 215전"},{"who":"김상기","value":0.4155192505251537,"detail":"보정 41.6% · 실측 45경기 / 110전"}],"comment":"488경기 중 283경기에서 3골 이상 먹혔습니다. 보정해도 55.7%. 표본이 488경기면 보정도 손들고 나갑니다. 운이 아니라 정체성이라는 게 확정됐습니다."},{"id":"dirty","icon":"🟨","title":"더티 플레이상","basis":"보정 경기당 파울","section":"사람 부문","corrected":true,"prior":86,"leagueRate":0.7678437265214124,"rows":[{"who":"김상기","value":0.836911022861436,"detail":"보정 0.84파울/경기 · 실측 98파울 / 110전 (3옐로 0레드)"},{"who":"설동민","value":0.7772550431221211,"detail":"보정 0.78파울/경기 · 실측 213파울 / 273전 (37옐로 4레드)"},{"who":"전승욱","value":0.7770636942174939,"detail":"보정 0.78파울/경기 · 실측 380파울 / 488전 (26옐로 7레드)"}],"comment":"보정 경기당 0.84파울로 리그 최고의 악당. 성적표는 110경기 동안 옐로 3장, 레드 0장. 이 리그 악당의 수준이 이렇습니다. 다들 너무 점잖아서 이게 1위입니다."},{"id":"draws","icon":"🤝","title":"무승부 제조기","basis":"보정 무승부 비율","section":"사람 부문","corrected":true,"prior":86,"leagueRate":0.18482344102178813,"rows":[{"who":"윤철희","value":0.22517231241629374,"detail":"보정 22.5% · 실측 10무 / 29전"},{"who":"김정현","value":0.21157223817176748,"detail":"보정 21.2% · 실측 48무 / 216전"},{"who":"설동민","value":0.19190756525870134,"detail":"보정 19.2% · 실측 53무 / 273전"}],"comment":"29경기 중 10무, 보정 22.5%. 6승 10무 13패. 이기는 것도 지는 것도 아닌 상태를 가장 잘 만듭니다. 승부의 세계에서 홀로 중립국을 선언하셨습니다."},{"id":"attendance","icon":"🏃","title":"개근상","basis":"시즌 총 경기 수 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"전승욱","value":488,"detail":"488전 · 109승 80무 299패"},{"who":"설동민","value":273,"detail":"273전 · 181승 53무 39패"},{"who":"김정현","value":216,"detail":"216전 · 87승 48무 81패"}],"comment":"488경기. 2위(273전)의 1.8배입니다. 299패도 당연히 1위입니다. 이 정도 표본이면 보정도 아무것도 못 해줍니다 — 보정 순위 6위, 꼴찌가 과학적으로 확정됐습니다. 그래도 제일 많이 즐기신 분입니다."},{"id":"ghost","icon":"👻","title":"유령 회원상","basis":"시즌 총 경기 수 최소 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"윤철희","value":29,"detail":"29전 · 6승 10무 13패"},{"who":"김상기","value":110,"detail":"110전 · 46승 21무 43패"},{"who":"최용한","value":215,"detail":"215전 · 124승 34무 57패"}],"comment":"29경기. 2위(110전)와도 네 배 가까이 차이납니다. 시즌의 대부분을 관전으로 보내셨고, 덕분에 기록도 깨끗합니다. 안 하면 안 집니다."},{"id":"clutch","icon":"⏱️","title":"뒷심 폭발상","basis":"보정 76분 이후 득점 비중","section":"사람 부문","corrected":true,"prior":247,"leagueRate":0.20959752321981423,"rows":[{"who":"설동민","value":0.22165206508135166,"detail":"보정 22.2% · 실측 167골 / 740골"},{"who":"윤철희","value":0.21154311039484286,"detail":"보정 21.2% · 실측 10골 / 45골"},{"who":"최용한","value":0.20868375072801396,"detail":"보정 20.9% · 실측 159골 / 763골"}],"comment":"보정 22.2%, 740골 중 167골이 76분 이후. 이미 이기고 있어도 끝까지 넣습니다. 승부를 떠나 인간적으로 좀 그만하셔도 됩니다."},{"id":"fast","icon":"🥷","title":"선빵 전문가상","basis":"보정 1~15분 득점 비중","section":"사람 부문","corrected":true,"prior":247,"leagueRate":0.13405572755417958,"rows":[{"who":"전승욱","value":0.14789262290914637,"detail":"보정 14.8% · 실측 138골 / 910골"},{"who":"김정현","value":0.14609697933227347,"detail":"보정 14.6% · 실측 75골 / 493골"},{"who":"윤철희","value":0.13394439967767932,"detail":"보정 13.4% · 실측 6골 / 45골"}],"comment":"보정 14.8%로 선빵 1위. 동시에 보정 실점 1위(2.92). 먼저 때리고 역전당하는 패턴을 488경기 동안 반복했습니다. 학습 곡선이 수평입니다."},{"id":"type-헤더","icon":"🗣️","title":"헤더 전문가상","basis":"헤더 득점 수 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"전승욱","value":168,"detail":"168골 · 총 910골 중"},{"who":"설동민","value":108,"detail":"108골 · 총 740골 중"},{"who":"최용한","value":80,"detail":"80골 · 총 763골 중"}],"comment":"헤더로만 168골. 910골 중 18%를 머리로 해결했습니다. 발로 넣는 게 더 어려우셨던 모양이고, 저희는 목 디스크가 걱정됩니다."},{"id":"type-PK","icon":"🎯","title":"PK 전문가상","basis":"PK 득점 수 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"설동민","value":23,"detail":"23골 · 총 740골 중"},{"who":"최용한","value":16,"detail":"16골 · 총 763골 중"},{"who":"전승욱","value":12,"detail":"12골 · 총 910골 중"}],"comment":"PK 23골. 심판이 사람도 아닌 게임에서 23번을 얻어냈습니다. 넘어지는 각도를 두 계정에 걸쳐 연구한 결과이며, 이것도 재능이라면 재능입니다."},{"id":"type-발리","icon":"🦵","title":"발리 전문가상","basis":"발리 득점 수 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"전승욱","value":70,"detail":"70골 · 총 910골 중"},{"who":"설동민","value":64,"detail":"64골 · 총 740골 중"},{"who":"최용한","value":52,"detail":"52골 · 총 763골 중"}],"comment":"발리 70골. 조준은 안 하고 일단 휘두릅니다. 그게 70번 들어갔습니다. 실력인지 사고인지는 아직 과학적으로 규명되지 않았습니다."},{"id":"type-프리킥","icon":"🌀","title":"프리킥 전문가상","basis":"프리킥 득점 수 (누적 — 보정 없음)","section":"사람 부문","corrected":false,"rows":[{"who":"전승욱","value":13,"detail":"13골 · 총 910골 중"},{"who":"김정현","value":12,"detail":"12골 · 총 493골 중"},{"who":"최용한","value":7,"detail":"7골 · 총 763골 중"}],"comment":"프리킥 13골. 488경기를 뛰면 프리킥도 13번쯤은 들어갑니다. 재능이 아니라 시간과 확률의 문제였습니다."},{"id":"nemesis","icon":"😈","title":"천적 관계상","basis":"보정 맞대결 승률 (5경기 이상)","section":"사람 부문","corrected":true,"prior":13,"rows":[{"who":"설동민 → 전승욱","value":0.706203742494065,"detail":"보정 승률 70.6% · 실측 119승 27무 17패"},{"who":"최용한 → 전승욱","value":0.6463364980659967,"detail":"보정 승률 64.6% · 실측 102승 25무 26패"},{"who":"설동민 → 최용한","value":0.5842635261990101,"detail":"보정 승률 58.4% · 실측 21승 5무 6패"}],"comment":"163번 만나서 119승 17패. 보정을 거치고도 70.6%가 남았습니다. 운도 상성도 아니고 그냥 벽입니다. 전승욱 씨, 다음 시즌엔 접속 시간대를 바꾸시는 걸 권합니다."},{"id":"foodstand","icon":"🍚","title":"밥상 차려준상","basis":"보정 맞대결 패율 (5경기 이상)","section":"사람 부문","corrected":true,"prior":13,"rows":[{"who":"전승욱 → 설동민","value":0.706203742494065,"detail":"보정 패율 70.6% · 실측 17승 27무 119패"},{"who":"전승욱 → 최용한","value":0.6463364980659967,"detail":"보정 패율 64.6% · 실측 26승 25무 102패"},{"who":"최용한 → 설동민","value":0.5842635261990101,"detail":"보정 패율 58.4% · 실측 6승 5무 21패"}],"comment":"바로 앞 슬라이드의 반대편입니다. 163번 붙어서 119패, 보정 패율 70.6%. 대전 상대가 아니라 정기 후원 관계이며, 시즌2 최대 후원자께 감사패를 드립니다."},{"id":"p-goals","icon":"👑","title":"리그 득점왕","basis":"선수 득점 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"뤼트 반니스텔로이","value":201,"detail":"201골 · 184출전 · 주 보유자 김정현"},{"who":"로멜루 루카쿠","value":173,"detail":"173골 · 173출전 · 주 보유자 최용한"},{"who":"조지 베스트","value":153,"detail":"153골 · 175출전 · 주 보유자 최용한"}],"comment":"184출전 201골, 경기당 1골 이상. 주인 닉네임이 \"ST반니스텔로이\"인데 정작 주인 김정현 씨는 보정 순위 4위입니다. 선수는 할 일을 다 했습니다."},{"id":"p-assists","icon":"🅰️","title":"도움왕","basis":"선수 어시스트 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"데이비드 베컴","value":157,"detail":"157도움 · 471출전 · 주 보유자 김정현"},{"who":"조지 베스트","value":124,"detail":"124도움 · 175출전 · 주 보유자 최용한"},{"who":"로멜루 루카쿠","value":106,"detail":"106도움 · 173출전 · 주 보유자 최용한"}],"comment":"471경기 157도움. 사람 중 제일 많이 뛴 전승욱 씨(488전)와 맞먹습니다. 여러 주인이 동시에 굴린 결과인데, 정작 선수는 이게 투잡인지 쓰리잡인지도 모릅니다."},{"id":"p-points","icon":"🐐","title":"공격포인트왕","basis":"골 + 어시스트 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"로멜루 루카쿠","value":279,"detail":"279포인트 · 173출전 · 주 보유자 최용한"},{"who":"조지 베스트","value":277,"detail":"277포인트 · 175출전 · 주 보유자 최용한"},{"who":"데이비드 베컴","value":258,"detail":"258포인트 · 471출전 · 주 보유자 김정현"}],"comment":"173출전에 공격포인트 279개. 출전 수보다 포인트가 더 많습니다. 최용한 씨가 2위를 한 게 아니라 이 선수가 2위를 해준 겁니다."},{"id":"p-saves","icon":"🧤","title":"선방왕","basis":"세이브 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"카시야스","value":598,"detail":"598세이브 · 182출전 · 주 보유자 김정현"},{"who":"티보 쿠르투아","value":556,"detail":"556세이브 · 203출전 · 주 보유자 전승욱"},{"who":"잔루이지 돈나룸마","value":414,"detail":"414세이브 · 129출전 · 주 보유자 설동민"}],"comment":"598세이브. 182경기 동안 경기당 3.3번 팀을 구했습니다. 골키퍼가 잘했다는 증거이자, 앞에 선 열 명이 일을 안 했다는 물증이기도 합니다."},{"id":"p-tackles","icon":"🛡️","title":"태클왕","basis":"태클 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"리오 퍼디난드","value":255,"detail":"255태클 · 240출전 · 주 보유자 최용한"},{"who":"마르셀 드사이","value":228,"detail":"228태클 · 204출전 · 주 보유자 전승욱"},{"who":"네마냐 비디치","value":210,"detail":"210태클 · 216출전 · 주 보유자 최용한"}],"comment":"255태클 266인터셉트로 수비 2관왕. 그런데 소속팀은 517실점했습니다. 한 명이 아무리 잘해도 안 되는 게 있다는 걸 몸으로 증명했습니다."},{"id":"p-intercepts","icon":"🕵️","title":"인터셉트왕","basis":"인터셉트 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"리오 퍼디난드","value":266,"detail":"266인터셉트 · 240출전 · 주 보유자 최용한"},{"who":"마르셀 드사이","value":242,"detail":"242인터셉트 · 204출전 · 주 보유자 전승욱"},{"who":"네마냐 비디치","value":235,"detail":"235인터셉트 · 216출전 · 주 보유자 최용한"}],"comment":"태클왕과 같은 사람입니다. 수비 부문 독식. 나머지 수비수들은 이 선수가 처리하는 걸 뒤에서 감상하는 포지션이었습니다."},{"id":"p-blocks","icon":"🚫","title":"블록왕","basis":"블록 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"네마냐 비디치","value":29,"detail":"29블록 · 216출전 · 주 보유자 최용한"},{"who":"크리스티안 로메로","value":23,"detail":"23블록 · 61출전 · 주 보유자 전승욱"},{"who":"페르난도 이에로","value":22,"detail":"22블록 · 183출전 · 주 보유자 김정현"}],"comment":"29블록으로 1위. 이 리그에서 몸을 던지는 선수가 사실상 혼자라는 뜻입니다. 나머지는 전부 길을 비켜드렸습니다."},{"id":"p-apps","icon":"⛏️","title":"노예상","basis":"최다 출전 · 6명 스쿼드 합산 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"데이비드 베컴","value":471,"detail":"471출전 · 101골 157도움 · 주 보유자 김정현"},{"who":"마르크 쿠쿠레야","value":280,"detail":"280출전 · 3골 44도움 · 주 보유자 전승욱"},{"who":"리오 퍼디난드","value":240,"detail":"240출전 · 0골 5도움 · 주 보유자 최용한"}],"comment":"471경기. 여러 사람이 동시에 굴린 결과입니다. 리그 전체가 선수 한 명을 돌려썼다는 뜻이고, 이건 어워드가 아니라 산업재해 신고에 가깝습니다."},{"id":"p-rating","icon":"💎","title":"최고 평점 선수","basis":"보정 출전 가중 평균 평점","section":"선수 부문","corrected":true,"prior":11,"rows":[{"who":"로멜루 루카쿠","value":7.953787851566328,"detail":"보정 7.95 · 실측 8.03 / 173출전 · 주 보유자 최용한"},{"who":"라스무스 호일룬","value":7.815706862008514,"detail":"보정 7.82 · 실측 8.76 / 13출전 · 주 보유자 최용한"},{"who":"마테우스 쿠냐","value":7.804891596007297,"detail":"보정 7.80 · 실측 8.52 / 17출전 · 주 보유자 최용한"}],"comment":"173경기를 뛰고도 보정 평점 7.95로 1위. 13경기 반짝하고 사라진 선수들은 보정이 전부 걸러냈습니다. 표본이 깡패인데, 이 선수는 그 깡패를 이겼습니다."},{"id":"p-combo","icon":"🤜🤛","title":"환상의 콤비상","basis":"어시스트 → 득점 조합 골 수 (누적 — 보정 없음)","section":"선수 부문","corrected":false,"rows":[{"who":"데이비드 베컴 → 뤼트 반니스텔로이","value":32,"detail":"32골 · 김정현"},{"who":"로멜루 루카쿠 → 조지 베스트","value":31,"detail":"31골 · 최용한"},{"who":"조지 베스트 → 로멜루 루카쿠","value":31,"detail":"31골 · 최용한"}],"comment":"32골 합작. 2000년대 올드 트래포드를 커스텀 매치에 그대로 복원했습니다. 그렇게까지 해놓고 주인 보정 순위가 4위인 건, 이 조합으로도 구원 못 한 영역이 있다는 뜻입니다."}],"ranking":[{"nickname":"설동민","realName":"아기블루스 + D로쏘네리","games":273,"win":181,"draw":53,"lose":39,"goalsFor":740,"goalsAgainst":400,"avgRating":8.688315018315018,"adjPoints":2.003030372790266,"rawWinRate":66.30036630036629,"rank":1},{"nickname":"최용한","realName":"내혀를가져가 + 내눈을가져가","games":215,"win":124,"draw":34,"lose":57,"goalsFor":763,"goalsAgainst":517,"avgRating":8.603581395348836,"adjPoints":1.75776712236447,"rawWinRate":57.674418604651166,"rank":2},{"nickname":"김상기","realName":"서울쥐","games":110,"win":46,"draw":21,"lose":43,"goalsFor":279,"goalsAgainst":269,"avgRating":8.26,"adjPoints":1.4392239991413545,"rawWinRate":41.81818181818181,"rank":3},{"nickname":"김정현","realName":"ST반니스텔로이","games":216,"win":87,"draw":48,"lose":81,"goalsFor":493,"goalsAgainst":465,"avgRating":8.3,"adjPoints":1.4307546484493558,"rawWinRate":40.27777777777778,"rank":4},{"nickname":"윤철희","realName":"프란체스co토티","games":29,"win":6,"draw":10,"lose":13,"goalsFor":45,"goalsAgainst":61,"avgRating":8.19,"adjPoints":1.3138078594061346,"rawWinRate":20.689655172413794,"rank":5},{"nickname":"전승욱","realName":"지린성에사는욱구 + 욱냥0I","games":488,"win":109,"draw":80,"lose":299,"goalsFor":910,"goalsAgainst":1468,"avgRating":7.833340163934427,"adjPoints":0.9234980902991384,"rawWinRate":22.33606557377049,"rank":6}],"correction":{"priorRatio":0.4,"seasonPrior":86,"leaguePpg":1.4312546957175056},"deckTitle":"시즌2 어워드 · 사람 합산","who":"사람","entities":6,"peopleMode":true,"totals":{"games":1331,"goals":3230,"users":9}};
+const BACK_HREF = "report.html";
+const ALT = {"href":"awards.html","label":"계정별 어워드 보기 →"};
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const MEDAL = ['🥇', '🥈', '🥉'];
+
+function footbar(right) {
+  const left = BACK_HREF
+    ? '<a href="' + BACK_HREF + '" class="back">← 매치 리포트</a>'
+      + (ALT ? '<span class="sep">·</span><a href="' + ALT.href + '" class="back">' + ALT.label + '</a>' : '')
+    : '<span>FC ONLINE · ' + DATA.deckTitle + ' · 커스텀 매치</span>';
+  return '<div class="footbar">' + left +
+    (right ? '<span class="right">' + esc(right) + '</span>' : '') + '</div>';
+}
+
+const slides = [];
+
+// 표지
+slides.push({
+  nav: '표지',
+  html: '<div class="slide cover">' +
+    '<div class="cover-kicker">FC ONLINE</div>' +
+    '<div class="cover-title">' + DATA.deckTitle.replace(' · ', '<br><span style="font-size:.55em;color:var(--gold)">') + (DATA.peopleMode ? '</span>' : '') + '</div>' +
+    '<div class="cover-rule"></div>' +
+    '<div class="cover-sub">SEASON 2 AWARDS · 커스텀 매치 전 기록 기준</div>' +
+    '<div class="cover-stats">' +
+      '<div><div class="v">' + DATA.entities + '명</div><div class="k">참가자(' + DATA.who + ' 기준)</div></div>' +
+      '<div><div class="v">' + DATA.totals.games.toLocaleString() + '전</div><div class="k">집계 경기</div></div>' +
+      '<div><div class="v">' + DATA.totals.goals.toLocaleString() + '골</div><div class="k">총 득점</div></div>' +
+      '<div><div class="v">' + DATA.awards.length + '개</div><div class="k">어워드 부문</div></div>' +
+    '</div>' +
+    '<div class="cover-meta">집계 ' + esc(DATA.snapshotAt.slice(0, 16).replace('T', ' ')) + ' UTC · 시즌2 종료 2026-10-28</div>' +
+    footbar('시즌2 종료: 2026-10-28') + '</div>'
+});
+
+// 보정 설명 — 수치는 순위표에서 직접 계산한다(덱마다 다르다).
+const rankedGames = DATA.ranking.map((r) => r.games);
+const MIN_G = Math.min.apply(null, rankedGames);
+const MAX_G = Math.max.apply(null, rankedGames);
+const GAP = (MAX_G / MIN_G).toFixed(0);
+const rawOrder = DATA.ranking.slice().sort((a, b) => b.rawWinRate - a.rawWinRate).map((r) => r.nickname);
+const RANK_CHANGES = DATA.ranking
+  .map((r) => ({ who: r.nickname, from: rawOrder.indexOf(r.nickname) + 1, to: r.rank, games: r.games }))
+  .filter((c) => c.from !== c.to)
+  .sort((a, b) => a.to - b.to)
+  .map((c) => c.who + ' ' + c.from + '위 → ' + c.to + '위 (' + c.games + '전)');
+const CHANGE_LINE = RANK_CHANGES.length
+  ? RANK_CHANGES.join(' · ')
+  : '순위가 뒤집힌 사람은 없었지만 점수 간격이 달라졌습니다.';
+
+slides.push({
+  nav: '보정 안내',
+  html: '<div class="slide">' +
+    '<div class="head"><div><h2>순위는 "보정 승점"으로 매겼습니다</h2></div></div><div class="rule"></div>' +
+    '<dl class="notes lg">' +
+      '<dt>왜?</dt><dd>경기 수가 ' + MIN_G + '전부터 ' + MAX_G + '전까지 <b>약 ' + GAP + '배</b> 차이납니다. 적게 뛰면 승률이 운으로 크게 튑니다 — 같은 승률이라도 ' + MIN_G + '전과 ' + MAX_G + '전은 신뢰도가 전혀 다릅니다.</dd>' +
+      '<dt>어떻게?</dt><dd>모두에게 <b>"리그 평균 성적의 가상 경기 ' + DATA.correction.seasonPrior + '판"</b>을 먼저 얹고 계산했습니다.<br>' +
+        '<span style="color:var(--gold);font-weight:700">보정값 = (실제 기록 + ' + DATA.correction.seasonPrior + ' × 리그평균) ÷ (실제 경기 + ' + DATA.correction.seasonPrior + ')</span></dd>' +
+      '<dt>효과</dt><dd>많이 뛸수록 가상 경기가 희석돼 자기 실력이 그대로 드러나고, 적게 뛴 사람은 평균 쪽으로 당겨집니다. 상위권만 깎는 게 아니라 적게 뛰어 낮았던 하위권도 끌어올립니다.</dd>' +
+      '<dt>적용 범위</dt><dd>승률·경기당 득점·성공률 같은 <b>비율 지표</b>는 전부 보정했습니다. 총 득점·출전 수 같은 <b>누적 기록</b>은 보정하지 않습니다 — 많이 해서 많은 게 맞는 지표입니다.</dd>' +
+      '<dt>달라진 것</dt><dd>' + CHANGE_LINE + '</dd>' +
+    '</dl>' + footbar('보정 안내') + '</div>'
+});
+
+// 최종 순위
+{
+  let rows = '';
+  for (const r of DATA.ranking) {
+    const diff = r.goalsFor - r.goalsAgainst;
+    rows += '<tr' + (r.rank <= 3 ? ' class="top"' : '') + '>' +
+      '<td class="rank">' + r.rank + '</td>' +
+      '<td class="name">' + esc(r.nickname) + ' <span style="color:var(--muted)">(' + esc(r.realName) + ')</span></td>' +
+      '<td>' + r.games + '</td><td>' + r.win + '</td><td>' + r.draw + '</td><td>' + r.lose + '</td>' +
+      '<td style="color:var(--gold)"><b>' + r.adjPoints.toFixed(2) + '</b></td>' +
+      '<td>' + r.goalsFor + '</td><td>' + r.goalsAgainst + '</td>' +
+      '<td class="' + (diff > 0 ? 'pos' : 'neg') + '">' + (diff > 0 ? '+' : '') + diff + '</td>' +
+      '<td>' + r.avgRating.toFixed(2) + '</td></tr>';
+  }
+  slides.push({
+    nav: '최종 순위',
+    html: '<div class="slide">' +
+      '<div class="head"><div><h2>시즌2 최종 순위</h2><div class="basis">보정 승점 기준 · 커스텀 매치 · 전체 상대 합산 (경기당, 승3·무1)</div></div></div>' +
+      '<div class="rule"></div>' +
+      '<table><thead><tr><th>#</th><th style="text-align:left;padding-left:1.4cqh">유저</th><th>경기</th><th>승</th><th>무</th><th>패</th><th>보정승점</th><th>득점</th><th>실점</th><th>득실</th><th>평점</th></tr></thead><tbody>' +
+      rows + '</tbody></table>' + footbar('보정 승점 = 가상 경기 ' + DATA.correction.seasonPrior + '판을 얹은 경기당 승점') + '</div>'
+  });
+}
+
+function sectionSlide(title, sub, count) {
+  slides.push({
+    nav: title,
+    html: '<div class="slide section">' +
+      '<div class="count">' + count + '개 부문</div>' +
+      '<div class="bar"></div>' +
+      '<h2>' + esc(title) + '</h2><p>' + esc(sub) + '</p>' + footbar() + '</div>'
+  });
+}
+
+function awardSlide(a, idx, total) {
+  const win = a.rows[0];
+  let runners = '';
+  a.rows.slice(1).forEach((r, i) => {
+    runners += '<div class="runner s' + (i + 2) + '"><span class="medal">' + MEDAL[i + 1] + '</span>' +
+      '<span class="who">' + esc(r.who) + '</span><span class="detail">' + esc(r.detail) + '</span></div>';
+  });
+  slides.push({
+    nav: a.title, section: a.section, award: a,
+    html: '<div class="slide">' +
+      '<div class="head"><div><h2>' + a.icon + ' ' + esc(a.title) + '</h2>' +
+      '<div class="basis">' + esc(a.basis) + '</div></div>' +
+      '<div class="counter">' + String(idx).padStart(2, '0') + ' / ' + String(total).padStart(2, '0') + '</div></div>' +
+      '<div class="rule"></div>' +
+      '<div class="podium">' + (win ? '<div class="first"><span class="medal">' + MEDAL[0] + '</span><div>' +
+        '<div class="who">' + esc(win.who) + '</div><div class="detail">' + esc(win.detail) + '</div></div></div>' : '') +
+      runners + '</div>' +
+      (a.comment ? '<div class="comment"><div class="label">💬 한줄평</div><div class="body">' + esc(a.comment) + '</div></div>' : '') +
+      footbar(a.section) + '</div>'
+  });
+}
+
+const userAwards = DATA.awards.filter((a) => a.section !== '선수 부문');
+const playerAwards = DATA.awards.filter((a) => a.section === '선수 부문');
+
+sectionSlide(DATA.who + ' 부문', DATA.entities + '명이 직접 쌓은 기록 — 승률부터 삽질까지', userAwards.length);
+userAwards.forEach((a, i) => awardSlide(a, i + 1, userAwards.length));
+sectionSlide('선수 부문', DATA.entities + '명의 스쿼드 전체를 합산한 선수 카드 기록', playerAwards.length);
+playerAwards.forEach((a, i) => awardSlide(a, i + 1, playerAwards.length));
+
+// 기준과 한계
+{
+  const notes = [
+    ['대상', '커스텀 매치만 (공식전 제외). 시즌2 = 2026-10-28 종료, seasonId=2.'],
+    ['원본', '인사이트 스냅샷 ' + DATA.snapshotAt.slice(0, 10) + ' 집계분 (추적 유저 9계정 × 커스텀)' + (DATA.peopleMode ? ' — 같은 사람의 계정을 합쳐 ' + DATA.entities + '명으로 집계했다. 같은 사람끼리 맞붙은 경기는 한 건도 없어 중복 계상이 생기지 않는다.' : '.')],
+    ['보정', '비율 지표는 전부 베이지안 축소로 보정했다 — 리그 평균짜리 가상 경기를 분모 중앙값의 40%만큼(경기 기준 약 ' + DATA.correction.seasonPrior + '판) 얹고 계산한다. 경기 수 최소 컷은 두지 않았다, 보정이 그 역할을 대신한다.'],
+    ['교차 확인', '상대 강도까지 보정하는 Bradley-Terry 레이팅으로도 계산해봤고 상위 4명 순서는 같았다. 5위 이하만 한두 칸 달라진다.'],
+    ['선수 부문', DATA.entities + '명의 스쿼드를 선수 이름 기준으로 전부 합산했다. 같은 선수를 여러 유저가 쓰면 출전·골이 합쳐진다(베컴 471출전이 그 이유). 출전은 선발만 세고 교체 투입은 제외된다.'],
+    ['매치업상', '천적·밥상 부문은 추적 대상 ' + DATA.entities + '명끼리의 맞대결만, 5경기 이상에서 뽑았다.'],
+    ['제외된 기록', 'xG·골대 맞음·자책골·오프사이드·게임 일시정지·경기 시각(심야 축구왕)·최대 점수차는 이 스냅샷에 없다 — DB를 직접 집계하면 추가할 수 있다.'],
+    ['커버리지 주의', '커스텀 집계는 정상 종료(matchEndType=0) 경기만 포함한다. 그 값이 비어 있는 과거 경기는 조용히 빠지므로, 시즌2 초반 일부 경기가 누락됐을 수 있다.']
+  ];
+  slides.push({
+    nav: '집계 기준과 한계',
+    html: '<div class="slide">' +
+      '<div class="head"><div><h2>집계 기준과 한계</h2></div></div><div class="rule"></div>' +
+      '<dl class="notes">' + notes.map(([k, v]) => '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>').join('') + '</dl>' +
+      footbar('끝') + '</div>'
+  });
+}
+
+// ---------------- 렌더 & 조작 ----------------
+const deck = document.getElementById('deck');
+deck.innerHTML = slides.map((s) => s.html).join('');
+const els = [...deck.querySelectorAll('.slide')];
+let cur = 0;
+
+function show(i) {
+  cur = Math.max(0, Math.min(slides.length - 1, i));
+  els.forEach((el, n) => el.classList.toggle('active', n === cur));
+  document.getElementById('progress').style.width = ((cur + 1) / slides.length * 100) + '%';
+  location.hash = cur === 0 ? '' : String(cur + 1);
+}
+
+// 전체 보기 — 어워드 슬라이드만 카드로 깐다.
+const ov = document.getElementById('overview');
+ov.innerHTML = '<h3>전체 어워드 ' + DATA.awards.length + '개</h3>' +
+  '<div class="hint">카드를 누르면 그 슬라이드로 이동합니다 · O 또는 Esc로 닫기</div><div class="grid">' +
+  slides.map((s, i) => s.award
+    ? '<div class="card" data-i="' + i + '"><div class="t">' + s.award.icon + ' ' + esc(s.award.title) + '</div>' +
+      '<div class="w">' + MEDAL[0] + ' ' + esc(s.award.rows[0] ? s.award.rows[0].who : '-') + '</div>' +
+      '<div class="n">' + esc(s.award.section) + '</div></div>'
+    : '').join('') + '</div>';
+ov.addEventListener('click', (e) => {
+  const c = e.target.closest('.card');
+  if (c) { show(Number(c.dataset.i)); ov.classList.remove('open'); }
+  else if (e.target === ov) ov.classList.remove('open');
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { show(cur + 1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(cur - 1); e.preventDefault(); }
+  else if (e.key === 'Home') show(0);
+  else if (e.key === 'End') show(slides.length - 1);
+  else if (e.key === 'o' || e.key === 'O') ov.classList.toggle('open');
+  else if (e.key === 'Escape') ov.classList.remove('open');
+  else if (e.key === 'f' || e.key === 'F') {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+});
+
+// 클릭/터치 — 오른쪽 3분의 2는 다음, 왼쪽 3분의 1은 이전.
+document.getElementById('stage').addEventListener('click', (e) => {
+  show(e.clientX < window.innerWidth / 3 ? cur - 1 : cur + 1);
+});
+let tx = null;
+document.addEventListener('touchstart', (e) => { tx = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (tx === null) return;
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 45) show(cur + (dx < 0 ? 1 : -1));
+  tx = null;
+}, { passive: true });
+
+setTimeout(() => document.getElementById('help').classList.add('gone'), 4000);
+
+show(location.hash ? Number(location.hash.slice(1)) - 1 || 0 : 0);
+</script>
+</body>
+</html>
