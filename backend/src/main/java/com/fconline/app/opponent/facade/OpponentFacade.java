@@ -5,6 +5,8 @@ import com.fconline.app.common.TeamPeriodRangeResolver;
 import com.fconline.app.common.dto.MatchTallyResponse;
 import com.fconline.app.common.dto.StreakBadgeResponse;
 import com.fconline.app.opponent.dto.OpponentMatchResponse;
+import com.fconline.app.opponent.dto.OpponentStreakRecordsResponse;
+import com.fconline.domain.streak.StreakRecords;
 import com.fconline.app.opponent.dto.OpponentSummaryResponse;
 import com.fconline.domain.match.repository.MatchDetailRepository;
 import com.fconline.domain.match.service.MatchDomainService;
@@ -93,6 +95,18 @@ public class OpponentFacade {
                 streak,
                 dugsikScore
         );
+    }
+
+    /**
+     * 이 상대와의 역대 최고 기록(최다 연승/무패/무승/연패 + 기간). 시즌·사용한 팀 필터와 무관하게
+     * 항상 전 기간(프리시즌 포함)이다 — opponent_streaks는 시즌별이라 "역대"를 줄 수 없어 매번
+     * 경기 결과를 재생해 계산한다(가벼운 2컬럼 프로젝션). Redis 캐시 대상(TTL 30분).
+     */
+    @Cacheable(CacheNames.OPPONENT_STREAK_RECORDS)
+    @Transactional(readOnly = true)
+    public OpponentStreakRecordsResponse getStreakRecords(String ouid, String opponentOuid, MatchType matchType) {
+        return OpponentStreakRecordsResponse.from(StreakRecords.from(
+                matchDetailRepository.findChronologicalResultsWithDate(ouid, opponentOuid, matchType, null, null)));
     }
 
     @Transactional(readOnly = true)

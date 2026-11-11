@@ -38,6 +38,7 @@ public final class CacheNames {
 
     // --- OpponentFacade ---
     public static final String OPPONENTS = "opponents";
+    public static final String OPPONENT_STREAK_RECORDS = "opponent-streak-records";
 
     // --- UserFacade/SeasonFacade ---
     public static final String TRACKED_USERS = "tracked-users";

@@ -1710,6 +1710,50 @@
     container.appendChild(wrap);
   }
 
+  /** "26.10.03" — 역대 기록 기간 표시용(KST 기준 날짜만). */
+  function fmtShortDate(iso) {
+    var d = new Date(iso);
+    var parts = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit' })
+      .formatToParts(d);
+    var get = function (t) { return (parts.find(function (p) { return p.type === t; }) || {}).value; };
+    return get('year') + '.' + get('month') + '.' + get('day');
+  }
+
+  /**
+   * 상대별 전적 펼침 패널 맨 위의 "역대 최고 기록" — 최다 연승/무패(승·무)/무승(무·패)/연패와
+   * 그 기간. 시즌 칩과 무관한 전 기간 기록이다(/opponents/{ouid}/streak-records).
+   */
+  function streakRecordsSection(container, records) {
+    if (!records || !records.totalMatches) return;
+    container.appendChild(el('p', 'card-caption',
+      '🏆 역대 최고 기록 · 시즌 무관 전체 ' + fmt(records.totalMatches) + '경기 (' +
+      fmtShortDate(records.firstMatchDate) + ' ~ ' + fmtShortDate(records.lastMatchDate) + ')'));
+    var grid = el('div', 'stat-mini-grid opp-records-grid');
+    [
+      ['win', '🔥 최다 연승', '연승', '승리만 연속'],
+      ['unbeaten', '🛡️ 최다 무패', '경기 무패', '승·무 연속 (안 지고 버틴 경기)'],
+      ['winless', '💤 최다 무승', '경기 무승', '무·패 연속 (못 이긴 경기)'],
+      ['lose', '😭 최다 연패', '연패', '패배만 연속']
+    ].forEach(function (spec) {
+      var run = records[spec[0]];
+      var value = run.count > 0 ? run.count + spec[2] : '-';
+      var sub = '';
+      if (run.count > 0) {
+        var from = fmtShortDate(run.from), to = fmtShortDate(run.to);
+        sub = from === to ? from : from + ' ~ ' + to;
+      }
+      statMini(grid, spec[1], value, sub, spec[3]);
+      var box = grid.lastChild;
+      box.classList.add('record-' + spec[0]);
+      if (run.ongoing && run.count > 0) {
+        var sb = box.querySelector('.stat-mini-sub');
+        sb.appendChild(document.createTextNode(' · '));
+        sb.appendChild(el('span', 'record-ongoing', '진행 중'));
+      }
+    });
+    container.appendChild(grid);
+  }
+
   // ---------------- match detail modal ----------------
   var modalOverlay = document.getElementById('modal-overlay');
   var modalTitle = document.getElementById('modal-title');
@@ -2640,7 +2684,11 @@
             // 이 상대전 평균 어시 xA값용(요청 — xG 노출하는 곳엔 전부 xA도 같이).
             apiGet('/api/v1/records/assisted-shot-heatmap',
               { ouid: qs.ouid, matchType: qs.matchType, seasonId: qs.seasonId, teamPeriodId: qs.teamPeriodId, opponentOuid: o.opponentOuid })
-              .catch(function () { return { points: [] }; })
+              .catch(function () { return { points: [] }; }),
+            // 역대 최고 기록 — 시즌/팀 필터와 무관하게 항상 전 기간(그래서 seasonId/teamPeriodId를 안 넘긴다).
+            apiGet('/api/v1/opponents/' + encodeURIComponent(o.opponentOuid) + '/streak-records',
+              { ouid: qs.ouid, matchType: qs.matchType })
+              .catch(function () { return null; })
           ]).then(function (results) {
               var matches = results[0];
               var vsOpponentPlayers = results[1];
@@ -2648,6 +2696,8 @@
               var concededPoints = results[3].points;
               var assistedPoints = results[4].points;
               inner.replaceChildren();
+              // 이번 시즌 경기가 없어도 역대 기록은 있을 수 있으므로 빈 상태 체크보다 먼저 그린다.
+              streakRecordsSection(inner, results[5]);
               if (!matches.length) {
                 inner.appendChild(el('p', 'card-empty', '최근 경기 기록이 없습니다.'));
                 return;

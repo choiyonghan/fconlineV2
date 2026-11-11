@@ -2,6 +2,7 @@ package com.fconline.app.opponent.controller;
 
 import com.fconline.app.opponent.facade.OpponentFacade;
 import com.fconline.app.opponent.dto.OpponentMatchResponse;
+import com.fconline.app.opponent.dto.OpponentStreakRecordsResponse;
 import com.fconline.app.opponent.dto.OpponentSummaryResponse;
 import com.fconline.domain.match.vo.MatchType;
 import java.util.List;
@@ -30,6 +31,14 @@ public class OpponentController {
                                                          @RequestParam(required = false) Long seasonId,
                                                          @RequestParam(required = false) Long teamPeriodId) {
         return opponentFacade.listOpponents(ouid, matchType, seasonId, teamPeriodId);
+    }
+
+    /** 이 상대와의 역대(전 기간) 최고 기록 — seasonId/teamPeriodId를 받지 않는 게 의도다. */
+    @GetMapping("/{opponentOuid}/streak-records")
+    public OpponentStreakRecordsResponse getStreakRecords(@PathVariable String opponentOuid,
+                                                           @RequestParam String ouid,
+                                                           @RequestParam MatchType matchType) {
+        return opponentFacade.getStreakRecords(ouid, opponentOuid, matchType);
     }
 
     @GetMapping("/{opponentOuid}/matches")

@@ -589,6 +589,16 @@
 
   /* ---------- 상대별 전적 펼침 — 이 상대전 평균/TOP3 ---------- */
   .opp-summary-grid { margin-top: 12px; margin-bottom: 14px; }
+  /* 역대 최고 기록(시즌 무관) — 펼침 패널 맨 위. 4칸 한 줄, 좁은 화면은 2x2. */
+  .opp-records-grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 14px; }
+  @media (max-width: 560px) {
+    .opp-records-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .opp-records-grid .record-win .stat-mini-value,
+  .opp-records-grid .record-unbeaten .stat-mini-value { color: var(--status-good); }
+  .opp-records-grid .record-winless .stat-mini-value { color: var(--status-warning-text); }
+  .opp-records-grid .record-lose .stat-mini-value { color: var(--status-critical); }
+  .record-ongoing { font-weight: 600; color: var(--text-primary); }
   .opp-top3-wrap { display: flex; flex-direction: column; gap: 12px; }
   .top3-list { display: flex; flex-direction: column; gap: 6px; }
   .top3-row {

@@ -26,6 +26,8 @@ import com.fconline.domain.match.vo.ShootResult;
 import com.fconline.domain.match.vo.ShootType;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.Projections;
+import com.fconline.domain.match.vo.ChronologicalResult;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQuery;
@@ -309,6 +311,21 @@ public class MatchDetailRepositoryImpl implements MatchDetailRepositoryCustom {
                 .join(md.match, m)
                 .where(baseWhere(md, m, ouid, matchType, from, to).and(md.opponentOuid.eq(opponentOuid)))
                 .orderBy(m.matchDate.asc())
+                .fetch();
+    }
+
+    @Override
+    public List<ChronologicalResult> findChronologicalResultsWithDate(String ouid, String opponentOuid,
+                                                                       MatchType matchType, Instant from, Instant to) {
+        QMatchDetail md = QMatchDetail.matchDetail;
+        QMatch m = QMatch.match;
+
+        return queryFactory
+                .select(Projections.constructor(ChronologicalResult.class, md.result, m.matchDate))
+                .from(md)
+                .join(md.match, m)
+                .where(baseWhere(md, m, ouid, matchType, from, to).and(md.opponentOuid.eq(opponentOuid)))
+                .orderBy(m.matchDate.asc(), m.matchId.asc())
                 .fetch();
     }
 

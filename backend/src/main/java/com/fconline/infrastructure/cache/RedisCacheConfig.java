@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fconline.app.insight.dto.AskResponse;
+import com.fconline.app.opponent.dto.OpponentStreakRecordsResponse;
 import com.fconline.app.opponent.dto.OpponentSummaryResponse;
 import com.fconline.app.record.dto.AssistChainResponse;
 import com.fconline.app.record.dto.MatchShotsResponse;
@@ -103,6 +104,8 @@ public class RedisCacheConfig implements CachingConfigurer {
                 Map.entry(CacheNames.INSIGHT_ANSWERS, typedConfig(objectMapper, AskResponse.class, TTL)),
                 Map.entry(CacheNames.OPPONENTS,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, OpponentSummaryResponse.class), TTL)),
+                Map.entry(CacheNames.OPPONENT_STREAK_RECORDS,
+                        typedConfig(objectMapper, OpponentStreakRecordsResponse.class, TTL)),
                 Map.entry(CacheNames.TRACKED_USERS,
                         typedConfig(objectMapper, tf.constructCollectionType(List.class, TrackedUserResponse.class), TTL)),
                 Map.entry(CacheNames.SEASONS,

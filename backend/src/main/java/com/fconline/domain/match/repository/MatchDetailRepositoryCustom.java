@@ -1,6 +1,7 @@
 package com.fconline.domain.match.repository;
 
 import com.fconline.domain.match.vo.AssistChainCount;
+import com.fconline.domain.match.vo.ChronologicalResult;
 import com.fconline.domain.match.vo.GoalTimeRaw;
 import com.fconline.domain.match.vo.GoalTypeCount;
 import com.fconline.domain.match.vo.MatchResult;
@@ -72,6 +73,13 @@ public interface MatchDetailRepositoryCustom {
      */
     List<MatchResult> findChronologicalResults(String ouid, String opponentOuid, MatchType matchType,
                                                 Instant from, Instant to);
+
+    /**
+     * findChronologicalResults와 같은 필터/순서에 경기 시각까지 함께 — 상대별 역대 최고 기록
+     * (StreakRecords, 기간 표시용) 전용. from/to가 null이면 그 방향으로 제한 없음(= 전 기간).
+     */
+    List<ChronologicalResult> findChronologicalResultsWithDate(String ouid, String opponentOuid, MatchType matchType,
+                                                               Instant from, Instant to);
 
     /**
      * 특정 상대와의 개별 경기 목록 (페이지네이션). 목록 화면은 shoot_detail/player_squad/
